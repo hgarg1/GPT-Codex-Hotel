@@ -9,9 +9,22 @@ const { saveMessage, isBlocked } = require('./models/chat');
 const PORT = process.env.PORT || 3000;
 
 const server = http.createServer(app);
+const defaultOrigin = `http://localhost:${PORT}`;
+const fallbackOrigin = `http://127.0.0.1:${PORT}`;
+const allowedOrigins = new Set([defaultOrigin, fallbackOrigin]);
+if (process.env.SOCKET_ORIGIN) {
+  allowedOrigins.add(process.env.SOCKET_ORIGIN);
+}
+
 const io = new Server(server, {
   cors: {
-    origin: '*'
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.has(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Socket origin not allowed.'));
+    },
+    credentials: true
   }
 });
 

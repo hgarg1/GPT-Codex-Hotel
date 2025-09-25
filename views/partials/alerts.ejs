@@ -1,7 +1,7 @@
 <% if (alerts && alerts.length) { %>
-  <div class="alert-stack" data-alert-stack>
+  <div class="alert-stack" data-alert-stack aria-live="polite">
     <% alerts.forEach(function(alert) { %>
-      <div class="toast-alert toast-<%= alert.type %>">
+      <div class="toast-alert toast-<%= alert.type %>" data-autodismiss="6500" role="status">
         <span><%= alert.message %></span>
         <button type="button" class="alert-close" data-dismiss-alert aria-label="Dismiss">×</button>
       </div>
