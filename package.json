@@ -4,16 +4,29 @@
   "description": "Express.js backend for the GPT Codex Hotel project.",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
   },
   "keywords": [
     "express",
-    "api"
+    "hotel",
+    "booking"
   ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "express": "^5.1.0"
+    "bcrypt": "^5.1.1",
+    "csurf": "^1.11.0",
+    "ejs": "^3.1.9",
+    "express": "^5.1.0",
+    "express-session": "^1.18.1",
+    "express-validator": "^7.0.1",
+    "joi": "^17.12.0",
+    "sanitize-html": "^2.13.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
   }
 }

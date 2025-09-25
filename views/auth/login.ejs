@@ -1,0 +1,16 @@
+<%- include('../partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
+<%- include('../partials/nav') %>
+<%- include('../partials/alerts') %>
+<section class="auth-card" data-animate="fade-up">
+  <h1>Log into <%= hotelName %></h1>
+  <form action="/login" method="post" class="auth-form">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+    <label for="email">Email</label>
+    <input type="email" id="email" name="email" required />
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" required />
+    <button type="submit" class="cta-button primary">Access Dashboard</button>
+    <p class="auth-switch">New voyager? <a href="/signup">Create an account</a>.</p>
+  </form>
+</section>
+<%- include('../partials/footer') %>

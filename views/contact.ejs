@@ -1,0 +1,27 @@
+<%- include('partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
+<%- include('partials/nav') %>
+<%- include('partials/alerts') %>
+<section class="page-hero" data-animate="fade-up">
+  <h1>Send a Transmission</h1>
+  <p>Our curators and AI concierge duo are ready to orchestrate your next stay at <%= hotelName %>.</p>
+</section>
+<section class="contact-grid" data-animate="fade-up">
+  <form action="/contact" method="post" class="contact-form">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+    <label for="name">Name</label>
+    <input type="text" id="name" name="name" required />
+    <label for="email">Email</label>
+    <input type="email" id="email" name="email" required />
+    <label for="message">Message</label>
+    <textarea id="message" name="message" rows="5" required></textarea>
+    <button type="submit" class="cta-button primary">Beam Message</button>
+  </form>
+  <aside class="contact-info">
+    <h2>Connect</h2>
+    <p>Dock 7 • Stratos District • Neo-Tokyo Arcology</p>
+    <p>+1-202-555-0177</p>
+    <p>concierge@auroranexus.com</p>
+    <img src="/images/skyline.svg" alt="Skyline illustration" />
+  </aside>
+</section>
+<%- include('partials/footer') %>

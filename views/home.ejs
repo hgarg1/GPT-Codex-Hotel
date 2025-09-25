@@ -1,0 +1,83 @@
+<%- include('partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
+<%- include('partials/nav') %>
+<%- include('partials/alerts') %>
+<section class="hero" data-animate="fade-up">
+  <div class="hero-copy">
+    <h1>Arrive at the Horizon of Tomorrow</h1>
+    <p>At <strong><%= hotelName %></strong>, every suite is tuned to your biometrics, every vista responds to your imagination, and every moment pulses with cosmic calm.</p>
+    <div class="hero-ctas">
+      <a class="cta-button primary" href="#booking">Book a Suite</a>
+      <a class="cta-button" href="/rooms">Explore Amenities</a>
+    </div>
+  </div>
+  <div class="hero-visual" aria-hidden="true">
+    <img src="/images/nebula.svg" alt="Futuristic aurora skyline" />
+  </div>
+</section>
+<section class="booking-card" id="booking" data-animate="fade-up">
+  <h2>Reserve Your Orbit</h2>
+  <form action="/book" method="post" class="booking-form">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+    <div class="field-group">
+      <label for="roomId">Room Type</label>
+      <select name="roomId" id="roomId" required>
+        <% highlights.forEach(function(room) { %>
+          <option value="<%= room.id %>"><%= room.name %> — sleeps <%= room.capacity %> • <%= room.category %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="field-row">
+      <div class="field-group">
+        <label for="startDate">Arrival</label>
+        <input type="date" id="startDate" name="startDate" required />
+      </div>
+      <div class="field-group">
+        <label for="endDate">Departure</label>
+        <input type="date" id="endDate" name="endDate" required />
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field-group">
+        <label for="guests">Guests</label>
+        <input type="number" id="guests" name="guests" min="1" max="8" value="2" required />
+      </div>
+      <div class="field-group">
+        <label for="notes">Notes</label>
+        <input type="text" id="notes" name="notes" placeholder="Accessibility, celebrations, orbit requests..." />
+      </div>
+    </div>
+    <button type="submit" class="cta-button primary">Confirm Availability</button>
+  </form>
+</section>
+<section class="highlight-grid" data-animate="fade-up">
+  <h2>Featured Sanctuaries</h2>
+  <div class="card-grid">
+    <% highlights.forEach(function(room) { %>
+      <article class="room-card">
+        <img src="<%= room.image %>" alt="Illustration of <%= room.name %>" />
+        <div class="room-body">
+          <h3><%= room.name %></h3>
+          <p><%= room.description %></p>
+          <ul class="room-meta">
+            <li>Category: <%= room.category %></li>
+            <li>Capacity: <%= room.capacity %> guests</li>
+            <li>From ₵<%= room.price %> / night</li>
+            <li><%= room.availableUnits %> suites remaining</li>
+          </ul>
+        </div>
+      </article>
+    <% }) %>
+  </div>
+</section>
+<section class="amenities" data-animate="fade-up">
+  <h2>Immersive Amenities</h2>
+  <div class="amenities-grid">
+    <% amenities.forEach(function(item) { %>
+      <div class="amenity">
+        <span class="icon">◎</span>
+        <p><%= item %></p>
+      </div>
+    <% }) %>
+  </div>
+</section>
+<%- include('partials/footer') %>
