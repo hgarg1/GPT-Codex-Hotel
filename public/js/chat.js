@@ -10,14 +10,30 @@
   const form = document.querySelector('[data-chat-form]');
   const activeChannelHeading = document.querySelector('[data-active-channel]');
   const typingIndicator = document.querySelector('[data-typing]');
+  const statusIndicator = document.querySelector('[data-chat-status]');
 
-  const socket = window.io();
+  const socket = window.io(window.location.origin, {
+    path: '/socket.io',
+    transports: ['websocket', 'polling'],
+    withCredentials: true,
+    autoConnect: true,
+    reconnectionAttempts: 6
+  });
 
   let activeRoom = 'lobby';
   let activeDm = null;
   let typingTimeout;
 
   const formatTimestamp = (iso) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const setStatus = (state, label) => {
+    if (!statusIndicator) return;
+    statusIndicator.textContent = label;
+    statusIndicator.classList.toggle('is-online', state === 'online');
+    statusIndicator.classList.toggle('is-offline', state !== 'online');
+  };
+
+  setStatus('offline', 'Connecting…');
 
   const renderMessage = (message) => {
     const wrapper = document.createElement('div');
@@ -106,6 +122,30 @@
 
   socket.on('chat:message', (message) => {
     renderMessage(message);
+  });
+
+  socket.on('connect', () => {
+    setStatus('online', 'Live');
+  });
+
+  socket.on('disconnect', () => {
+    setStatus('offline', 'Reconnecting…');
+  });
+
+  socket.on('connect_error', () => {
+    setStatus('offline', 'Connection issue');
+  });
+
+  socket.io.on('reconnect_attempt', () => {
+    setStatus('offline', 'Reconnecting…');
+  });
+
+  socket.io.on('reconnect_failed', () => {
+    setStatus('offline', 'Offline');
+  });
+
+  socket.io.on('error', () => {
+    setStatus('offline', 'Connection issue');
   });
 
   socket.on('typing', ({ userId, room }) => {

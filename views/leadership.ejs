@@ -1,0 +1,77 @@
+<%- include('partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
+<%- include('partials/nav') %>
+<%- include('partials/alerts') %>
+
+<section class="leadership" data-animate="fade-up">
+  <header class="leadership-hero">
+    <h1>Visionaries of <%= hotelName %></h1>
+    <p>
+      Meet the board, executive team, and advisors orchestrating Aurora Nexus Skyhaven's next horizon.
+      Their combined expertise keeps our orbit smooth, our guests inspired, and our concierge channels alive.
+    </p>
+  </header>
+
+  <section class="leadership-section" data-animate="fade-up">
+    <div class="section-heading">
+      <h2>Board of Directors</h2>
+      <p>Strategists safeguarding our mission across galaxies and guardians of ethical hospitality.</p>
+    </div>
+    <div class="team-grid">
+      <% boardMembers.forEach(function(member) { %>
+        <article class="team-card">
+          <h3><%= member.name %></h3>
+          <p class="team-role"><%= member.role %></p>
+          <p class="team-focus"><%= member.focus %></p>
+          <a class="pill-link" href="mailto:<%= member.contact %>">Connect</a>
+        </article>
+      <% }) %>
+    </div>
+  </section>
+
+  <section class="leadership-section" data-animate="fade-up">
+    <div class="section-heading">
+      <h2>Executive Team</h2>
+      <p>Operational brilliance in constant sync with the predictive concierge intelligence.</p>
+    </div>
+    <div class="team-grid">
+      <% executiveTeam.forEach(function(member) { %>
+        <article class="team-card highlight">
+          <h3><%= member.name %></h3>
+          <p class="team-role"><%= member.role %></p>
+          <p class="team-focus"><%= member.focus %></p>
+          <a class="pill-link primary" href="mailto:<%= member.contact %>">Message</a>
+        </article>
+      <% }) %>
+    </div>
+  </section>
+
+  <section class="leadership-section" data-animate="fade-up">
+    <div class="section-heading">
+      <h2>Advisory Council</h2>
+      <p>Specialists ensuring our habitats, logistics, and guest safety remain beyond reproach.</p>
+    </div>
+    <div class="team-grid slim">
+      <% advisoryCouncil.forEach(function(member) { %>
+        <article class="team-card">
+          <h3><%= member.name %></h3>
+          <p class="team-role"><%= member.role %></p>
+          <p class="team-focus"><%= member.focus %></p>
+          <a class="pill-link" href="mailto:<%= member.contact %>">Consult</a>
+        </article>
+      <% }) %>
+    </div>
+  </section>
+
+  <section class="leadership-contact" data-animate="fade-up">
+    <div>
+      <h2>Partner with our leaders</h2>
+      <p>
+        Planning a summit, residency, or immersive brand activation? Our executive concierge can align you with the
+        right visionary. Expect a response within one Earth day.
+      </p>
+      <a class="cta-button primary" href="mailto:alliances@auroranexus.com">Start a collaboration</a>
+    </div>
+  </section>
+</section>
+
+<%- include('partials/footer') %>

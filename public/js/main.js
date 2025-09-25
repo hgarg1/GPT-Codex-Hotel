@@ -41,14 +41,37 @@
     observer.observe(element);
   });
 
+  const dismissToast = (toast) => {
+    if (!toast || toast.classList.contains('is-dismissed')) return;
+    toast.classList.add('is-dismissed');
+    toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+  };
+
   document.querySelectorAll('[data-dismiss-alert]').forEach((button) => {
     button.addEventListener('click', () => {
-      const container = button.closest('.toast-alert');
-      if (container) {
-        container.classList.add('is-dismissed');
-        container.addEventListener('transitionend', () => container.remove(), { once: true });
-      }
+      dismissToast(button.closest('.toast-alert'));
     });
+  });
+
+  document.querySelectorAll('.toast-alert').forEach((toast) => {
+    const lifetime = Number(toast.getAttribute('data-autodismiss')) || 6000;
+    if (!Number.isFinite(lifetime) || lifetime <= 0) return;
+    let timer = setTimeout(() => dismissToast(toast), lifetime);
+
+    const pause = () => {
+      clearTimeout(timer);
+      timer = null;
+    };
+
+    const resume = () => {
+      if (timer !== null) return;
+      timer = setTimeout(() => dismissToast(toast), lifetime);
+    };
+
+    toast.addEventListener('mouseenter', pause);
+    toast.addEventListener('mouseleave', resume);
+    toast.addEventListener('focusin', pause);
+    toast.addEventListener('focusout', resume);
   });
 
   const heroCarousel = document.querySelector('[data-hero-carousel]');

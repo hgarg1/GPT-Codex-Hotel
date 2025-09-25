@@ -27,7 +27,7 @@ const cspDirectives = {
   scriptSrc: ["'self'", "'unsafe-inline'"],
   styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://fonts.googleapis.com'],
   imgSrc: ["'self'", 'data:'],
-  connectSrc: ["'self'", 'ws://localhost:3000', 'ws://127.0.0.1:3000'],
+  connectSrc: ["'self'", 'ws:', 'wss:', 'ws://localhost:3000', 'ws://127.0.0.1:3000'],
   fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:']
 };
 
