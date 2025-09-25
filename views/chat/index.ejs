@@ -1,6 +1,6 @@
-<%- include('partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
-<%- include('partials/nav') %>
-<%- include('partials/alerts') %>
+<%- include('../partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
+<%- include('../partials/nav') %>
+<%- include('../partials/alerts') %>
 
 <section class="chat-layout" data-animate="fade-up" data-current-user="<%= currentUser.id %>">
   <aside class="chat-sidebar">
@@ -42,4 +42,4 @@
 </section>
 
 <script defer src="/js/chat.js"></script>
-<%- include('partials/footer') %>
+<%- include('../partials/footer') %>
