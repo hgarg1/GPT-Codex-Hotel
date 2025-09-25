@@ -1,34 +1,33 @@
 <%- include('../partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
 <%- include('../partials/nav') %>
 <%- include('../partials/alerts') %>
+
 <section class="admin" data-animate="fade-up">
-  <h1>Control Deck</h1>
-  <p>Adjust availability, review transmissions, and monitor bookings across <%= hotelName %>.</p>
+  <h1>Control deck</h1>
+  <p>Monitor inventory, track bookings, and respond to guest signals across <%= hotelName %>.</p>
   <div class="admin-grid">
     <section class="admin-panel">
-      <h2>Room Availability</h2>
+      <h2>Room availability</h2>
       <table class="admin-table">
         <thead>
           <tr>
             <th>Suite</th>
-            <th>Category</th>
             <th>Capacity</th>
-            <th>Available</th>
+            <th>Availability</th>
             <th>Adjust</th>
           </tr>
         </thead>
         <tbody>
           <% rooms.forEach(function(room) { %>
             <tr>
-              <td><%= room.name %></td>
-              <td><%= room.category %></td>
+              <td><strong><%= room.name %></strong></td>
               <td><%= room.capacity %></td>
-              <td><%= room.availableUnits %></td>
+              <td><%= room.availability %></td>
               <td>
                 <form action="/admin/rooms/<%= room.id %>" method="post" class="inline-form">
                   <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-                  <input type="number" name="availableUnits" min="0" max="20" value="<%= room.availableUnits %>" />
-                  <button type="submit" class="cta-button">Update</button>
+                  <input type="number" name="availability" min="0" max="50" value="<%= room.availability %>" />
+                  <button type="submit" class="pill-link">Update</button>
                 </form>
               </td>
             </tr>
@@ -36,30 +35,68 @@
         </tbody>
       </table>
     </section>
+
     <section class="admin-panel">
-      <h2>Bookings</h2>
+      <h2>Bookings &amp; payments</h2>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Guest</th>
+            <th>Room</th>
+            <th>Status</th>
+            <th>Total</th>
+            <th>Payment</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% bookings.forEach(function(booking) { %>
+            <tr>
+              <td><%= booking.userId %></td>
+              <td><%= booking.roomName %></td>
+              <td><span class="status-chip status-<%= booking.status.toLowerCase() %>"><%= booking.status %></span></td>
+              <td>$<%= booking.total.toFixed(2) %></td>
+              <td>
+                <% if (booking.payment) { %>
+                  <span><%= booking.payment.status %> • ****<%= booking.payment.last4 %></span>
+                <% } else { %>
+                  <span>None</span>
+                <% } %>
+              </td>
+              <td>
+                <% if (booking.payment && booking.payment.status === 'captured') { %>
+                  <form action="/admin/bookings/<%= booking.id %>/refund" method="post">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                    <button type="submit" class="pill-link">Refund</button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="admin-panel">
+      <h2>Amenities</h2>
       <ul class="admin-list">
-        <% if (!bookings.length) { %>
-          <li>No bookings yet.</li>
-        <% } %>
-        <% bookings.forEach(function(booking) { %>
+        <% amenities.forEach(function(amenity) { %>
           <li>
-            <strong><%= booking.roomName %></strong> · <%= booking.status %> · <%= booking.guests %> guests · ₵<%= booking.totalCost %><br />
-            <small><%= new Date(booking.startDate).toLocaleDateString('en-US') %> → <%= new Date(booking.endDate).toLocaleDateString('en-US') %></small>
+            <strong><%= amenity.name %></strong> — <%= amenity.hours %> @ <%= amenity.location %>
           </li>
         <% }) %>
       </ul>
     </section>
+
     <section class="admin-panel">
-      <h2>Inquiries</h2>
+      <h2>Contact inquiries</h2>
       <ul class="admin-list">
         <% if (!inquiries.length) { %>
           <li>No inquiries received yet.</li>
         <% } %>
         <% inquiries.forEach(function(inquiry) { %>
           <li>
-            <strong><%= inquiry.name %></strong> — <%= inquiry.email %><br />
-            <small><%= new Date(inquiry.receivedAt).toLocaleString('en-US') %></small>
+            <strong><%= inquiry.name %></strong> — <%= inquiry.email %>
             <p><%= inquiry.message %></p>
           </li>
         <% }) %>
@@ -67,4 +104,5 @@
     </section>
   </div>
 </section>
+
 <%- include('../partials/footer') %>

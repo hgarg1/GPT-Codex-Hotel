@@ -9,11 +9,12 @@
     </div>
     <nav class="primary-nav">
       <a href="/" class="nav-link">Home</a>
-      <a href="/about" class="nav-link">About</a>
       <a href="/rooms" class="nav-link">Rooms</a>
-      <a href="/dining" class="nav-link">Dining</a>
+      <a href="/amenities" class="nav-link">Amenities</a>
+      <a href="/book" class="nav-link">Book</a>
       <a href="/contact" class="nav-link">Contact</a>
       <% if (currentUser) { %>
+        <a href="/chat" class="nav-link">Chat</a>
         <a href="/dashboard" class="nav-link">Dashboard</a>
         <% if (currentUser.role === 'admin') { %>
           <a href="/admin" class="nav-link">Admin</a>

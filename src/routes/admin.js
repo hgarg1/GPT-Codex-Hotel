@@ -1,42 +1,49 @@
 const express = require('express');
 const Joi = require('joi');
 const { ensureAdmin } = require('../middleware/auth');
-const { getAllBookings } = require('../models/bookings');
-const { getAllRooms, setRoomAvailability } = require('../models/rooms');
+const { listBookings } = require('../models/bookings');
+const { listRoomTypes, setRoomAvailability } = require('../models/rooms');
+const { listAmenities } = require('../models/amenities');
+const { getPaymentByBookingId } = require('../models/payments');
 const { getAllInquiries } = require('../models/inquiries');
 const { sanitizeString } = require('../utils/sanitize');
 
 const router = express.Router();
 
 const availabilitySchema = Joi.object({
-  availableUnits: Joi.number().integer().min(0).max(20).required()
+  availability: Joi.number().integer().min(0).max(50).required()
 });
 
-// Admin-only overview for curators to monitor the Skyhaven ecosystem.
 router.get('/admin', ensureAdmin, (req, res) => {
+  const rooms = listRoomTypes();
+  const bookings = listBookings().map((booking) => ({
+    ...booking,
+    payment: getPaymentByBookingId(booking.id)
+  }));
   res.render('admin/index', {
     pageTitle: 'Admin Control Deck',
-    rooms: getAllRooms(),
-    bookings: getAllBookings(),
+    rooms,
+    bookings,
+    amenities: listAmenities(),
     inquiries: getAllInquiries()
   });
 });
 
 router.post('/admin/rooms/:id', ensureAdmin, (req, res) => {
   const payload = {
-    availableUnits: Number.parseInt(sanitizeString(req.body.availableUnits), 10)
+    availability: Number.parseInt(sanitizeString(req.body.availability), 10)
   };
   const { error, value } = availabilitySchema.validate(payload, { abortEarly: false });
   if (error) {
     req.pushAlert('danger', 'Invalid availability value supplied.');
     return res.redirect('/admin');
   }
-  const room = setRoomAvailability(sanitizeString(req.params.id), value.availableUnits);
+  const room = setRoomAvailability(sanitizeString(req.params.id), value.availability);
   if (!room) {
     req.pushAlert('danger', 'Room not found.');
     return res.redirect('/admin');
   }
-  req.pushAlert('success', `Availability for ${room.name} updated to ${room.availableUnits}.`);
+  req.pushAlert('success', `Availability for ${room.name} updated to ${room.availability}.`);
   return res.redirect('/admin');
 });
 

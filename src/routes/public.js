@@ -1,6 +1,7 @@
 const express = require('express');
 const Joi = require('joi');
-const { getAllRooms } = require('../models/rooms');
+const { listRoomTypes } = require('../models/rooms');
+const { listAmenities } = require('../models/amenities');
 const { addInquiry } = require('../models/inquiries');
 const { sanitizeString } = require('../utils/sanitize');
 
@@ -14,16 +15,25 @@ const contactSchema = Joi.object({
 
 // Futuristic landing sequence showcasing hero highlights.
 router.get('/', (req, res) => {
-  const rooms = getAllRooms();
-  const highlights = rooms.slice(0, 3);
+  const rooms = listRoomTypes();
+  const amenities = listAmenities();
   res.render('home', {
     pageTitle: 'Experience the Future of Hospitality',
-    highlights,
-    amenities: [
-      'Neural concierge attuned to your preferences',
-      'Levitation spa circuit and chrono recovery pools',
-      'Quantum-secure workspace capsules',
-      'Panoramic orbit lounges with adaptive climate control'
+    featuredRooms: rooms.slice(0, 3),
+    featuredAmenities: amenities.slice(0, 4),
+    testimonials: [
+      {
+        name: 'Nova Lin',
+        quote: 'The Sky Spa felt like floating through the aurora. Every detail was predictive and personal.'
+      },
+      {
+        name: 'Juno Aki',
+        quote: 'From booking to payment, every interaction was seamless. The lobby chat concierge responded instantly.'
+      },
+      {
+        name: 'Mira Sol',
+        quote: 'Our Gravity Well Villa was a dreamscape. The VR lounge reservation completed the stay.'
+      }
     ]
   });
 });
@@ -32,8 +42,8 @@ router.get('/about', (req, res) => {
   res.render('about', {
     pageTitle: 'Our Story',
     innovations: [
-      'Zero-lag concierge AI that harmonises with your biometrics',
-      'Sustainable orbital energy grid powering the entire resort',
+      'Zero-lag concierge AI harmonising with your biometrics',
+      'Sustainable orbital energy grid powering the resort',
       'Immersive suites with holo-sculpted panoramas',
       'Personalised dining curated by flavour algorithms'
     ]
@@ -41,44 +51,10 @@ router.get('/about', (req, res) => {
 });
 
 router.get('/rooms', (req, res) => {
-  const rooms = getAllRooms();
-  const grouped = rooms.reduce((collection, room) => {
-    const key = room.category;
-    if (!collection[key]) {
-      collection[key] = [];
-    }
-    collection[key].push(room);
-    return collection;
-  }, {});
+  const rooms = listRoomTypes();
   res.render('rooms', {
     pageTitle: 'Suites & Pods',
-    groupedRooms: grouped
-  });
-});
-
-router.get('/dining', (req, res) => {
-  res.render('dining', {
-    pageTitle: 'Dining & Facilities',
-    culinaryJourneys: [
-      {
-        name: 'Nebula Tasting Lab',
-        description: 'Multi-sensory tasting flights where cuisine harmonises with projected auroras and soundscapes.'
-      },
-      {
-        name: 'Gravity Garden Atrium',
-        description: 'Floating herb spheres infuse dishes tableside while you dine among levitating botanicals.'
-      },
-      {
-        name: 'Quantum Mixology Vault',
-        description: 'Signature cocktails crafted by AI sommeliers with luminescent infusions and aroma coding.'
-      }
-    ],
-    facilities: [
-      'Chrono spa with hydro-levitation therapy',
-      'Skydeck infinity pool with anti-grav lounge',
-      'Orbital theatre for immersive concerts',
-      'Stellar gymnasium with holographic trainers'
-    ]
+    rooms
   });
 });
 

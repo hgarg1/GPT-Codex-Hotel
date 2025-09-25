@@ -1,83 +1,122 @@
 <%- include('partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
 <%- include('partials/nav') %>
 <%- include('partials/alerts') %>
+
 <section class="hero" data-animate="fade-up">
-  <div class="hero-copy">
-    <h1>Arrive at the Horizon of Tomorrow</h1>
-    <p>At <strong><%= hotelName %></strong>, every suite is tuned to your biometrics, every vista responds to your imagination, and every moment pulses with cosmic calm.</p>
-    <div class="hero-ctas">
-      <a class="cta-button primary" href="#booking">Book a Suite</a>
-      <a class="cta-button" href="/rooms">Explore Amenities</a>
+  <div class="hero-carousel" data-hero-carousel>
+    <div class="hero-slide is-active" style="background-image:url('/images/skyline.svg')">
+      <div class="hero-copy">
+        <h1>Experience Orbit-Level Serenity</h1>
+        <p>Float above the skyline inside suites choreographed to your biometrics. Aurora Nexus Skyhaven invites you to dream forward.</p>
+        <div class="hero-ctas">
+          <a class="cta-button primary" href="/book">Start Booking</a>
+          <a class="cta-button" href="/amenities">Discover Amenities</a>
+        </div>
+      </div>
     </div>
-  </div>
-  <div class="hero-visual" aria-hidden="true">
-    <img src="/images/nebula.svg" alt="Futuristic aurora skyline" />
+    <div class="hero-slide" style="background-image:url('/images/nebula.svg')">
+      <div class="hero-copy">
+        <h1>Wellness on the Edge of Tomorrow</h1>
+        <p>Sky Spa sanctuaries, chrono recovery pools, and adaptive gravity rituals revitalise every traveller.</p>
+        <div class="hero-ctas">
+          <a class="cta-button primary" href="/amenities/sky-spa-sanctuary">Book the Sky Spa</a>
+          <a class="cta-button" href="/dashboard">View Dashboard</a>
+        </div>
+      </div>
+    </div>
+    <div class="hero-slide" style="background-image:url('/images/suite.svg')">
+      <div class="hero-copy">
+        <h1>Connect, Collaborate, Celebrate</h1>
+        <p>From quantum-secure hubs to neon dining labs, our spaces are engineered for bold ideas and luminous gatherings.</p>
+        <div class="hero-ctas">
+          <a class="cta-button primary" href="/chat">Open Live Chat</a>
+          <a class="cta-button" href="/rooms">Compare Rooms</a>
+        </div>
+      </div>
+    </div>
+    <div class="hero-dots" data-hero-dots></div>
   </div>
 </section>
-<section class="booking-card" id="booking" data-animate="fade-up">
-  <h2>Reserve Your Orbit</h2>
-  <form action="/book" method="post" class="booking-form">
-    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-    <div class="field-group">
-      <label for="roomId">Room Type</label>
-      <select name="roomId" id="roomId" required>
-        <% highlights.forEach(function(room) { %>
-          <option value="<%= room.id %>"><%= room.name %> — sleeps <%= room.capacity %> • <%= room.category %></option>
-        <% }) %>
-      </select>
-    </div>
-    <div class="field-row">
-      <div class="field-group">
-        <label for="startDate">Arrival</label>
-        <input type="date" id="startDate" name="startDate" required />
-      </div>
-      <div class="field-group">
-        <label for="endDate">Departure</label>
-        <input type="date" id="endDate" name="endDate" required />
-      </div>
-    </div>
-    <div class="field-row">
-      <div class="field-group">
-        <label for="guests">Guests</label>
-        <input type="number" id="guests" name="guests" min="1" max="8" value="2" required />
-      </div>
-      <div class="field-group">
-        <label for="notes">Notes</label>
-        <input type="text" id="notes" name="notes" placeholder="Accessibility, celebrations, orbit requests..." />
-      </div>
-    </div>
-    <button type="submit" class="cta-button primary">Confirm Availability</button>
-  </form>
-</section>
+
 <section class="highlight-grid" data-animate="fade-up">
-  <h2>Featured Sanctuaries</h2>
+  <div class="section-header">
+    <h2>Featured Sanctuaries</h2>
+    <a class="pill-link" href="/rooms">View all rooms</a>
+  </div>
   <div class="card-grid">
-    <% highlights.forEach(function(room) { %>
-      <article class="room-card">
-        <img src="<%= room.image %>" alt="Illustration of <%= room.name %>" />
+    <% featuredRooms.forEach(function(room) { %>
+      <article class="room-card" id="featured-<%= room.slug %>">
+        <img src="<%= room.images[0] || '/images/nebula.svg' %>" alt="Render of <%= room.name %>" />
         <div class="room-body">
           <h3><%= room.name %></h3>
           <p><%= room.description %></p>
           <ul class="room-meta">
-            <li>Category: <%= room.category %></li>
-            <li>Capacity: <%= room.capacity %> guests</li>
-            <li>From ₵<%= room.price %> / night</li>
-            <li><%= room.availableUnits %> suites remaining</li>
+            <li><strong>Capacity:</strong> <%= room.capacity %> guests</li>
+            <li><strong>Space:</strong> <%= room.squareFeet %> sq ft • <%= room.bedConfig %></li>
+            <li><strong>View:</strong> <%= room.view %></li>
+            <li><strong>From:</strong> $<%= room.pricePerNight %> / night</li>
           </ul>
+          <div class="room-actions">
+            <a class="pill-link primary" href="/book">Plan Stay</a>
+            <a class="pill-link" href="/rooms#<%= room.slug %>">Details</a>
+          </div>
         </div>
       </article>
     <% }) %>
   </div>
 </section>
+
 <section class="amenities" data-animate="fade-up">
-  <h2>Immersive Amenities</h2>
-  <div class="amenities-grid">
-    <% amenities.forEach(function(item) { %>
-      <div class="amenity">
-        <span class="icon">◎</span>
-        <p><%= item %></p>
-      </div>
+  <div class="section-header">
+    <h2>Featured Amenities</h2>
+    <a class="pill-link" href="/amenities">Explore amenities</a>
+  </div>
+  <div class="card-grid amenities-grid">
+    <% featuredAmenities.forEach(function(item) { %>
+      <article class="amenity-card">
+        <div class="amenity-media" style="background-image:url('<%= item.images[0] || '/images/skyline.svg' %>')"></div>
+        <div class="amenity-body">
+          <h3><%= item.name %></h3>
+          <p><%= item.longDescription %></p>
+          <ul class="amenity-meta">
+            <li><strong>Hours:</strong> <%= item.hours %></li>
+            <li><strong>Location:</strong> <%= item.location %></li>
+            <% if (item.capacity) { %><li><strong>Capacity:</strong> <%= item.capacity %> guests</li><% } %>
+          </ul>
+          <a class="pill-link primary" href="/amenities/<%= item.slug %>"><%= item.cta || 'View Details' %></a>
+        </div>
+      </article>
     <% }) %>
   </div>
 </section>
+
+<section class="testimonials" data-animate="fade-up">
+  <h2>Guests on their Skyhaven Journeys</h2>
+  <div class="testimonials-grid">
+    <% testimonials.forEach(function(testimonial) { %>
+      <blockquote>
+        <p>“<%= testimonial.quote %>”</p>
+        <footer>— <%= testimonial.name %></footer>
+      </blockquote>
+    <% }) %>
+  </div>
+</section>
+
+<section class="cta-banners" data-animate="fade-up">
+  <div class="cta-banner">
+    <div>
+      <h3>Ready to reserve your orbit?</h3>
+      <p>Select dates, compare suites, add enhancements, and secure payment in a few guided steps.</p>
+    </div>
+    <a class="pill-link primary" href="/book">Launch Booking Flow</a>
+  </div>
+  <div class="cta-banner">
+    <div>
+      <h3>Need concierge assistance?</h3>
+      <p>Chat live with curators, coordinate amenity timeslots, or collaborate with fellow guests.</p>
+    </div>
+    <a class="pill-link" href="/chat">Enter Live Chat</a>
+  </div>
+</section>
+
 <%- include('partials/footer') %>

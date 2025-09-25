@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Invoice <%= booking.id %> | <%= hotelName %></title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <style>
+      body { background: #fff; color: #111633; font-family: 'Outfit', sans-serif; padding: 2rem; }
+      .invoice { max-width: 720px; margin: 0 auto; border: 1px solid rgba(17,22,51,0.12); padding: 2rem; }
+      .invoice header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+      .invoice h1 { font-size: 1.6rem; margin: 0; }
+      .invoice table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+      .invoice table th, .invoice table td { padding: 0.6rem; border-bottom: 1px solid rgba(17,22,51,0.1); text-align: left; }
+      .invoice-footer { margin-top: 2rem; font-size: 0.9rem; }
+    </style>
+  </head>
+  <body>
+    <div class="invoice">
+      <header>
+        <div>
+          <h1><%= hotelName %> Invoice</h1>
+          <p>Issued <%= new Date(generatedAt).toLocaleString() %></p>
+        </div>
+        <div>
+          <strong>Invoice ID:</strong> <%= payment ? payment.receiptNumber : 'Pending' %><br />
+          <strong>Booking:</strong> <%= booking.id %>
+        </div>
+      </header>
+      <section>
+        <h2>Guest</h2>
+        <p><strong>Name:</strong> <%= currentUser ? currentUser.name : '' %><br />
+        <strong>Email:</strong> <%= currentUser ? currentUser.email : '' %></p>
+      </section>
+      <section>
+        <h2>Stay details</h2>
+        <p><strong>Suite:</strong> <%= room.name %><br />
+        <strong>Dates:</strong> <%= new Date(booking.checkIn).toLocaleDateString() %> → <%= new Date(booking.checkOut).toLocaleDateString() %><br />
+        <strong>Guests:</strong> <%= booking.guests %></p>
+      </section>
+      <table>
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Suite subtotal</td>
+            <td>$<%= (booking.total - booking.taxes - booking.fees).toFixed(2) %></td>
+          </tr>
+          <tr>
+            <td>Taxes</td>
+            <td>$<%= booking.taxes.toFixed(2) %></td>
+          </tr>
+          <tr>
+            <td>Resort &amp; sustainability fees</td>
+            <td>$<%= booking.fees.toFixed(2) %></td>
+          </tr>
+          <tr>
+            <th>Total</th>
+            <th>$<%= booking.total.toFixed(2) %></th>
+          </tr>
+        </tbody>
+      </table>
+      <div class="invoice-footer">
+        <p>Status: <strong><%= booking.status %></strong></p>
+        <% if (payment) { %>
+          <p>Paid via <%= payment.method %> • **** **** **** <%= payment.last4 %> • Auth ref: <%= payment.providerRef %></p>
+        <% } else { %>
+          <p>Pending payment capture.</p>
+        <% } %>
+        <p>Need adjustments? Chat with us at aurora concierge or visit the dashboard for refunds.</p>
+      </div>
+    </div>
+  </body>
+</html>

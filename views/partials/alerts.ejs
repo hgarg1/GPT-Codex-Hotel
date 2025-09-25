@@ -1,10 +1,10 @@
-  <% if (alerts && alerts.length) { %>
-    <div class="alert-stack" data-alert-stack>
-      <% alerts.forEach(function(alert) { %>
-        <div class="alert alert-<%= alert.type %>">
-          <span><%= alert.message %></span>
-          <button type="button" class="alert-close" data-dismiss-alert aria-label="Dismiss">×</button>
-        </div>
-      <% }); %>
-    </div>
-  <% } %>
+<% if (alerts && alerts.length) { %>
+  <div class="alert-stack" data-alert-stack>
+    <% alerts.forEach(function(alert) { %>
+      <div class="toast-alert toast-<%= alert.type %>">
+        <span><%= alert.message %></span>
+        <button type="button" class="alert-close" data-dismiss-alert aria-label="Dismiss">×</button>
+      </div>
+    <% }) %>
+  </div>
+<% } %>

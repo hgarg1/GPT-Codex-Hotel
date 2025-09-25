@@ -1,0 +1,134 @@
+<%- include('partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
+<%- include('partials/nav') %>
+<%- include('partials/alerts') %>
+
+<section class="booking-wizard" data-animate="fade-up">
+  <header class="wizard-header">
+    <h1>Book your stay</h1>
+    <p>Follow the guided flow to secure your suite, add enhancements, and confirm payment.</p>
+    <ol class="wizard-steps">
+      <li class="<%= step === 'dates' ? 'is-active' : wizard.checkIn ? 'is-complete' : '' %>">Dates</li>
+      <li class="<%= step === 'room' ? 'is-active' : wizard.roomTypeId ? 'is-complete' : '' %>">Room</li>
+      <li class="<%= step === 'guests' ? 'is-active' : wizard.guests ? 'is-complete' : '' %>">Guests &amp; add-ons</li>
+      <li class="<%= step === 'review' ? 'is-active' : '' %>">Review</li>
+      <li>Payment</li>
+      <li>Confirmation</li>
+    </ol>
+  </header>
+
+  <form action="/book" method="post" class="wizard-form">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+    <input type="hidden" name="step" value="<%= step %>" />
+
+    <% if (step === 'dates') { %>
+      <div class="wizard-panel">
+        <h2>Select your travel window</h2>
+        <div class="field-row">
+          <label>
+            Check-in
+            <input type="date" name="checkIn" value="<%= wizard.checkIn || '' %>" required />
+          </label>
+          <label>
+            Check-out
+            <input type="date" name="checkOut" value="<%= wizard.checkOut || '' %>" required />
+          </label>
+        </div>
+        <button class="cta-button primary" type="submit">Continue to room selection</button>
+      </div>
+    <% } %>
+
+    <% if (step === 'room') { %>
+      <div class="wizard-panel">
+        <h2>Choose your sanctuary</h2>
+        <div class="wizard-room-list">
+          <% rooms.forEach(function(room) { %>
+            <label class="wizard-room <%= wizard.roomTypeId === room.id ? 'is-selected' : '' %>">
+              <input type="radio" name="roomTypeId" value="<%= room.id %>" <%= wizard.roomTypeId === room.id ? 'checked' : '' %> required />
+              <div class="room-summary">
+                <div>
+                  <h3><%= room.name %></h3>
+                  <p><%= room.description %></p>
+                </div>
+                <ul>
+                  <li><strong>Capacity:</strong> <%= room.capacity %> guests</li>
+                  <li><strong>Rate:</strong> $<%= room.pricePerNight %> / night</li>
+                  <li><strong>Availability:</strong> <%= room.availability %></li>
+                </ul>
+              </div>
+            </label>
+          <% }) %>
+        </div>
+        <button class="cta-button primary" type="submit">Continue to guests</button>
+      </div>
+    <% } %>
+
+    <% if (step === 'guests') { %>
+      <div class="wizard-panel">
+        <h2>Guests &amp; enhancements</h2>
+        <p>You selected the <strong><%= selectedRoom ? selectedRoom.name : '' %></strong>. Add-ons are applied once you confirm.</p>
+        <div class="field-row">
+          <label>
+            Guests
+            <input type="number" name="guests" min="1" max="<%= selectedRoom ? selectedRoom.capacity : 8 %>" value="<%= wizard.guests || selectedRoom?.capacity || 2 %>" required />
+          </label>
+        </div>
+        <fieldset class="addon-list">
+          <legend>Add-ons</legend>
+          <% if (selectedRoom && selectedRoom.addOns.length) { %>
+            <% selectedRoom.addOns.forEach(function(addOn) { %>
+              <label class="addon-option">
+                <input type="checkbox" name="addOns" value="<%= addOn.id %>" <%= wizard.addOns && wizard.addOns.includes(addOn.id) ? 'checked' : '' %> />
+                <span><%= addOn.name %> — $<%= addOn.price %></span>
+              </label>
+            <% }) %>
+          <% } else { %>
+            <p>No suite-specific add-ons for this selection.</p>
+          <% } %>
+        </fieldset>
+        <button class="cta-button primary" type="submit">Review reservation</button>
+      </div>
+    <% } %>
+
+    <% if (step === 'review') { %>
+      <div class="wizard-panel">
+        <h2>Review &amp; confirm</h2>
+        <div class="review-grid">
+          <div>
+            <h3>Stay summary</h3>
+            <ul>
+              <li><strong>Room:</strong> <%= selectedRoom.name %></li>
+              <li><strong>Dates:</strong> <%= new Date(wizard.checkIn).toLocaleDateString() %> → <%= new Date(wizard.checkOut).toLocaleDateString() %></li>
+              <li><strong>Nights:</strong> <%= summary.nights %></li>
+              <li><strong>Guests:</strong> <%= wizard.guests %></li>
+            </ul>
+            <% if (summary.addOnDetails.length) { %>
+              <h4>Add-ons</h4>
+              <ul>
+                <% summary.addOnDetails.forEach(function(addOn) { %>
+                  <li><%= addOn.name %> — $<%= addOn.price %></li>
+                <% }) %>
+              </ul>
+            <% } %>
+          </div>
+          <div class="review-total">
+            <h3>Charges</h3>
+            <ul>
+              <li>Suite subtotal <span>$<%= summary.base.toFixed(2) %></span></li>
+              <li>Add-ons <span>$<%= summary.addOnTotal.toFixed(2) %></span></li>
+              <li>Taxes (12%) <span>$<%= summary.taxes.toFixed(2) %></span></li>
+              <li>Fees (5%) <span>$<%= summary.fees.toFixed(2) %></span></li>
+            </ul>
+            <div class="grand-total">
+              <span>Total</span>
+              <strong>$<%= summary.total.toFixed(2) %></strong>
+            </div>
+          </div>
+        </div>
+        <p class="small-print">Payment step follows next. Taxes and fees are final and include orbital sustainability surcharges.</p>
+        <button class="cta-button primary" type="submit">Confirm &amp; proceed to payment</button>
+      </div>
+    <% } %>
+  </form>
+</section>
+
+<%- include('partials/footer') %>

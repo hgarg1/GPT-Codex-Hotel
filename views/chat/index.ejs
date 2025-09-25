@@ -1,0 +1,45 @@
+<%- include('partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
+<%- include('partials/nav') %>
+<%- include('partials/alerts') %>
+
+<section class="chat-layout" data-animate="fade-up" data-current-user="<%= currentUser.id %>">
+  <aside class="chat-sidebar">
+    <div class="chat-section">
+      <h2>Rooms</h2>
+      <ul class="chat-room-list" data-room-list>
+        <li><button type="button" data-room="lobby" class="active">Lobby</button></li>
+        <% stayRooms.forEach(function(room) { %>
+          <li><button type="button" data-room="<%= room.id %>">Stay <%= room.label %></button></li>
+        <% }) %>
+      </ul>
+    </div>
+    <div class="chat-section">
+      <h2>Direct messages</h2>
+      <ul class="chat-dm-list" data-dm-list>
+        <% users.forEach(function(user) { %>
+          <li>
+            <button type="button" data-dm="<%= user.id %>">
+              <span class="presence-indicator" data-presence-indicator="<%= user.id %>"></span>
+              <%= user.name %>
+            </button>
+          </li>
+        <% }) %>
+      </ul>
+    </div>
+  </aside>
+  <div class="chat-main">
+    <header class="chat-header">
+      <h1 data-active-channel>Lobby</h1>
+      <div class="typing-indicator" data-typing hidden></div>
+    </header>
+    <div class="chat-history" data-messages role="log" aria-live="polite"></div>
+    <form class="chat-composer" data-chat-form>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+      <textarea name="message" placeholder="Send a message" rows="2" required maxlength="400"></textarea>
+      <button class="cta-button primary" type="submit">Send</button>
+    </form>
+  </div>
+</section>
+
+<script defer src="/js/chat.js"></script>
+<%- include('partials/footer') %>

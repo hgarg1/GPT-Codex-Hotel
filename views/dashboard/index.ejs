@@ -1,52 +1,100 @@
 <%- include('../partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
 <%- include('../partials/nav') %>
 <%- include('../partials/alerts') %>
+
 <section class="dashboard" data-animate="fade-up">
-  <div class="dashboard-intro">
+  <header class="dashboard-intro">
     <h1>Welcome, <%= currentUser.name %></h1>
-    <p>Manage your voyages, refine your profile, and prepare for your next orbit at <%= hotelName %>.</p>
-  </div>
+    <p>Monitor bookings, manage amenity reservations, and tune your profile from the Skyhaven control centre.</p>
+  </header>
   <div class="dashboard-grid">
     <section class="dashboard-panel">
-      <h2>Your Bookings</h2>
+      <h2>Your bookings</h2>
       <% if (!bookings.length) { %>
         <p>You have no active bookings yet. Explore our <a href="/rooms">futuristic suites</a> to begin.</p>
       <% } else { %>
-        <ul class="booking-list">
-          <% bookings.forEach(function(booking) { %>
-            <li class="booking-item">
-              <div>
-                <h3><%= booking.roomName %></h3>
-                <p><strong><%= new Date(booking.startDate).toLocaleDateString('en-US') %></strong> → <strong><%= new Date(booking.endDate).toLocaleDateString('en-US') %></strong> · <%= booking.guests %> guests</p>
-                <p>Status: <span class="status <%= booking.status %>"><%= booking.status %></span></p>
-                <p>Total: ₵<%= booking.totalCost %> for <%= booking.nights %> night(s)</p>
-              </div>
-              <% if (booking.status !== 'cancelled') { %>
-                <form action="/bookings/<%= booking.id %>/cancel" method="post">
-                  <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-                  <button type="submit" class="cta-button">Cancel</button>
-                </form>
-              <% } else { %>
-                <p class="cancelled-note">Cancelled at <%= new Date(booking.cancelledAt).toLocaleString('en-US') %></p>
-              <% } %>
+        <table class="booking-table">
+          <thead>
+            <tr>
+              <th>Suite</th>
+              <th>Dates</th>
+              <th>Status</th>
+              <th>Total</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% bookings.forEach(function(booking) { %>
+              <tr>
+                <td><strong><%= booking.roomName %></strong></td>
+                <td><%= new Date(booking.checkIn).toLocaleDateString() %> → <%= new Date(booking.checkOut).toLocaleDateString() %></td>
+                <td><span class="status-chip status-<%= booking.status.toLowerCase() %>"><%= booking.status %></span></td>
+                <td>$<%= booking.total.toFixed(2) %></td>
+                <td class="booking-actions">
+                  <% if (booking.status === 'PendingPayment') { %>
+                    <a class="pill-link primary" href="/pay/<%= booking.id %>">Pay</a>
+                  <% } %>
+                  <% if (booking.status === 'Paid') { %>
+                    <a class="pill-link" href="/invoices/<%= booking.id %>">Invoice</a>
+                  <% } %>
+                  <% if (booking.status !== 'Canceled') { %>
+                    <form action="/bookings/<%= booking.id %>/cancel" method="post">
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                      <button type="submit" class="pill-link">Cancel</button>
+                    </form>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </section>
+
+    <section class="dashboard-panel">
+      <h2>Amenity reservations</h2>
+      <% if (!reservations.length) { %>
+        <p>No amenity reservations yet. Explore the <a href="/amenities">Skyhaven offerings</a>.</p>
+      <% } else { %>
+        <ul class="reservation-list">
+          <% reservations.forEach(function(reservation) { %>
+            <li>
+              <h3><%= reservation.amenityName %></h3>
+              <p><%= new Date(reservation.timeslotStart).toLocaleString() %> → <%= new Date(reservation.timeslotEnd).toLocaleString() %></p>
+              <span class="status-chip status-<%= reservation.status %>"><%= reservation.status %></span>
             </li>
           <% }) %>
         </ul>
       <% } %>
     </section>
+
     <section class="dashboard-panel">
       <h2>Profile</h2>
-      <form action="/profile" method="post" class="profile-form">
+      <form action="/me" method="post" class="profile-form">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
         <label for="profile-name">Name</label>
         <input type="text" id="profile-name" name="name" value="<%= currentUser.name %>" required />
         <label for="profile-bio">Bio</label>
-        <textarea id="profile-bio" name="bio" rows="4"><%= currentUser.profile?.bio || '' %></textarea>
-        <label for="profile-phone">Comms Channel</label>
-        <input type="text" id="profile-phone" name="phone" value="<%= currentUser.profile?.phone || '' %>" />
-        <button type="submit" class="cta-button primary">Update Profile</button>
+        <textarea id="profile-bio" name="bio" rows="4"><%= currentUser.bio || '' %></textarea>
+        <label for="profile-phone">Contact</label>
+        <input type="text" id="profile-phone" name="phone" value="<%= currentUser.phone || '' %>" />
+        <button type="submit" class="cta-button primary">Update profile</button>
       </form>
+    </section>
+
+    <section class="dashboard-panel">
+      <h2>Security</h2>
+      <form action="/me/password" method="post" class="profile-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <label for="current-password">Current password</label>
+        <input type="password" id="current-password" name="currentPassword" required />
+        <label for="new-password">New password</label>
+        <input type="password" id="new-password" name="newPassword" required />
+        <button type="submit" class="cta-button">Update password</button>
+      </form>
+      <p class="small-print">Sessions auto-expire after 2 hours of inactivity or 12 hours absolute time. Log out from other devices via live chat.</p>
     </section>
   </div>
 </section>
+
 <%- include('../partials/footer') %>

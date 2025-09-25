@@ -1,55 +1,95 @@
 <%- include('partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
 <%- include('partials/nav') %>
 <%- include('partials/alerts') %>
+
 <section class="page-hero" data-animate="fade-up">
-  <h1>Suites, Pods & Villas</h1>
-  <p>Select from thirty immersive environments designed for explorers, creators, and celestial dreamers.</p>
+  <h1>Suites, Pods &amp; Villas</h1>
+  <p>Select from immersive environments designed for explorers, collaborators, and celestial dreamers.</p>
 </section>
-<section class="room-groups">
-  <% Object.keys(groupedRooms).forEach(function(category) { %>
-    <div class="room-group" data-animate="fade-up">
-      <h2><%= category %></h2>
-      <div class="card-grid">
-        <% groupedRooms[category].forEach(function(room) { %>
-          <article class="room-card">
-            <img src="<%= room.image %>" alt="Illustration of <%= room.name %>" />
-            <div class="room-body">
-              <h3><%= room.name %></h3>
-              <p><%= room.description %></p>
-              <ul class="room-meta">
-                <li>Capacity: <%= room.capacity %> guests</li>
-                <li>Rate: ₵<%= room.price %> / night</li>
-                <li><%= room.availableUnits %> available</li>
-              </ul>
-              <form action="/book" method="post" class="room-book-form">
-                <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-                <input type="hidden" name="roomId" value="<%= room.id %>" />
-                <div class="field-row">
-                  <label>
-                    Arrival
-                    <input type="date" name="startDate" required />
-                  </label>
-                  <label>
-                    Departure
-                    <input type="date" name="endDate" required />
-                  </label>
-                </div>
-                <div class="field-row">
-                  <label>
-                    Guests
-                    <input type="number" name="guests" min="1" max="<%= room.capacity %>" value="2" required />
-                  </label>
-                </div>
-                <label class="sr-only">Notes
-                  <input type="text" name="notes" placeholder="Celebrations, preferences" />
-                </label>
-                <button type="submit" class="cta-button">Reserve</button>
-              </form>
-            </div>
-          </article>
-        <% }) %>
+
+<section class="room-collection">
+  <% rooms.forEach(function(room) { %>
+    <article class="room-card detailed" id="<%= room.slug %>" data-animate="fade-up">
+      <div class="room-media">
+        <img src="<%= room.images[0] || '/images/nebula.svg' %>" alt="Suite view of <%= room.name %>" />
       </div>
-    </div>
+      <div class="room-body">
+        <header class="room-header">
+          <div>
+            <h2><%= room.name %></h2>
+            <p class="room-subtitle"><%= room.description %></p>
+          </div>
+          <div class="room-rate">
+            <span class="rate">$<%= room.pricePerNight %></span>
+            <span class="rate-caption">per night</span>
+            <span class="availability"><%= room.availability %> available</span>
+          </div>
+        </header>
+        <ul class="room-meta">
+          <li><strong>Capacity:</strong> <%= room.capacity %> guests</li>
+          <li><strong>Space:</strong> <%= room.squareFeet %> sq ft</li>
+          <li><strong>Bed:</strong> <%= room.bedConfig %></li>
+          <li><strong>View:</strong> <%= room.view %></li>
+        </ul>
+        <div class="room-section">
+          <h3>Signature Features</h3>
+          <ul class="feature-list">
+            <% room.features.forEach(function(feature) { %>
+              <li><span>✦</span> <%= feature %></li>
+            <% }) %>
+          </ul>
+        </div>
+        <div class="room-section">
+          <h3>Enhance your stay</h3>
+          <div class="addon-chips">
+            <% room.addOns.forEach(function(addOn) { %>
+              <span class="chip">+ $<%= addOn.price %> — <%= addOn.name %></span>
+            <% }) %>
+            <span class="chip">+ $80 — Late checkout</span>
+            <span class="chip">+ $55 — Sunrise breakfast</span>
+          </div>
+        </div>
+        <div class="room-section availability-widget">
+          <div>
+            <h3>Availability</h3>
+            <p>Check-in as early as tomorrow. Booking flow validates guest capacity and fees in real-time.</p>
+          </div>
+          <div class="wizard-launch">
+            <a class="pill-link primary" href="/book?room=<%= room.id %>">Begin Reservation</a>
+            <p class="wizard-note">Guided steps: dates → room → guests → review → payment → confirmation.</p>
+          </div>
+        </div>
+      </div>
+    </article>
   <% }) %>
 </section>
+
+<section class="compare-table" data-animate="fade-up">
+  <h2>Compare at a glance</h2>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Room</th>
+          <th>Capacity</th>
+          <th>Space</th>
+          <th>View</th>
+          <th>From (night)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% rooms.forEach(function(room) { %>
+          <tr>
+            <td><a href="#<%= room.slug %>"><%= room.name %></a></td>
+            <td><%= room.capacity %></td>
+            <td><%= room.squareFeet %> sq ft</td>
+            <td><%= room.view %></td>
+            <td>$<%= room.pricePerNight %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
 <%- include('partials/footer') %>
