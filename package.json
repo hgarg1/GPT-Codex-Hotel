@@ -1,0 +1,19 @@
+{
+  "name": "gpt-codex-hotel",
+  "version": "1.0.0",
+  "description": "Express.js backend for the GPT Codex Hotel project.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "keywords": [
+    "express",
+    "api"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
