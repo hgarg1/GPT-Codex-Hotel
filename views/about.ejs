@@ -1,0 +1,30 @@
+<%- include('partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
+<%- include('partials/nav') %>
+<%- include('partials/alerts') %>
+<section class="page-hero" data-animate="fade-up">
+  <h1>The Skyhaven Chronicle</h1>
+  <p><strong><%= hotelName %></strong> emerged from a coalition of architects, astrophysicists, and dreamers determined to make orbital serenity accessible on Earth.</p>
+</section>
+<section class="story-grid" data-animate="fade-up">
+  <article>
+    <h2>Beyond Hospitality</h2>
+    <p>Every suite pulses with adaptive light, scent, and soundscapes tuned to your mood. Our AI concierge translates your preferences into sensory experiences in seconds.</p>
+  </article>
+  <article>
+    <h2>Regenerative Power</h2>
+    <p>Powered entirely by an orbital solar array, Skyhaven returns more energy to the grid than it consumes, letting you indulge without a carbon footprint.</p>
+  </article>
+  <article>
+    <h2>Human + AI Harmony</h2>
+    <p>Our curators collaborate with empathic AI to anticipate needs, celebrate milestones, and craft itineraries that blend nature, technology, and art.</p>
+  </article>
+</section>
+<section class="innovation-list" data-animate="fade-up">
+  <h2>Innovation Pillars</h2>
+  <ul>
+    <% innovations.forEach(function(item) { %>
+      <li><span class="icon">✶</span> <%= item %></li>
+    <% }) %>
+  </ul>
+</section>
+<%- include('partials/footer') %>

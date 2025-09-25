@@ -1,0 +1,50 @@
+const { getUserById } = require('../models/users');
+
+// Ensures a user is attached to the request if their session is active.
+function hydrateUser(req, res, next) {
+  if (req.session.userId) {
+    const user = getUserById(req.session.userId);
+    if (user) {
+      req.user = user;
+      res.locals.currentUser = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        profile: user.profile
+      };
+      return next();
+    }
+    delete req.session.userId;
+  }
+  res.locals.currentUser = null;
+  return next();
+}
+
+function ensureAuthenticated(req, res, next) {
+  if (req.user) {
+    return next();
+  }
+  req.session.returnTo = req.originalUrl;
+  req.pushAlert('warning', 'Please log in to continue your Skyhaven journey.');
+  return res.redirect('/login');
+}
+
+function ensureAdmin(req, res, next) {
+  if (!req.user) {
+    req.session.returnTo = req.originalUrl;
+    req.pushAlert('warning', 'Administrator access requires you to log in first.');
+    return res.redirect('/login');
+  }
+  if (req.user.role !== 'admin') {
+    req.pushAlert('danger', 'You need Aurora Nexus Skyhaven curator privileges to view that console.');
+    return res.redirect('/dashboard');
+  }
+  return next();
+}
+
+module.exports = {
+  hydrateUser,
+  ensureAuthenticated,
+  ensureAdmin
+};

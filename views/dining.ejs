@@ -1,0 +1,24 @@
+<%- include('partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
+<%- include('partials/nav') %>
+<%- include('partials/alerts') %>
+<section class="page-hero" data-animate="fade-up">
+  <h1>Culinary Nebula</h1>
+  <p>Dining at <%= hotelName %> is a sensory performance where gastronomy meets light, sound, and scent.</p>
+</section>
+<section class="culinary-grid" data-animate="fade-up">
+  <% culinaryJourneys.forEach(function(stop) { %>
+    <article class="culinary-card">
+      <h2><%= stop.name %></h2>
+      <p><%= stop.description %></p>
+    </article>
+  <% }) %>
+</section>
+<section class="facility-list" data-animate="fade-up">
+  <h2>Skyhaven Facilities</h2>
+  <ul>
+    <% facilities.forEach(function(item) { %>
+      <li><span class="icon">▰</span> <%= item %></li>
+    <% }) %>
+  </ul>
+</section>
+<%- include('partials/footer') %>

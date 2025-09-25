@@ -1,0 +1,10 @@
+<%- include('partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
+<%- include('partials/nav') %>
+<%- include('partials/alerts') %>
+<section class="error-page" data-animate="fade-up">
+  <h1>System Glitch</h1>
+  <p>An unexpected anomaly occurred. Our engineers and AI custodians are already resolving it. Please try again shortly.</p>
+  <p class="status-code">Status: <%= status %></p>
+  <a class="cta-button" href="/">Return Home</a>
+</section>
+<%- include('partials/footer') %>
