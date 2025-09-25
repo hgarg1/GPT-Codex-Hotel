@@ -1,0 +1,30 @@
+<%- include('partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
+<%- include('partials/nav') %>
+<%- include('partials/alerts') %>
+
+<section class="page-hero" data-animate="fade-up">
+  <h1>Amenities &amp; Experiences</h1>
+  <p>From zero-gravity wellness to quantum work hubs, each space is engineered for awe.</p>
+</section>
+
+<section class="amenities-grid" data-animate="fade-up">
+  <% amenities.forEach(function(amenity) { %>
+    <article class="amenity-card large">
+      <div class="amenity-media" style="background-image:url('<%= amenity.images[0] || '/images/skyline.svg' %>')"></div>
+      <div class="amenity-body">
+        <h2><%= amenity.name %></h2>
+        <p><%= amenity.longDescription %></p>
+        <ul class="amenity-meta">
+          <li><strong>Hours:</strong> <%= amenity.hours %></li>
+          <li><strong>Location:</strong> <%= amenity.location %></li>
+          <% if (amenity.capacity) { %><li><strong>Capacity:</strong> <%= amenity.capacity %> guests</li><% } %>
+        </ul>
+        <div class="amenity-actions">
+          <a class="pill-link primary" href="/amenities/<%= amenity.slug %>"><%= amenity.cta || 'View Details' %></a>
+        </div>
+      </div>
+    </article>
+  <% }) %>
+</section>
+
+<%- include('partials/footer') %>

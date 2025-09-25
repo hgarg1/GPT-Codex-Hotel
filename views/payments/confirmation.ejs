@@ -1,0 +1,35 @@
+<%- include('partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
+<%- include('partials/nav') %>
+<%- include('partials/alerts') %>
+
+<section class="payment-confirmation" data-animate="fade-up">
+  <div class="confirmation-card">
+    <h1>Payment captured</h1>
+    <p>Your booking is now paid. A receipt has been generated and your dashboard has been updated.</p>
+    <dl class="confirmation-meta">
+      <div>
+        <dt>Booking</dt>
+        <dd><%= booking.id %></dd>
+      </div>
+      <div>
+        <dt>Suite</dt>
+        <dd><%= room.name %></dd>
+      </div>
+      <div>
+        <dt>Receipt</dt>
+        <dd><%= payment.receiptNumber %></dd>
+      </div>
+      <div>
+        <dt>Amount</dt>
+        <dd>$<%= payment.amount.toFixed(2) %> <%= payment.currency %></dd>
+      </div>
+    </dl>
+    <div class="confirmation-actions">
+      <a class="pill-link primary" href="/invoices/<%= booking.id %>">View invoice</a>
+      <a class="pill-link" href="/dashboard">Return to dashboard</a>
+      <a class="pill-link" href="/chat">Open live chat</a>
+    </div>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

@@ -43,13 +43,46 @@
 
   document.querySelectorAll('[data-dismiss-alert]').forEach((button) => {
     button.addEventListener('click', () => {
-      const container = button.closest('.alert');
+      const container = button.closest('.toast-alert');
       if (container) {
         container.classList.add('is-dismissed');
         container.addEventListener('transitionend', () => container.remove(), { once: true });
       }
     });
   });
+
+  const heroCarousel = document.querySelector('[data-hero-carousel]');
+  if (heroCarousel) {
+    const slides = Array.from(heroCarousel.querySelectorAll('.hero-slide'));
+    const dotsContainer = heroCarousel.querySelector('[data-hero-dots]');
+    let index = 0;
+
+    const activate = (nextIndex) => {
+      slides[index]?.classList.remove('is-active');
+      dotsContainer.children[index]?.classList.remove('active');
+      index = nextIndex;
+      slides[index]?.classList.add('is-active');
+      dotsContainer.children[index]?.classList.add('active');
+    };
+
+    slides.forEach((_, slideIndex) => {
+      const dot = document.createElement('button');
+      if (slideIndex === 0) {
+        dot.classList.add('active');
+      }
+      dot.addEventListener('click', () => {
+        activate(slideIndex);
+      });
+      dotsContainer.appendChild(dot);
+    });
+
+    slides[0]?.classList.add('is-active');
+
+    setInterval(() => {
+      const next = (index + 1) % slides.length;
+      activate(next);
+    }, 6000);
+  }
 
   if (window.gsap) {
     window.gsap.from('.hero-copy h1', {

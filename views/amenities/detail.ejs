@@ -1,0 +1,58 @@
+<%- include('partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
+<%- include('partials/nav') %>
+<%- include('partials/alerts') %>
+
+<section class="amenity-hero" data-animate="fade-up" style="background-image:url('<%= amenity.images[0] || '/images/skyline.svg' %>')">
+  <div class="overlay">
+    <span class="category"><%= amenity.category %></span>
+    <h1><%= amenity.name %></h1>
+    <p><%= amenity.longDescription %></p>
+  </div>
+</section>
+
+<section class="amenity-detail" data-animate="fade-up">
+  <div class="detail-meta">
+    <div>
+      <h3>Hours</h3>
+      <p><%= amenity.hours %></p>
+    </div>
+    <div>
+      <h3>Location</h3>
+      <p><%= amenity.location %></p>
+    </div>
+    <% if (amenity.capacity) { %>
+      <div>
+        <h3>Capacity</h3>
+        <p><%= amenity.capacity %> guests per timeslot</p>
+      </div>
+    <% } %>
+  </div>
+  <div class="detail-content">
+    <h2>Reserve a timeslot</h2>
+    <p>Choose your preferred day and start time. If capacity is reached you'll be added to the waitlist automatically.</p>
+    <form action="/amenities/<%= amenity.slug %>/reserve" method="post" class="reservation-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+      <div class="field-row">
+        <label>
+          Date
+          <input type="date" name="date" min="<%= defaultDate %>" value="<%= defaultDate %>" required />
+        </label>
+        <label>
+          Start time
+          <input type="time" name="startTime" value="10:00" required />
+        </label>
+        <label>
+          Duration (minutes)
+          <select name="durationMinutes">
+            <option value="60">60</option>
+            <option value="90">90</option>
+            <option value="120">120</option>
+          </select>
+        </label>
+      </div>
+      <button class="cta-button primary" type="submit"><%= amenity.cta || 'Reserve' %></button>
+    </form>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

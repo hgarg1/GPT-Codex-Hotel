@@ -4,15 +4,16 @@ const { getUserById } = require('../models/users');
 function hydrateUser(req, res, next) {
   if (req.session.userId) {
     const user = getUserById(req.session.userId);
-    if (user) {
-      req.user = user;
-      res.locals.currentUser = {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        profile: user.profile
-      };
+      if (user) {
+        req.user = user;
+        res.locals.currentUser = {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          bio: user.bio,
+          phone: user.phone
+        };
       return next();
     }
     delete req.session.userId;

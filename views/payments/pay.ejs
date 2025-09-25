@@ -1,0 +1,52 @@
+<%- include('partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
+<%- include('partials/nav') %>
+<%- include('partials/alerts') %>
+
+<section class="payment-layout" data-animate="fade-up">
+  <div class="payment-summary">
+    <h2>Booking summary</h2>
+    <p class="small">Reference: <%= booking.id %></p>
+    <ul>
+      <li><strong>Room:</strong> <%= room.name %></li>
+      <li><strong>Dates:</strong> <%= new Date(booking.checkIn).toLocaleDateString() %> → <%= new Date(booking.checkOut).toLocaleDateString() %></li>
+      <li><strong>Total:</strong> $<%= booking.total.toFixed(2) %></li>
+      <li><strong>Status:</strong> <%= booking.status %></li>
+    </ul>
+    <a class="pill-link" href="/invoices/<%= booking.id %>">View printable invoice</a>
+  </div>
+  <div class="payment-form-card">
+    <h1>Secure payment</h1>
+    <p>Cards are tokenised instantly. Only the last four digits are stored. Luhn validation is performed for demo purposes.</p>
+    <% if (errors && errors.length) { %>
+      <div class="form-errors">
+        <ul>
+          <% errors.forEach(function(error) { %><li><%= error %></li><% }) %>
+        </ul>
+      </div>
+    <% } %>
+    <form action="/pay/<%= booking.id %>" method="post" class="payment-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+      <label>
+        Cardholder name
+        <input type="text" name="cardholder" required />
+      </label>
+      <label>
+        Card number
+        <input type="text" name="cardNumber" inputmode="numeric" autocomplete="cc-number" placeholder="4242 4242 4242 4242" required />
+      </label>
+      <div class="field-row">
+        <label>
+          Expiry (MM/YY)
+          <input type="text" name="expiry" inputmode="numeric" placeholder="10/28" required />
+        </label>
+        <label>
+          CVC
+          <input type="text" name="cvc" inputmode="numeric" placeholder="123" required />
+        </label>
+      </div>
+      <button class="cta-button primary" type="submit">Authorise $<%= booking.total.toFixed(2) %></button>
+    </form>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

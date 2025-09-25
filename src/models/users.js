@@ -1,98 +1,119 @@
 const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
-const { sanitizeString } = require('../utils/sanitize');
+const { getDb } = require('../db');
 
-// Demo users to explore Aurora Nexus Skyhaven. Passwords are bcrypt hashed at boot.
-const demoUsers = [
-  {
-    id: uuidv4(),
-    name: 'Astra Vega',
-    email: 'astra@auroranexus.com',
-    role: 'guest',
-    passwordHash: bcrypt.hashSync('starlight123', 10),
-    profile: {
-      bio: 'Quantum botanist experiencing Aurora Nexus Skyhaven for inspiration.',
-      phone: '+1-202-555-0111'
-    }
-  },
-  {
-    id: uuidv4(),
-    name: 'Orion Kade',
-    email: 'orion@auroranexus.com',
-    role: 'guest',
-    passwordHash: bcrypt.hashSync('cosmicwave!', 10),
-    profile: {
-      bio: 'Aerospace composer mapping stellar symphonies from the Skyhaven observatory.',
-      phone: '+1-202-555-0174'
-    }
-  },
-  {
-    id: uuidv4(),
-    name: 'Lyra Solace',
-    email: 'lyra@auroranexus.com',
-    role: 'admin',
-    passwordHash: bcrypt.hashSync('adminpass123', 10),
-    profile: {
-      bio: 'Skyhaven curator ensuring every guest\'s orbit is seamless.',
-      phone: '+1-202-555-0199'
-    }
-  }
-];
+const db = getDb();
+
+function serialiseUser(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    role: row.role,
+    phone: row.phone,
+    bio: row.bio,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt
+  };
+}
 
 function getAllUsers() {
-  return demoUsers;
+  const rows = db.prepare('SELECT * FROM users ORDER BY createdAt ASC').all();
+  return rows.map(serialiseUser);
 }
 
 function getUserByEmail(email) {
-  return demoUsers.find((user) => user.email.toLowerCase() === email.toLowerCase());
+  const row = db.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').get(email);
+  return serialiseUser(row);
 }
 
 function getUserById(id) {
-  return demoUsers.find((user) => user.id === id);
+  const row = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+  return serialiseUser(row);
+}
+
+function getUserAuthByEmail(email) {
+  return db.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').get(email);
 }
 
 function createUser({ name, email, password }) {
-  const normalisedEmail = sanitizeString(email).toLowerCase();
-  if (getUserByEmail(normalisedEmail)) {
+  const existing = getUserAuthByEmail(email);
+  if (existing) {
     const error = new Error('An account already exists for this email.');
     error.status = 409;
     throw error;
   }
-
-  const user = {
+  const now = new Date().toISOString();
+  const record = {
     id: uuidv4(),
-    name: sanitizeString(name),
-    email: normalisedEmail,
-    role: 'guest',
+    name,
+    email: email.toLowerCase(),
     passwordHash: bcrypt.hashSync(password, 10),
-    profile: {
-      bio: 'New Skyhaven explorer awaiting their first interstellar escape.',
-      phone: ''
-    }
+    role: 'guest',
+    phone: null,
+    bio: null,
+    createdAt: now,
+    updatedAt: now
   };
+  db.prepare(`
+    INSERT INTO users (id, name, email, passwordHash, role, phone, bio, createdAt, updatedAt)
+    VALUES (@id, @name, @email, @passwordHash, @role, @phone, @bio, @createdAt, @updatedAt)
+  `).run(record);
+  return serialiseUser(record);
+}
 
-  demoUsers.push(user);
-  return user;
+function verifyPassword(user, password) {
+  if (!user) return false;
+  return bcrypt.compareSync(password, user.passwordHash);
 }
 
 function updateUserProfile(id, updates = {}) {
   const user = getUserById(id);
   if (!user) {
-    const error = new Error('User not found.');
+    const error = new Error('User not found');
     error.status = 404;
     throw error;
   }
+  const now = new Date().toISOString();
+  const next = {
+    name: updates.name ?? user.name,
+    phone: updates.phone ?? user.phone,
+    bio: updates.bio ?? user.bio,
+    updatedAt: now,
+    id
+  };
+  db.prepare(`
+    UPDATE users
+    SET name = @name, phone = @phone, bio = @bio, updatedAt = @updatedAt
+    WHERE id = @id
+  `).run(next);
+  return getUserById(id);
+}
 
-  user.name = sanitizeString(updates.name ?? user.name);
-  user.profile.bio = sanitizeString(updates.bio ?? user.profile.bio);
-  user.profile.phone = sanitizeString(updates.phone ?? user.profile.phone);
-  return user;
+function updateUserPassword(id, password) {
+  const now = new Date().toISOString();
+  db.prepare('UPDATE users SET passwordHash = ?, updatedAt = ? WHERE id = ?').run(
+    bcrypt.hashSync(password, 10),
+    now,
+    id
+  );
+  return getUserById(id);
+}
+
+function getUserPasswordHash(id) {
+  const row = db.prepare('SELECT passwordHash FROM users WHERE id = ?').get(id);
+  return row ? row.passwordHash : null;
 }
 
 module.exports = {
   getAllUsers,
   getUserByEmail,
   getUserById,
+  getUserAuthByEmail,
   createUser,
-  updateUserProfile
+  verifyPassword,
+  updateUserProfile,
+  updateUserPassword,
+  getUserPasswordHash
 };
