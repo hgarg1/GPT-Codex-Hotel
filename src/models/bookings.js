@@ -8,6 +8,8 @@ function serialiseBooking(row) {
   return {
     id: row.id,
     userId: row.userId,
+    guestName: Object.prototype.hasOwnProperty.call(row, 'guestName') ? row.guestName : undefined,
+    guestEmail: Object.prototype.hasOwnProperty.call(row, 'guestEmail') ? row.guestEmail : undefined,
     roomTypeId: row.roomTypeId,
     roomName: row.roomName,
     roomSlug: row.roomSlug,
@@ -27,9 +29,10 @@ function serialiseBooking(row) {
 function listBookings() {
   const rows = db
     .prepare(
-      `SELECT b.*, r.name as roomName, r.slug as roomSlug
+      `SELECT b.*, r.name as roomName, r.slug as roomSlug, u.name AS guestName, u.email AS guestEmail
        FROM bookings b
        JOIN room_types r ON b.roomTypeId = r.id
+       JOIN users u ON b.userId = u.id
        ORDER BY b.createdAt DESC`
     )
     .all();

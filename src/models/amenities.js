@@ -88,6 +88,32 @@ function getAmenityReservationById(id) {
   return getReservationSerializer()(row);
 }
 
+function listAllAmenityReservations() {
+  const rows = db
+    .prepare(
+      `SELECT ar.*, a.name AS amenityName, a.slug AS amenitySlug, u.name AS guestName, u.email AS guestEmail
+       FROM amenity_reservations ar
+       JOIN amenities a ON ar.amenityId = a.id
+       JOIN users u ON ar.userId = u.id
+       ORDER BY ar.timeslotStart ASC`
+    )
+    .all();
+  return rows.map((row) => ({
+    id: row.id,
+    amenityId: row.amenityId,
+    amenityName: row.amenityName,
+    amenitySlug: row.amenitySlug,
+    userId: row.userId,
+    guestName: row.guestName,
+    guestEmail: row.guestEmail,
+    timeslotStart: row.timeslotStart,
+    timeslotEnd: row.timeslotEnd,
+    status: row.status,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt
+  }));
+}
+
 function listReservationsByUser(userId) {
   const rows = db
     .prepare(
@@ -111,12 +137,25 @@ function listReservationsByUser(userId) {
   }));
 }
 
+function updateAmenityReservationStatus(id, status) {
+  const now = new Date().toISOString();
+  const result = db
+    .prepare('UPDATE amenity_reservations SET status = ?, updatedAt = ? WHERE id = ?')
+    .run(status, now, id);
+  if (result.changes === 0) {
+    return null;
+  }
+  return getAmenityReservationById(id);
+}
+
 module.exports = {
   listAmenities,
   getAmenityBySlug,
   getAmenityById,
   createAmenityReservation,
   listReservationsByAmenityAndSlot,
+  listAllAmenityReservations,
   listReservationsByUser,
-  getAmenityReservationById
+  getAmenityReservationById,
+  updateAmenityReservationStatus
 };
