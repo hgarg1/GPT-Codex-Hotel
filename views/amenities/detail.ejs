@@ -1,6 +1,6 @@
-<%- include('partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
-<%- include('partials/nav') %>
-<%- include('partials/alerts') %>
+<%- include('../partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
+<%- include('../partials/nav') %>
+<%- include('../partials/alerts') %>
 
 <section class="amenity-hero" data-animate="fade-up" style="background-image:url('<%= amenity.images[0] || '/images/skyline.svg' %>')">
   <div class="overlay">
@@ -55,4 +55,4 @@
   </div>
 </section>
 
-<%- include('partials/footer') %>
+<%- include('../partials/footer') %>
