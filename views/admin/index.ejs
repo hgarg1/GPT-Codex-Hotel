@@ -5,6 +5,17 @@
 <section class="admin" data-animate="fade-up">
   <h1>Control deck</h1>
   <p>Monitor inventory, track bookings, and respond to guest signals across <%= hotelName %>.</p>
+
+  <div class="admin-metrics">
+    <% metrics.forEach(function(metric) { %>
+      <article class="metric-card">
+        <p class="metric-label"><%= metric.label %></p>
+        <p class="metric-value"><%= metric.value %></p>
+        <p class="metric-detail"><%= metric.detail %></p>
+      </article>
+    <% }) %>
+  </div>
+
   <div class="admin-grid">
     <section class="admin-panel">
       <h2>Room availability</h2>
@@ -19,14 +30,27 @@
         </thead>
         <tbody>
           <% rooms.forEach(function(room) { %>
-            <tr>
-              <td><strong><%= room.name %></strong></td>
+            <tr class="<%= room.availability <= 3 ? 'is-low' : '' %>">
+              <td>
+                <strong><%= room.name %></strong>
+                <p class="muted">View: <%= room.view || 'Skyhaven vista' %></p>
+              </td>
               <td><%= room.capacity %></td>
-              <td><%= room.availability %></td>
+              <td>
+                <span class="inventory-pill"><%= room.availability %></span>
+              </td>
               <td>
                 <form action="/admin/rooms/<%= room.id %>" method="post" class="inline-form">
                   <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-                  <input type="number" name="availability" min="0" max="50" value="<%= room.availability %>" />
+                  <label class="sr-only" for="room-<%= room.id %>-availability">Availability</label>
+                  <input
+                    id="room-<%= room.id %>-availability"
+                    type="number"
+                    name="availability"
+                    min="0"
+                    max="50"
+                    value="<%= room.availability %>"
+                  />
                   <button type="submit" class="pill-link">Update</button>
                 </form>
               </td>
@@ -34,6 +58,18 @@
           <% }) %>
         </tbody>
       </table>
+      <% if (lowInventoryRooms.length) { %>
+        <div class="admin-hint">
+          <strong>Low inventory alert:</strong>
+          <ul class="chip-list">
+            <% lowInventoryRooms.forEach(function(room) { %>
+              <li><%= room.name %> (<%= room.availability %>)</li>
+            <% }) %>
+          </ul>
+        </div>
+      <% } else { %>
+        <p class="admin-hint subtle">All suites are comfortably stocked.</p>
+      <% } %>
     </section>
 
     <section class="admin-panel">
@@ -43,33 +79,177 @@
           <tr>
             <th>Guest</th>
             <th>Room</th>
+            <th>Stay</th>
             <th>Status</th>
-            <th>Total</th>
-            <th>Payment</th>
-            <th></th>
+            <th>Financial</th>
+            <th>Manage</th>
           </tr>
         </thead>
         <tbody>
           <% bookings.forEach(function(booking) { %>
             <tr>
-              <td><%= booking.userId %></td>
-              <td><%= booking.roomName %></td>
-              <td><span class="status-chip status-<%= booking.status.toLowerCase() %>"><%= booking.status %></span></td>
-              <td>$<%= booking.total.toFixed(2) %></td>
               <td>
-                <% if (booking.payment) { %>
-                  <span><%= booking.payment.status %> • ****<%= booking.payment.last4 %></span>
-                <% } else { %>
-                  <span>None</span>
-                <% } %>
+                <div class="stacked">
+                  <strong><%= booking.guestName || booking.userId %></strong>
+                  <% if (booking.guestEmail) { %>
+                    <span class="muted"><%= booking.guestEmail %></span>
+                  <% } %>
+                </div>
               </td>
               <td>
-                <% if (booking.payment && booking.payment.status === 'captured') { %>
-                  <form action="/admin/bookings/<%= booking.id %>/refund" method="post">
+                <div class="stacked">
+                  <strong><%= booking.roomName %></strong>
+                  <span class="muted">Lead: <%= booking.leadTime %>d</span>
+                </div>
+              </td>
+              <td>
+                <div class="stacked">
+                  <span><%= booking.checkInLabel %> → <%= booking.checkOutLabel %></span>
+                  <span class="muted"><%= booking.nights %> night<%= booking.nights === 1 ? '' : 's' %></span>
+                </div>
+              </td>
+              <td>
+                <span class="status-chip status-<%= booking.status.toLowerCase() %>"><%= booking.status %></span>
+              </td>
+              <td>
+                <div class="stacked">
+                  <strong>$<%= booking.total.toFixed(2) %></strong>
+                  <% if (booking.payment) { %>
+                    <span class="muted"><%= booking.payment.status %> • ****<%= booking.payment.last4 %></span>
+                  <% } else { %>
+                    <span class="muted">No payment on file</span>
+                  <% } %>
+                </div>
+              </td>
+              <td>
+                <div class="stacked">
+                  <form action="/admin/bookings/<%= booking.id %>/status" method="post" class="inline-form">
                     <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-                    <button type="submit" class="pill-link">Refund</button>
+                    <label class="sr-only" for="booking-<%= booking.id %>-status">Status</label>
+                    <select id="booking-<%= booking.id %>-status" name="status">
+                      <% bookingStatuses.forEach(function(status) { %>
+                        <option value="<%= status %>" <%= booking.status === status ? 'selected' : '' %>><%= status %></option>
+                      <% }) %>
+                    </select>
+                    <button type="submit" class="pill-link secondary">Apply</button>
                   </form>
-                <% } %>
+                  <% if (booking.payment && booking.payment.status === 'captured') { %>
+                    <form action="/admin/bookings/<%= booking.id %>/refund" method="post" class="inline-form">
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                      <button type="submit" class="pill-link danger">Refund</button>
+                    </form>
+                  <% } %>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      <div class="status-breakdown">
+        <h3>Status distribution</h3>
+        <ul class="chip-list">
+          <% statusBreakdown.forEach(function(item) { %>
+            <li>
+              <span class="status-chip status-<%= item.status.toLowerCase() %>"><%= item.status %></span>
+              <strong><%= item.count %></strong>
+            </li>
+          <% }) %>
+        </ul>
+      </div>
+    </section>
+
+    <section class="admin-panel">
+      <h2>Operations radar</h2>
+      <div class="split-grid">
+        <div>
+          <h3>Arrivals (7d)</h3>
+          <ul class="timeline-list">
+            <% if (!upcomingCheckIns.length) { %>
+              <li class="timeline-empty">No arrivals on the horizon.</li>
+            <% } %>
+            <% upcomingCheckIns.forEach(function(booking) { %>
+              <li>
+                <div class="timeline-info">
+                  <strong><%= booking.guestName || booking.userId %></strong>
+                  <span class="muted"><%= booking.windowLabel %></span>
+                </div>
+                <span class="timeline-meta">in <%= booking.daysUntil %>d</span>
+              </li>
+            <% }) %>
+          </ul>
+        </div>
+        <div>
+          <h3>Departures (7d)</h3>
+          <ul class="timeline-list">
+            <% if (!upcomingCheckOuts.length) { %>
+              <li class="timeline-empty">No departures scheduled.</li>
+            <% } %>
+            <% upcomingCheckOuts.forEach(function(booking) { %>
+              <li>
+                <div class="timeline-info">
+                  <strong><%= booking.guestName || booking.userId %></strong>
+                  <span class="muted"><%= booking.windowLabel %></span>
+                </div>
+                <span class="timeline-meta">in <%= booking.daysUntil %>d</span>
+              </li>
+            <% }) %>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-panel">
+      <h2>Amenity reservations</h2>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Amenity</th>
+            <th>Guest</th>
+            <th>Window</th>
+            <th>Status</th>
+            <th>Manage</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!amenityReservations.length) { %>
+            <tr>
+              <td colspan="5" class="muted">No reservations logged yet.</td>
+            </tr>
+          <% } %>
+          <% amenityReservations.forEach(function(reservation) { %>
+            <tr>
+              <td>
+                <div class="stacked">
+                  <strong><%= reservation.amenityName %></strong>
+                  <span class="muted"><%= reservation.durationLabel %> • <%= reservation.amenitySlug %></span>
+                </div>
+              </td>
+              <td>
+                <div class="stacked">
+                  <strong><%= reservation.guestName %></strong>
+                  <span class="muted"><%= reservation.guestEmail %></span>
+                </div>
+              </td>
+              <td>
+                <div class="stacked">
+                  <span><%= reservation.startLabel %></span>
+                  <span class="muted">ends <%= reservation.endLabel %></span>
+                </div>
+              </td>
+              <td>
+                <span class="status-chip status-<%= reservation.status %>"><%= reservation.status %></span>
+              </td>
+              <td>
+                <form action="/admin/amenities/reservations/<%= reservation.id %>/status" method="post" class="inline-form">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                  <label class="sr-only" for="reservation-<%= reservation.id %>-status">Status</label>
+                  <select id="reservation-<%= reservation.id %>-status" name="status">
+                    <% reservationStatuses.forEach(function(status) { %>
+                      <option value="<%= status %>" <%= reservation.status === status ? 'selected' : '' %>><%= status %></option>
+                    <% }) %>
+                  </select>
+                  <button type="submit" class="pill-link secondary">Update</button>
+                </form>
               </td>
             </tr>
           <% }) %>
@@ -78,26 +258,59 @@
     </section>
 
     <section class="admin-panel">
-      <h2>Amenities</h2>
-      <ul class="admin-list">
+      <h2>Amenity roster</h2>
+      <ul class="admin-list amenity-list">
         <% amenities.forEach(function(amenity) { %>
           <li>
-            <strong><%= amenity.name %></strong> — <%= amenity.hours %> @ <%= amenity.location %>
+            <div class="stacked">
+              <strong><%= amenity.name %></strong>
+              <span class="muted"><%= amenity.category %> • <%= amenity.location %></span>
+            </div>
+            <div class="amenity-meta">
+              <span><%= amenity.hours %></span>
+              <% if (amenity.capacity) { %>
+                <span>Capacity <%= amenity.capacity %></span>
+              <% } %>
+              <% if (amenity.cta) { %>
+                <span><%= amenity.cta %></span>
+              <% } %>
+            </div>
           </li>
         <% }) %>
       </ul>
     </section>
 
     <section class="admin-panel">
-      <h2>Contact inquiries</h2>
-      <ul class="admin-list">
+      <h2>Guest inquiries <span class="badge"><%= openInquiriesCount %> open</span></h2>
+      <ul class="inquiry-list">
         <% if (!inquiries.length) { %>
-          <li>No inquiries received yet.</li>
+          <li class="timeline-empty">No inquiries received yet.</li>
         <% } %>
         <% inquiries.forEach(function(inquiry) { %>
-          <li>
-            <strong><%= inquiry.name %></strong> — <%= inquiry.email %>
+          <li class="inquiry-card <%= inquiry.status === 'resolved' ? 'is-resolved' : '' %>">
+            <header class="inquiry-header">
+              <div class="stacked">
+                <strong><%= inquiry.name %></strong>
+                <span class="muted"><%= inquiry.email %></span>
+              </div>
+              <span class="status-chip status-<%= inquiry.status %>"><%= inquiry.status %></span>
+            </header>
             <p><%= inquiry.message %></p>
+            <footer class="inquiry-footer">
+              <small class="muted">
+                Received <%= new Date(inquiry.receivedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) %>
+                <% if (inquiry.status === 'resolved' && inquiry.resolvedAt) { %>
+                  • Resolved <%= new Date(inquiry.resolvedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) %>
+                <% } %>
+              </small>
+              <form action="/admin/inquiries/<%= inquiry.id %>/status" method="post" class="inline-form">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                <input type="hidden" name="status" value="<%= inquiry.status === 'resolved' ? 'open' : 'resolved' %>" />
+                <button type="submit" class="pill-link <%= inquiry.status === 'resolved' ? 'secondary' : 'primary' %>">
+                  <%= inquiry.status === 'resolved' ? 'Reopen' : 'Mark resolved' %>
+                </button>
+              </form>
+            </footer>
           </li>
         <% }) %>
       </ul>
