@@ -9,7 +9,7 @@
 
 <section class="room-collection">
   <% rooms.forEach(function(room) { %>
-    <article class="room-card detailed" id="<%= room.slug %>" data-animate="fade-up">
+    <article class="room-card detailed" id="<%= room.slug %>" data-animate="fade-up" data-hover-expand tabindex="0">
       <div class="room-media">
         <img src="<%= room.images[0] || '/images/nebula.svg' %>" alt="Suite view of <%= room.name %>" />
       </div>
@@ -58,6 +58,27 @@
             <a class="pill-link primary" href="/book?room=<%= room.id %>">Begin Reservation</a>
             <p class="wizard-note">Guided steps: dates → room → guests → review → payment → confirmation.</p>
           </div>
+        </div>
+        <div class="card-expand">
+          <h4>Orbit Concierge Signal</h4>
+          <p>
+            Our journey designers recommend syncing <%= room.name %> with the twilight cycle to amplify its immersive panoramas.
+          </p>
+          <ul class="expand-highlights">
+            <li>
+              <span>✧</span>
+              Dusk sensors magnify the <%= room.view ? room.view.toLowerCase() : 'skyline' %> tableau with responsive halo lighting.
+            </li>
+            <% if (room.features && room.features.length) { %>
+              <li><span>✧</span> Signature spotlight: <%= room.features[0] %> pairs elegantly with ambient soundscapes.</li>
+            <% } else { %>
+              <li><span>✧</span> Signature spotlight: Dreamwave acoustic canopy adapts to your heartbeat.</li>
+            <% } %>
+            <li>
+              <span>✧</span>
+              Pair with <%= room.addOns && room.addOns.length ? room.addOns[0].name : 'a bespoke amenity kit' %> for an arrival ritual curated by our AI concierge.
+            </li>
+          </ul>
         </div>
       </div>
     </article>

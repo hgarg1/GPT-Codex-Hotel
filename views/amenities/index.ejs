@@ -9,7 +9,7 @@
 
 <section class="amenities-grid" data-animate="fade-up">
   <% amenities.forEach(function(amenity) { %>
-    <article class="amenity-card large">
+    <article class="amenity-card large" data-hover-expand tabindex="0">
       <div class="amenity-media" style="background-image:url('<%= amenity.images[0] || '/images/skyline.svg' %>')"></div>
       <div class="amenity-body">
         <h2><%= amenity.name %></h2>
@@ -21,6 +21,19 @@
         </ul>
         <div class="amenity-actions">
           <a class="pill-link primary" href="/amenities/<%= amenity.slug %>"><%= amenity.cta || 'View Details' %></a>
+        </div>
+        <div class="card-expand">
+          <h4>Experience Amplified</h4>
+          <p>
+            Luminous guides weave bespoke rituals through <%= amenity.name %>, adapting to your mood and chronotype.
+          </p>
+          <ul class="expand-highlights">
+            <li><span>☾</span> Echo-chambers refresh every orbit to keep the atmosphere vibrant for returning guests.</li>
+            <li>
+              <span>☾</span>
+              Concierge tip: <%= amenity.capacity ? 'Reserve synchronised slots—only ' + amenity.capacity + ' guests share each wave.' : 'Arrive when the corridor lights pulse violet for exclusive walk-in access.' %>
+            </li>
+          </ul>
         </div>
       </div>
     </article>

@@ -7,9 +7,19 @@
 </section>
 <section class="culinary-grid" data-animate="fade-up">
   <% culinaryJourneys.forEach(function(stop) { %>
-    <article class="culinary-card">
+    <article class="culinary-card" data-hover-expand tabindex="0">
       <h2><%= stop.name %></h2>
       <p><%= stop.description %></p>
+      <div class="card-expand">
+        <h4>Tasting Signal</h4>
+        <p>
+          Hover to reveal the sensory crescendo—<%= stop.name %> layers aromatics, sound design, and projection mapping in real time.
+        </p>
+        <ul class="expand-highlights">
+          <li><span>✹</span> Pairings evolve every 18 minutes, guided by our orbiting flavour AI.</li>
+          <li><span>✹</span> Insider tip: request the luminescent tea flight to unlock a private chef transmission.</li>
+        </ul>
+      </div>
     </article>
   <% }) %>
 </section>
