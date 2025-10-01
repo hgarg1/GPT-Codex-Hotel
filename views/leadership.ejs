@@ -18,11 +18,19 @@
     </div>
     <div class="team-grid">
       <% boardMembers.forEach(function(member) { %>
-        <article class="team-card">
+        <article class="team-card" data-hover-expand tabindex="0">
           <h3><%= member.name %></h3>
           <p class="team-role"><%= member.role %></p>
           <p class="team-focus"><%= member.focus %></p>
           <a class="pill-link" href="mailto:<%= member.contact %>">Connect</a>
+          <div class="card-expand">
+            <h4>Signal from the Bridge</h4>
+            <p><%= member.name %> stewards initiatives that ensure <%= member.focus.toLowerCase() %></p>
+            <ul class="expand-highlights">
+              <li><span>✦</span> Current spotlight: Helios Accord sessions aligning partners across orbit lanes.</li>
+              <li><span>✦</span> Ideal collaborator for teams navigating <%= member.role.toLowerCase() %> strategies.</li>
+            </ul>
+          </div>
         </article>
       <% }) %>
     </div>
@@ -35,11 +43,19 @@
     </div>
     <div class="team-grid">
       <% executiveTeam.forEach(function(member) { %>
-        <article class="team-card highlight">
+        <article class="team-card highlight" data-hover-expand tabindex="0">
           <h3><%= member.name %></h3>
           <p class="team-role"><%= member.role %></p>
           <p class="team-focus"><%= member.focus %></p>
           <a class="pill-link primary" href="mailto:<%= member.contact %>">Message</a>
+          <div class="card-expand">
+            <h4>Experience Roadmap</h4>
+            <p><%= member.name %> is crafting new guest pathways where <%= member.focus.toLowerCase() %></p>
+            <ul class="expand-highlights">
+              <li><span>✦</span> Weekly sync with concierge intelligence to pre-empt guest desires.</li>
+              <li><span>✦</span> Request a holographic briefing to align with the next <%= member.role.toLowerCase() %> sprint.</li>
+            </ul>
+          </div>
         </article>
       <% }) %>
     </div>
@@ -52,11 +68,19 @@
     </div>
     <div class="team-grid slim">
       <% advisoryCouncil.forEach(function(member) { %>
-        <article class="team-card">
+        <article class="team-card" data-hover-expand tabindex="0">
           <h3><%= member.name %></h3>
           <p class="team-role"><%= member.role %></p>
           <p class="team-focus"><%= member.focus %></p>
           <a class="pill-link" href="mailto:<%= member.contact %>">Consult</a>
+          <div class="card-expand">
+            <h4>Advisor Insight</h4>
+            <p>Tap <%= member.name %> for fast-tracked answers on how <%= member.focus.toLowerCase() %></p>
+            <ul class="expand-highlights">
+              <li><span>✦</span> Schedules quarterly deep dives with resident innovators and partners.</li>
+              <li><span>✦</span> Introductions available via concierge for collaborative missions.</li>
+            </ul>
+          </div>
         </article>
       <% }) %>
     </div>

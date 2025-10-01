@@ -421,6 +421,100 @@ textarea:focus {
   gap: 2rem;
 }
 
+[data-hover-expand] {
+  position: relative;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease;
+}
+
+[data-hover-expand]:hover,
+[data-hover-expand]:focus-within {
+  transform: translateY(-6px);
+  box-shadow: 0 28px 60px rgba(8, 12, 30, 0.45);
+}
+
+[data-hover-expand] .card-expand {
+  margin-top: 0.8rem;
+  background: linear-gradient(140deg, rgba(94, 252, 255, 0.2), rgba(140, 123, 255, 0.18));
+  border-radius: 16px;
+  border: 1px solid rgba(94, 252, 255, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  padding: 0 1.2rem;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateY(16px);
+  transition: max-height 0.7s cubic-bezier(0.33, 1, 0.68, 1), padding 0.45s ease,
+    opacity 0.45s ease, transform 0.6s cubic-bezier(0.33, 1, 0.68, 1),
+    border-color 0.45s ease;
+}
+
+[data-hover-expand]:hover .card-expand,
+[data-hover-expand]:focus-within .card-expand {
+  max-height: 360px;
+  opacity: 1;
+  padding: 1.25rem 1.4rem 1.4rem;
+  transform: translateY(0);
+  border-color: rgba(94, 252, 255, 0.45);
+}
+
+.card-expand h4 {
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  margin-bottom: 0.4rem;
+}
+
+.card-expand p {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: rgba(244, 247, 255, 0.88);
+}
+
+.expand-highlights {
+  list-style: none;
+  margin-top: 0.9rem;
+  display: grid;
+  gap: 0.55rem;
+  font-size: 0.85rem;
+  color: rgba(244, 247, 255, 0.78);
+}
+
+.expand-highlights li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.6rem;
+  align-items: start;
+}
+
+.expand-highlights li span {
+  color: var(--color-accent);
+  font-size: 0.95rem;
+  filter: drop-shadow(0 0 6px rgba(94, 252, 255, 0.6));
+}
+
+[data-theme='light'] [data-hover-expand] .card-expand {
+  background: linear-gradient(145deg, rgba(94, 252, 255, 0.22), rgba(140, 123, 255, 0.18));
+  border-color: rgba(17, 22, 51, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+[data-theme='light'] .card-expand p {
+  color: rgba(17, 22, 51, 0.78);
+}
+
+[data-theme='light'] .expand-highlights {
+  color: rgba(17, 22, 51, 0.7);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-hover-expand],
+  [data-hover-expand] .card-expand {
+    transition: none;
+  }
+}
+
 .room-card {
   background: var(--color-surface-alt);
   border-radius: 20px;

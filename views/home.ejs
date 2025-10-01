@@ -45,7 +45,7 @@
   </div>
   <div class="card-grid">
     <% featuredRooms.forEach(function(room) { %>
-      <article class="room-card" id="featured-<%= room.slug %>">
+      <article class="room-card" id="featured-<%= room.slug %>" data-hover-expand tabindex="0">
         <img src="<%= room.images[0] || '/images/nebula.svg' %>" alt="Render of <%= room.name %>" />
         <div class="room-body">
           <h3><%= room.name %></h3>
@@ -60,6 +60,21 @@
             <a class="pill-link primary" href="/book">Plan Stay</a>
             <a class="pill-link" href="/rooms#<%= room.slug %>">Details</a>
           </div>
+          <div class="card-expand">
+            <h4>Immersion Preview</h4>
+            <p>
+              <%= room.name %> calibrates atmospheric light and sound to your circadian rhythm within minutes of arrival.
+            </p>
+            <ul class="expand-highlights">
+              <% (room.features || []).slice(0, 2).forEach(function(feature) { %>
+                <li><span>☄︎</span> <%= feature %></li>
+              <% }) %>
+              <li>
+                <span>☄︎</span>
+                Arrival ritual: <%= room.addOns && room.addOns.length ? room.addOns[0].name : 'Personalised welcome infusion' %>
+              </li>
+            </ul>
+          </div>
         </div>
       </article>
     <% }) %>
@@ -73,7 +88,7 @@
   </div>
   <div class="card-grid amenities-grid">
     <% featuredAmenities.forEach(function(item) { %>
-      <article class="amenity-card">
+      <article class="amenity-card" data-hover-expand tabindex="0">
         <div class="amenity-media" style="background-image:url('<%= item.images[0] || '/images/skyline.svg' %>')"></div>
         <div class="amenity-body">
           <h3><%= item.name %></h3>
@@ -84,6 +99,19 @@
             <% if (item.capacity) { %><li><strong>Capacity:</strong> <%= item.capacity %> guests</li><% } %>
           </ul>
           <a class="pill-link primary" href="/amenities/<%= item.slug %>"><%= item.cta || 'View Details' %></a>
+          <div class="card-expand">
+            <h4>Insider Signal</h4>
+            <p>
+              Concierge beacons choreograph ambient scents and chroma waves specifically for the <%= item.name %> experience.
+            </p>
+            <ul class="expand-highlights">
+              <li><span>☄︎</span> Drift through a prelude lounge 15 minutes before your reservation for tonal acclimation.</li>
+              <li>
+                <span>☄︎</span>
+                <%= item.capacity ? 'Limited to ' + item.capacity + ' explorers per wave—secure your slot early.' : 'Walk-ins welcomed when the entry halo glows cyan.' %>
+              </li>
+            </ul>
+          </div>
         </div>
       </article>
     <% }) %>
