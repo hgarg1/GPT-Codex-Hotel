@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Aurora Nexus Icon</title>
+  <desc id="desc">Aurora gradient emblem for the Aurora Nexus Skyhaven hotel.</desc>
+  <defs>
+    <linearGradient id="bg256" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#020617" />
+      <stop offset="45%" stop-color="#1d4ed8" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+    <linearGradient id="aurora256" x1="12%" y1="82%" x2="88%" y2="18%">
+      <stop offset="0%" stop-color="#f472b6" stop-opacity="0.88" />
+      <stop offset="100%" stop-color="#c084fc" stop-opacity="0.92" />
+    </linearGradient>
+    <radialGradient id="glow256" cx="52%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#f8fafc" stop-opacity="0.92" />
+      <stop offset="100%" stop-color="#bae6fd" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect x="12" y="12" width="232" height="232" rx="68" fill="url(#bg256)" />
+  <path fill="url(#aurora256)" d="M52 164c24-46 70-90 126-108 32-10 59-7 76 7 19 15 22 44 2 66-16 18-50 29-78 24-32-6-60 8-80 30-18 18-40 24-64-19z" opacity="0.86" />
+  <path fill="url(#glow256)" d="M60 80c42-28 142-52 176-24 15 13 8 36-20 48-60 24-118 22-156-24z" />
+  <path fill="#f8fafc" d="M72 158c20-24 46-40 74-48 32-10 58-3 80 16-22 10-46 14-72 16-28 3-58 9-82 16z" opacity="0.78" />
+</svg>

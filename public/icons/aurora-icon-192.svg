@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-labelledby="title desc">
+  <title id="title">Aurora Nexus Emblem</title>
+  <desc id="desc">Rounded square with aurora inspired gradients and a luminous arc.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0b1120" />
+      <stop offset="50%" stop-color="#1d2f5d" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+    <linearGradient id="aurora" x1="10%" y1="80%" x2="90%" y2="20%">
+      <stop offset="0%" stop-color="#f472b6" stop-opacity="0.85" />
+      <stop offset="100%" stop-color="#c084fc" stop-opacity="0.95" />
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#e0f2fe" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect x="8" y="8" width="176" height="176" rx="48" fill="url(#bg)" />
+  <path fill="url(#aurora)" d="M40 122c16-30 46-60 82-72 20-6 36-4 46 3 12 8 16 23 5 36-8 10-26 16-42 14-20-3-38 5-51 18-12 11-26 13-40 1z" opacity="0.85" />
+  <path fill="url(#glow)" d="M48 54c28-20 92-36 112-18 9 9 3 24-14 31-38 16-74 14-98-13z" />
+  <path fill="#f8fafc" d="M58 118c15-18 33-30 52-35 22-6 41-1 56 11-15 7-32 9-49 11-19 3-38 7-59 13z" opacity="0.8" />
+</svg>
