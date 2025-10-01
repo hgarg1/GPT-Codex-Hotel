@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Aurora Nexus Maskable Icon</title>
+  <desc id="desc">Maskable variant of the Aurora Nexus icon with safe padding.</desc>
+  <defs>
+    <linearGradient id="maskable-bg" x1="15%" y1="100%" x2="85%" y2="0%">
+      <stop offset="0%" stop-color="#020617" />
+      <stop offset="35%" stop-color="#172554" />
+      <stop offset="100%" stop-color="#0ea5e9" />
+    </linearGradient>
+    <linearGradient id="maskable-aurora" x1="0%" y1="75%" x2="100%" y2="25%">
+      <stop offset="0%" stop-color="#f472b6" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0.9" />
+    </linearGradient>
+    <radialGradient id="maskable-glow" cx="50%" cy="32%" r="55%">
+      <stop offset="0%" stop-color="#f1f5f9" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#bae6fd" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect x="0" y="0" width="512" height="512" rx="140" fill="url(#maskable-bg)" />
+  <path fill="url(#maskable-aurora)" d="M96 344c50-88 144-170 256-205 56-18 108-12 136 14 32 30 32 84-9 120-38 34-108 54-172 40-64-15-124 22-164 68-18 18-38 24-47 23-16-3-24-22 0-60z" opacity="0.85" />
+  <path fill="url(#maskable-glow)" d="M118 156c80-50 252-96 314-42 19 16 14 46-26 67-108 56-210 50-288-25z" />
+  <path fill="#f8fafc" d="M148 324c42-48 94-80 148-94 62-18 114-6 154 26-44 18-90 26-138 32-56 8-112 20-164 36z" opacity="0.75" />
+</svg>

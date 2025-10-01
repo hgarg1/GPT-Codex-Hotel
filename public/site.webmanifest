@@ -1,0 +1,29 @@
+{
+  "name": "Aurora Nexus Skyhaven",
+  "short_name": "Aurora Nexus",
+  "description": "Aurora Nexus Skyhaven – a futuristic sanctuary for travellers beyond tomorrow.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b1120",
+  "theme_color": "#0ea5e9",
+  "icons": [
+    {
+      "src": "/icons/aurora-icon-192.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/aurora-icon-512.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/aurora-icon-maskable.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ]
+}
