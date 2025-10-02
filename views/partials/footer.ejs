@@ -1,17 +1,60 @@
   </main>
-  <footer class="site-footer">
+  <footer class="site-footer" role="contentinfo">
     <div class="footer-grid">
-      <div>
+      <div class="footer-brand">
+        <a class="footer-logo" href="/">
+          <span class="footer-logo-mark">✦</span>
+          <span class="footer-logo-text"><%= hotelName %></span>
+        </a>
+        <p class="footer-description">
+          Elevated hospitality designed for celestial explorers, with experiences tailored to your chrono rhythm.
+        </p>
+      </div>
+
+      <nav class="footer-links" aria-label="Footer">
+        <h4>Explore</h4>
+        <ul>
+          <li><a href="/rooms">Rooms &amp; Suites</a></li>
+          <li><a href="/amenities">Amenities</a></li>
+          <li><a href="/dining">Dining</a></li>
+          <li><a href="/leadership">Leadership</a></li>
+          <li><a href="/contact">Contact</a></li>
+        </ul>
+      </nav>
+
+      <div class="footer-contact">
+        <h4>Visit &amp; Connect</h4>
+        <address>
+          Orbital Dock 7<br />
+          Stratos District<br />
+          Neo-Tokyo Arcology
+        </address>
+        <a class="footer-link" href="tel:+12025550177">+1-202-555-0177</a>
+        <a class="footer-link" href="mailto:concierge@auroranexus.com">concierge@auroranexus.com</a>
+        <ul class="footer-social" aria-label="Social media">
+          <li><a href="https://instagram.com" rel="noopener" target="_blank">Instagram</a></li>
+          <li><a href="https://twitter.com" rel="noopener" target="_blank">X / Twitter</a></li>
+          <li><a href="https://linkedin.com" rel="noopener" target="_blank">LinkedIn</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-newsletter">
         <h4>Stay in Orbit</h4>
-        <p>Subscribe to luminous updates and rare event access from <%= hotelName %>.</p>
-      </div>
-      <div>
-        <h4>Visit</h4>
-        <p>Orbital Dock 7 • Stratos District • Neo-Tokyo Arcology</p>
-      </div>
-      <div>
-        <h4>Connect</h4>
-        <p>+1-202-555-0177 • concierge@auroranexus.com</p>
+        <p>Receive luminous updates, resident-only happenings, and chrono spa invitations.</p>
+        <form class="footer-newsletter-form" action="/contact" method="get">
+          <label class="sr-only" for="footer-email">Email address</label>
+          <input
+            id="footer-email"
+            type="email"
+            name="email"
+            placeholder="you@example.com"
+            autocomplete="email"
+            required
+          />
+          <input type="hidden" name="intent" value="newsletter" />
+          <button type="submit">Notify me</button>
+        </form>
+        <small>We encrypt transmissions and honour zero-spam protocols.</small>
       </div>
     </div>
     <p class="footer-meta">© <%= new Date().getFullYear() %> <%= hotelName %>. Crafted for travellers beyond tomorrow.</p>

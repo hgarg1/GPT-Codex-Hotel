@@ -15,10 +15,25 @@
     </div>
     <div class="chat-section">
       <h2>Direct messages</h2>
+      <div class="chat-search">
+        <label for="chat-user-search" class="sr-only">Search users</label>
+        <input
+          id="chat-user-search"
+          type="search"
+          placeholder="Search guests & staff"
+          autocomplete="off"
+          data-user-search
+        />
+        <ul class="chat-search-results" data-search-results hidden></ul>
+      </div>
+      <p class="chat-empty" data-empty-dm <%= (recentContacts && recentContacts.length) ? 'hidden' : '' %>>
+        Start a new conversation by searching for a guest or team member.
+      </p>
       <ul class="chat-dm-list" data-dm-list>
-        <% users.forEach(function(user) { %>
+        <% const dmSource = (recentContacts && recentContacts.length) ? recentContacts.map(function(entry) { return entry.user; }) : users; %>
+        <% dmSource.forEach(function(user) { %>
           <li>
-            <button type="button" data-dm="<%= user.id %>">
+            <button type="button" data-dm="<%= user.id %>" data-display-name="<%= user.name %>">
               <span class="presence-indicator" data-presence-indicator="<%= user.id %>"></span>
               <%= user.name %>
             </button>
@@ -36,6 +51,13 @@
       <div class="typing-indicator" data-typing hidden></div>
     </header>
     <div class="chat-history" data-messages role="log" aria-live="polite"></div>
+    <div class="chat-suggestions" data-suggestions hidden>
+      <div class="chat-suggestions-header">
+        <h2>Suggested replies</h2>
+        <span data-sentiment-label></span>
+      </div>
+      <div class="chat-suggestions-list" data-suggestion-list></div>
+    </div>
     <form class="chat-composer" data-chat-form>
       <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
       <textarea name="message" placeholder="Send a message" rows="2" required maxlength="400"></textarea>

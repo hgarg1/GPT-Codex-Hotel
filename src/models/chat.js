@@ -1,5 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../db');
+const { encryptText, decryptText } = require('../utils/crypto');
+const { getUserById } = require('./users');
 
 const db = getDb();
 
@@ -10,7 +12,7 @@ function serialiseMessage(row) {
     room: row.room,
     fromUserId: row.fromUserId,
     toUserId: row.toUserId,
-    body: row.body,
+    body: decryptText(row.body),
     createdAt: row.createdAt
   };
 }
@@ -18,9 +20,10 @@ function serialiseMessage(row) {
 function saveMessage({ room, fromUserId, toUserId = null, body }) {
   const id = uuidv4();
   const createdAt = new Date().toISOString();
+  const encryptedBody = encryptText(body);
   db.prepare(
     'INSERT INTO chat_messages (id, room, fromUserId, toUserId, body, createdAt) VALUES (?, ?, ?, ?, ?, ?)'
-  ).run(id, room, fromUserId, toUserId, body, createdAt);
+  ).run(id, room, fromUserId, toUserId, encryptedBody, createdAt);
   return getMessageById(id);
 }
 
@@ -54,6 +57,35 @@ function listDmMessages(userA, userB, limit = 50, before) {
   params.push(limit);
   const rows = db.prepare(query).all(...params);
   return rows.map(serialiseMessage).reverse();
+}
+
+function listRecentContacts(userId, limit = 12) {
+  const rows = db
+    .prepare(
+      `SELECT partnerId, MAX(createdAt) AS lastMessageAt
+       FROM (
+         SELECT CASE WHEN fromUserId = ? THEN toUserId ELSE fromUserId END AS partnerId,
+                createdAt
+         FROM chat_messages
+         WHERE (fromUserId = ? OR toUserId = ?) AND toUserId IS NOT NULL
+       ) AS conversations
+       WHERE partnerId IS NOT NULL
+       GROUP BY partnerId
+       ORDER BY lastMessageAt DESC
+       LIMIT ?`
+    )
+    .all(userId, userId, userId, limit);
+
+  return rows
+    .map((row) => {
+      const partner = getUserById(row.partnerId);
+      if (!partner) return null;
+      return {
+        user: partner,
+        lastMessageAt: row.lastMessageAt
+      };
+    })
+    .filter(Boolean);
 }
 
 function blockUser(blockerId, blockedId) {
@@ -92,6 +124,7 @@ module.exports = {
   saveMessage,
   listMessagesByRoom,
   listDmMessages,
+  listRecentContacts,
   blockUser,
   isBlocked,
   reportUser

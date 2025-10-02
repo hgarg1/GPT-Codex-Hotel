@@ -5,12 +5,14 @@ const { sanitizeString } = require('../utils/sanitize');
 const {
   listMessagesByRoom,
   listDmMessages,
+  listRecentContacts,
   blockUser,
   isBlocked,
   reportUser
 } = require('../models/chat');
 const { listBookingsByUser } = require('../models/bookings');
-const { getAllUsers, getUserById } = require('../models/users');
+const { getAllUsers, getUserById, searchUsers } = require('../models/users');
+const { buildSuggestions } = require('../utils/sentiment');
 
 const router = express.Router();
 
@@ -22,6 +24,7 @@ const reportSchema = Joi.object({
 
 router.get('/chat', ensureAuthenticated, (req, res) => {
   const users = getAllUsers().filter((user) => user.id !== req.user.id);
+  const recentContacts = listRecentContacts(req.user.id);
   const stayRooms = listBookingsByUser(req.user.id).map((booking) => ({
     id: `stay-${booking.checkIn.slice(0, 10)}-${booking.checkOut.slice(0, 10)}`,
     label: `${new Date(booking.checkIn).toLocaleDateString()} → ${new Date(booking.checkOut).toLocaleDateString()}`
@@ -29,14 +32,18 @@ router.get('/chat', ensureAuthenticated, (req, res) => {
   res.render('chat/index', {
     pageTitle: 'Live Concierge Chat',
     users,
-    stayRooms
+    stayRooms,
+    recentContacts
   });
 });
 
 router.get('/chat/history', ensureAuthenticated, (req, res) => {
   const room = sanitizeString(req.query.room || 'lobby');
   const before = req.query.before ? sanitizeString(req.query.before) : undefined;
-  const messages = listMessagesByRoom(room, 50, before);
+  const messages = listMessagesByRoom(room, 50, before).map((message) => ({
+    ...message,
+    sender: getUserById(message.fromUserId)
+  }));
   res.json({ messages });
 });
 
@@ -50,8 +57,20 @@ router.get('/chat/dm/:userId', ensureAuthenticated, (req, res) => {
     return res.status(403).json({ error: 'Direct messages are blocked.' });
   }
   const before = req.query.before ? sanitizeString(req.query.before) : undefined;
-  const messages = listDmMessages(req.user.id, targetId, 50, before);
-  res.json({ messages });
+  const messages = listDmMessages(req.user.id, targetId, 50, before).map((message) => ({
+    ...message,
+    sender: getUserById(message.fromUserId)
+  }));
+  res.json({ messages, targetUser: { id: targetUser.id, name: targetUser.name } });
+});
+
+router.get('/chat/users', ensureAuthenticated, (req, res) => {
+  const query = sanitizeString(req.query.query || '');
+  if (!query || query.length < 2 || query.length > 60) {
+    return res.json({ users: [] });
+  }
+  const results = searchUsers(query, 12).filter((user) => user.id !== req.user.id);
+  res.json({ users: results });
 });
 
 router.post('/chat/block/:userId', ensureAuthenticated, (req, res) => {
@@ -80,6 +99,18 @@ router.post('/chat/report', ensureAuthenticated, (req, res) => {
     reason: value.reason
   });
   res.json({ ok: true, report });
+});
+
+router.post('/chat/suggestions', ensureAuthenticated, (req, res) => {
+  const message = sanitizeString(req.body.message || '');
+  if (!message) {
+    return res.status(400).json({ error: 'Message text required.' });
+  }
+  const data = buildSuggestions(
+    message,
+    req.body.partnerName ? sanitizeString(req.body.partnerName) : undefined
+  );
+  res.json(data);
 });
 
 module.exports = router;

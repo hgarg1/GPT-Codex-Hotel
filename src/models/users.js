@@ -23,6 +23,19 @@ function getAllUsers() {
   return rows.map(serialiseUser);
 }
 
+function searchUsers(query, limit = 10) {
+  const likeQuery = `%${query.toLowerCase()}%`;
+  const rows = db
+    .prepare(
+      `SELECT * FROM users
+       WHERE (LOWER(name) LIKE ? OR LOWER(email) LIKE ?)
+       ORDER BY name ASC
+       LIMIT ?`
+    )
+    .all(likeQuery, likeQuery, limit);
+  return rows.map(serialiseUser);
+}
+
 function getUserByEmail(email) {
   const row = db.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').get(email);
   return serialiseUser(row);
@@ -115,5 +128,6 @@ module.exports = {
   verifyPassword,
   updateUserProfile,
   updateUserPassword,
-  getUserPasswordHash
+  getUserPasswordHash,
+  searchUsers
 };
