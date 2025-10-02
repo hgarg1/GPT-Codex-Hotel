@@ -1,10 +1,13 @@
 const { execSync } = require('child_process');
+const request = require('supertest');
+const app = require('../src/app');
 const { calculateStaySummary } = require('../src/utils/booking');
 const { getUserByEmail } = require('../src/models/users');
 const { getRoomBySlug } = require('../src/models/rooms');
 const { createBooking, getBookingById } = require('../src/models/bookings');
 const { createPaymentAndCapture, getPaymentByBookingId } = require('../src/models/payments');
 const { saveMessage, listMessagesByRoom } = require('../src/models/chat');
+const { getAllInquiries } = require('../src/models/inquiries');
 
 describe('Skyhaven core flows', () => {
   beforeEach(() => {
@@ -65,5 +68,32 @@ describe('Skyhaven core flows', () => {
     const found = history.find((entry) => entry.id === message.id);
     expect(found).toBeTruthy();
     expect(found.body).toBe('Testing persistence');
+  });
+
+  test('routes contact form submissions to guest inquiries', async () => {
+    const agent = request.agent(app);
+    const response = await agent.get('/contact');
+    expect(response.status).toBe(200);
+    const tokenMatch = response.text.match(/name="_csrf" value="([^"]+)"/);
+    expect(tokenMatch).toBeTruthy();
+    const csrfToken = tokenMatch[1];
+
+    const submit = await agent
+      .post('/contact')
+      .type('form')
+      .send({
+        _csrf: csrfToken,
+        name: 'Jest Contact',
+        email: 'jest-contact@example.com',
+        message: 'This is a contact submission from the automated test suite.'
+      });
+
+    expect(submit.status).toBe(302);
+    expect(submit.headers.location).toBe('/contact');
+
+    const inquiries = getAllInquiries();
+    const saved = inquiries.find((entry) => entry.email === 'jest-contact@example.com');
+    expect(saved).toBeTruthy();
+    expect(saved.message).toContain('automated test suite');
   });
 });
