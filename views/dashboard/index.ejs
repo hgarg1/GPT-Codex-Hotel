@@ -13,41 +13,55 @@
       <% if (!bookings.length) { %>
         <p>You have no active bookings yet. Explore our <a href="/rooms">futuristic suites</a> to begin.</p>
       <% } else { %>
-        <table class="booking-table">
-          <thead>
-            <tr>
-              <th>Suite</th>
-              <th>Dates</th>
-              <th>Status</th>
-              <th>Total</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% bookings.forEach(function(booking) { %>
-              <tr>
-                <td><strong><%= booking.roomName %></strong></td>
-                <td><%= new Date(booking.checkIn).toLocaleDateString() %> → <%= new Date(booking.checkOut).toLocaleDateString() %></td>
-                <td><span class="status-chip status-<%= booking.status.toLowerCase() %>"><%= booking.status %></span></td>
-                <td>$<%= booking.total.toFixed(2) %></td>
-                <td class="booking-actions">
-                  <% if (booking.status === 'PendingPayment') { %>
-                    <a class="pill-link primary" href="/pay/<%= booking.id %>">Pay</a>
-                  <% } %>
-                  <% if (booking.status === 'Paid') { %>
-                    <a class="pill-link" href="/invoices/<%= booking.id %>">Invoice</a>
-                  <% } %>
-                  <% if (booking.status !== 'Canceled') { %>
-                    <form action="/bookings/<%= booking.id %>/cancel" method="post">
-                      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-                      <button type="submit" class="pill-link">Cancel</button>
-                    </form>
-                  <% } %>
-                </td>
-              </tr>
-            <% }) %>
-          </tbody>
-        </table>
+        <ul class="booking-collection">
+          <% bookings.forEach(function(booking) { %>
+            <% const checkInDate = new Date(booking.checkIn); %>
+            <% const checkOutDate = new Date(booking.checkOut); %>
+            <% const stayStartLabel = checkInDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); %>
+            <% const stayEndLabel = checkOutDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); %>
+            <% const paymentLabel = booking.payment
+              ? `${booking.payment.status.charAt(0).toUpperCase() + booking.payment.status.slice(1)} • ****${booking.payment.last4}`
+              : 'No payment on file'; %>
+            <li class="booking-card">
+              <div class="booking-card__header">
+                <div class="stacked">
+                  <h3><%= booking.roomName %></h3>
+                  <span class="muted">Reference <%= booking.id.slice(0, 8) %></span>
+                </div>
+                <span class="status-chip status-<%= booking.status.toLowerCase() %>"><%= booking.status %></span>
+              </div>
+              <p class="booking-card__dates"><%= stayStartLabel %> → <%= stayEndLabel %></p>
+              <div class="booking-card__summary">
+                <div>
+                  <span class="summary-label">Guests</span>
+                  <span class="summary-value"><%= booking.guests %></span>
+                </div>
+                <div>
+                  <span class="summary-label">Total</span>
+                  <span class="summary-value">$<%= booking.total.toFixed(2) %></span>
+                </div>
+                <div>
+                  <span class="summary-label">Payment</span>
+                  <span class="summary-value"><%= paymentLabel %></span>
+                </div>
+              </div>
+              <div class="booking-card__actions">
+                <% if (booking.status === 'PendingPayment') { %>
+                  <a class="pill-link primary" href="/pay/<%= booking.id %>">Complete payment</a>
+                <% } %>
+                <% if (booking.status === 'Paid') { %>
+                  <a class="pill-link" href="/invoices/<%= booking.id %>">Invoice</a>
+                <% } %>
+                <% if (booking.status !== 'Canceled') { %>
+                  <form action="/bookings/<%= booking.id %>/cancel" method="post" class="booking-card__inline-form">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                    <button type="submit" class="pill-link">Cancel</button>
+                  </form>
+                <% } %>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
       <% } %>
     </section>
 
@@ -56,12 +70,29 @@
       <% if (!reservations.length) { %>
         <p>No amenity reservations yet. Explore the <a href="/amenities">Skyhaven offerings</a>.</p>
       <% } else { %>
-        <ul class="reservation-list">
+        <ul class="reservation-collection">
           <% reservations.forEach(function(reservation) { %>
-            <li>
-              <h3><%= reservation.amenityName %></h3>
-              <p><%= new Date(reservation.timeslotStart).toLocaleString() %> → <%= new Date(reservation.timeslotEnd).toLocaleString() %></p>
-              <span class="status-chip status-<%= reservation.status %>"><%= reservation.status %></span>
+            <% const start = new Date(reservation.timeslotStart); %>
+            <% const end = new Date(reservation.timeslotEnd); %>
+            <% const startLabel = start.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); %>
+            <% const endLabel = end.toLocaleString('en-US', { hour: '2-digit', minute: '2-digit' }); %>
+            <% const durationMinutes = Math.max(0, Math.round((end - start) / 60000)); %>
+            <% const durationHours = Math.floor(durationMinutes / 60); %>
+            <% const durationRemainder = durationMinutes % 60; %>
+            <% const durationLabel = durationHours
+              ? `${durationHours}h${durationRemainder ? ' ' + durationRemainder + 'm' : ''}`
+              : `${durationMinutes}m`; %>
+            <% const bookedLabel = new Date(reservation.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); %>
+            <li class="reservation-card">
+              <div class="reservation-card__header">
+                <h3><%= reservation.amenityName %></h3>
+                <span class="status-chip status-<%= reservation.status %>"><%= reservation.status %></span>
+              </div>
+              <p class="reservation-card__window"><%= startLabel %> → <%= endLabel %></p>
+              <div class="reservation-card__meta">
+                <span>Duration <%= durationLabel %></span>
+                <span>Booked <%= bookedLabel %></span>
+              </div>
             </li>
           <% }) %>
         </ul>

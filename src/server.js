@@ -28,6 +28,8 @@ const io = new Server(server, {
   }
 });
 
+app.set('io', io);
+
 io.use((socket, next) => {
   sessionMiddleware(socket.request, {}, next);
 });
@@ -91,6 +93,15 @@ io.on('connection', (socket) => {
   trackPresence(user.id, socket.id);
   socket.join('lobby');
   socket.emit('presence:init', Array.from(onlineUsers.keys()));
+
+  socket.on('admin:subscribe', (channel) => {
+    if (user.role !== 'admin') {
+      return;
+    }
+    if (channel === 'inquiries') {
+      socket.join('admin:inquiries');
+    }
+  });
 
   const bookings = listBookingsByUser(user.id);
   bookings.forEach((booking) => {
