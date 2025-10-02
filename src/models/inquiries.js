@@ -1,46 +1,62 @@
 const { v4: uuidv4 } = require('uuid');
+const { getDb } = require('../db');
 
-// Guest inquiries captured from the contact form.
-const inquiries = [];
+const db = getDb();
+
+function serialiseInquiry(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    message: row.message,
+    status: row.status || 'open',
+    receivedAt: row.receivedAt,
+    resolvedAt: row.resolvedAt || null
+  };
+}
 
 function addInquiry({ name, email, message }) {
-  const inquiry = {
+  const now = new Date().toISOString();
+  const record = {
     id: uuidv4(),
     name,
     email,
     message,
-    receivedAt: new Date().toISOString(),
     status: 'open',
+    receivedAt: now,
     resolvedAt: null
   };
-  inquiries.push(inquiry);
-  return inquiry;
+  db.prepare(
+    `INSERT INTO guest_inquiries (id, name, email, message, status, receivedAt, resolvedAt)
+     VALUES (@id, @name, @email, @message, @status, @receivedAt, @resolvedAt)`
+  ).run(record);
+  return getInquiryById(record.id);
 }
 
 function getAllInquiries() {
-  return inquiries;
+  const rows = db.prepare('SELECT * FROM guest_inquiries ORDER BY receivedAt DESC').all();
+  return rows.map(serialiseInquiry);
 }
 
 function getInquiryById(id) {
-  return inquiries.find((inquiry) => inquiry.id === id) || null;
+  const row = db.prepare('SELECT * FROM guest_inquiries WHERE id = ?').get(id);
+  return serialiseInquiry(row);
 }
 
 function updateInquiryStatus(id, status) {
-  const inquiry = getInquiryById(id);
-  if (!inquiry) {
+  const now = new Date().toISOString();
+  const resolvedAt = status === 'resolved' ? now : null;
+  const result = db
+    .prepare('UPDATE guest_inquiries SET status = ?, resolvedAt = ? WHERE id = ?')
+    .run(status, resolvedAt, id);
+  if (result.changes === 0) {
     return null;
   }
-  inquiry.status = status;
-  if (status === 'resolved') {
-    inquiry.resolvedAt = new Date().toISOString();
-  } else {
-    inquiry.resolvedAt = null;
-  }
-  return inquiry;
+  return getInquiryById(id);
 }
 
 module.exports = {
-  inquiries,
   addInquiry,
   getAllInquiries,
   getInquiryById,

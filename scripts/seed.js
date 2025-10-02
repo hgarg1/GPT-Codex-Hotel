@@ -14,6 +14,7 @@ function resetSchema() {
     DROP TABLE IF EXISTS payments;
     DROP TABLE IF EXISTS bookings;
     DROP TABLE IF EXISTS amenities;
+    DROP TABLE IF EXISTS guest_inquiries;
     DROP TABLE IF EXISTS room_types;
     DROP TABLE IF EXISTS users;
   `);
@@ -108,6 +109,16 @@ function resetSchema() {
       updatedAt TEXT NOT NULL,
       FOREIGN KEY (amenityId) REFERENCES amenities(id) ON DELETE CASCADE,
       FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE guest_inquiries (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      message TEXT NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('open','resolved')) DEFAULT 'open',
+      receivedAt TEXT NOT NULL,
+      resolvedAt TEXT
     );
 
     CREATE TABLE chat_messages (
@@ -537,6 +548,50 @@ function insertAmenityReservations() {
   });
 }
 
+function insertGuestInquiries() {
+  const inquiries = [
+    {
+      name: 'Lyra Chen',
+      email: 'lyra@orbitalmail.test',
+      message: 'Do you offer extended stays for remote teams exploring the Skydeck labs?',
+      status: 'open',
+      receivedAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString()
+    },
+    {
+      name: 'Cassian Roe',
+      email: 'cassian@deepcurrent.test',
+      message: 'Looking to arrange a proposal dinner inside the Neon Dining Collective holographic suite.',
+      status: 'open',
+      receivedAt: new Date(Date.now() - 1000 * 60 * 60 * 20).toISOString()
+    },
+    {
+      name: 'Elara Nyx',
+      email: 'elara@stellarnav.test',
+      message: 'Thank you for the seamless stay. Please close the ticket for the VR lounge latency report.',
+      status: 'resolved',
+      receivedAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+      resolvedAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString()
+    }
+  ];
+
+  const stmt = db.prepare(`
+    INSERT INTO guest_inquiries (id, name, email, message, status, receivedAt, resolvedAt)
+    VALUES (@id, @name, @email, @message, @status, @receivedAt, @resolvedAt)
+  `);
+
+  inquiries.forEach((inquiry) => {
+    stmt.run({
+      id: uuidv4(),
+      name: inquiry.name,
+      email: inquiry.email,
+      message: inquiry.message,
+      status: inquiry.status,
+      receivedAt: inquiry.receivedAt,
+      resolvedAt: inquiry.resolvedAt ?? null
+    });
+  });
+}
+
 function insertChatHistory() {
   const users = db.prepare('SELECT id, email FROM users').all();
   const lobbyMessages = [
@@ -576,6 +631,7 @@ function main() {
   insertAmenities();
   insertSampleBookings();
   insertAmenityReservations();
+  insertGuestInquiries();
   insertChatHistory();
   console.log('Database seeded with immersive Skyhaven data.');
 }

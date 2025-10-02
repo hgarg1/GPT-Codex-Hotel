@@ -136,7 +136,11 @@ router.post('/contact', (req, res) => {
     req.pushAlert('danger', 'We could not send your transmission. Please verify the highlighted fields.');
     return res.redirect('/contact');
   }
-  addInquiry(value);
+  const inquiry = addInquiry(value);
+  const io = req.app.get('io');
+  if (io) {
+    io.to('admin:inquiries').emit('inquiry:new', inquiry);
+  }
   req.pushAlert('success', 'Your message has entered the Skyhaven relay. Our curators will respond shortly.');
   return res.redirect('/contact');
 });

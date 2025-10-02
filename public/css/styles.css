@@ -277,6 +277,9 @@ body.app-body {
 }
 
 [data-theme='light'] .booking-card,
+[data-theme='light'] .reservation-card,
+[data-theme='light'] .amenity-roster li,
+[data-theme='light'] .inquiry-card,
 [data-theme='light'] .highlight-grid,
 [data-theme='light'] .amenities,
 [data-theme='light'] .page-hero,
@@ -774,7 +777,11 @@ textarea:focus {
 }
 
 .dashboard-grid {
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.admin-grid {
+  grid-template-columns: 1fr;
 }
 
 .dashboard-panel,
@@ -783,9 +790,56 @@ textarea:focus {
   border-radius: 20px;
   padding: 1.8rem;
   border: 1px solid rgba(94, 252, 255, 0.12);
+  min-width: 0;
+}
+
+.dashboard-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.admin-panel {
   display: grid;
   gap: 1rem;
-  min-width: 0;
+  opacity: 0;
+  transform: translateY(18px);
+  animation: admin-panel-in 0.6s ease forwards;
+}
+
+.admin-grid > .admin-panel:nth-of-type(1) {
+  animation-delay: 0.05s;
+}
+
+.admin-grid > .admin-panel:nth-of-type(2) {
+  animation-delay: 0.15s;
+}
+
+.admin-grid > .admin-panel:nth-of-type(3) {
+  animation-delay: 0.25s;
+}
+
+.admin-grid > .admin-panel:nth-of-type(4) {
+  animation-delay: 0.35s;
+}
+
+.admin-grid > .admin-panel:nth-of-type(5) {
+  animation-delay: 0.45s;
+}
+
+.admin-grid > .admin-panel:nth-of-type(6) {
+  animation-delay: 0.55s;
+}
+
+.admin-grid > .admin-panel:nth-of-type(7) {
+  animation-delay: 0.65s;
+}
+
+@keyframes admin-panel-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .booking-list {
@@ -856,6 +910,55 @@ textarea:focus {
   list-style: none;
   display: grid;
   gap: 1rem;
+}
+
+.panel-scroll {
+  border-radius: 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.panel-scroll table {
+  min-width: 640px;
+}
+
+@media (min-width: 1200px) {
+  .admin-grid {
+    max-width: 1120px;
+    margin-inline: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin {
+    padding: 1.8rem;
+  }
+
+  .admin-panel {
+    padding: 1.4rem;
+  }
+
+  .panel-scroll table {
+    min-width: 560px;
+  }
+}
+
+@media (max-width: 540px) {
+  .admin {
+    padding: 1.4rem;
+  }
+
+  .admin h1 {
+    font-size: 1.6rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-panel {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .muted {
@@ -1025,6 +1128,76 @@ tr.is-low .inventory-pill {
   color: rgba(226, 234, 255, 0.75);
 }
 
+.amenity-roster {
+  list-style: none;
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+}
+
+.amenity-roster li {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr);
+  gap: 1.2rem;
+  align-items: center;
+  padding: 1.2rem 1.4rem;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(94, 252, 255, 0.08), rgba(140, 123, 255, 0.08));
+  border: 1px solid rgba(94, 252, 255, 0.18);
+  overflow: hidden;
+}
+
+.amenity-roster li::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top left, rgba(94, 252, 255, 0.22), transparent 70%);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.amenity-roster__primary {
+  position: relative;
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.amenity-roster__primary h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.amenity-roster__meta {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: flex-end;
+  text-align: right;
+  font-size: 0.85rem;
+  color: rgba(226, 234, 255, 0.85);
+}
+
+.amenity-roster__meta span {
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .amenity-roster li {
+    grid-template-columns: 1fr;
+  }
+
+  .amenity-roster__meta {
+    align-items: flex-start;
+    text-align: left;
+  }
+}
+
 .inquiry-list {
   list-style: none;
   display: grid;
@@ -1045,6 +1218,21 @@ tr.is-low .inventory-pill {
 .inquiry-card.is-resolved {
   opacity: 0.85;
   border-color: rgba(94, 252, 255, 0.1);
+}
+
+.inquiry-card.is-new {
+  border-color: rgba(94, 252, 255, 0.35);
+  box-shadow: 0 0 0 0 rgba(94, 252, 255, 0.35);
+  animation: inquiryPulse 0.9s ease-out;
+}
+
+@keyframes inquiryPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(94, 252, 255, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 0 32px rgba(94, 252, 255, 0);
+  }
 }
 
 .inquiry-header {
@@ -1804,6 +1992,94 @@ tr.is-low .inventory-pill {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
+}
+
+.booking-collection,
+.reservation-collection {
+  list-style: none;
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+}
+
+.booking-card,
+.reservation-card {
+  background: rgba(94, 252, 255, 0.07);
+  border: 1px solid rgba(94, 252, 255, 0.16);
+  border-radius: 18px;
+  padding: 1.2rem 1.3rem;
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.booking-card__header,
+.reservation-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.booking-card__header h3,
+.reservation-card__header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+}
+
+.booking-card__dates,
+.reservation-card__window {
+  font-size: 0.95rem;
+  color: var(--color-muted);
+}
+
+.booking-card__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.booking-card__summary div {
+  min-width: 120px;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.summary-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-muted);
+}
+
+.summary-value {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.booking-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.booking-card__inline-form {
+  margin: 0;
+}
+
+.booking-card__inline-form button {
+  white-space: nowrap;
+}
+
+.reservation-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  font-size: 0.85rem;
+  color: var(--color-muted);
 }
 
 .status-chip {
