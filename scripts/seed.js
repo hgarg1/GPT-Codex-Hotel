@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../src/db');
+const { encryptText } = require('../src/utils/crypto');
 
 const db = getDb();
 
@@ -563,7 +564,7 @@ function insertChatHistory() {
       room: message.room,
       fromUserId: message.from,
       toUserId: null,
-      body: message.body,
+      body: encryptText(message.body),
       createdAt: new Date(Date.now() - (index + 1) * 60 * 60 * 1000).toISOString()
     });
   });
