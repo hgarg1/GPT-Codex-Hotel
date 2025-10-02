@@ -13,6 +13,45 @@ const contactSchema = Joi.object({
   message: Joi.string().min(10).max(1000).required()
 });
 
+function mapContactErrors(details = []) {
+  return details.reduce((acc, detail) => {
+    const field = detail.path?.[0];
+    if (!field || acc[field]) {
+      return acc;
+    }
+
+    const type = detail.type;
+    let message;
+
+    if (field === 'name') {
+      if (type === 'string.empty' || type === 'any.required') {
+        message = 'Please share your name so our concierge knows who to reach.';
+      } else if (type === 'string.min') {
+        message = 'Name must include at least 2 characters.';
+      } else if (type === 'string.max') {
+        message = 'Name cannot exceed 80 characters.';
+      }
+    } else if (field === 'email') {
+      if (type === 'string.empty' || type === 'any.required') {
+        message = 'An email address is required for a response.';
+      } else if (type === 'string.email') {
+        message = 'Please provide a valid email address.';
+      }
+    } else if (field === 'message') {
+      if (type === 'string.empty' || type === 'any.required') {
+        message = 'Let us know how we can assist you.';
+      } else if (type === 'string.min') {
+        message = 'Message must contain at least 10 characters.';
+      } else if (type === 'string.max') {
+        message = 'Message cannot exceed 1000 characters.';
+      }
+    }
+
+    acc[field] = message || detail.message;
+    return acc;
+  }, {});
+}
+
 // Futuristic landing sequence showcasing hero highlights.
 router.get('/', (req, res) => {
   const rooms = listRoomTypes();
@@ -59,8 +98,15 @@ router.get('/rooms', (req, res) => {
 });
 
 router.get('/contact', (req, res) => {
+  const formState = req.session.contactForm || {};
+  const formValues = formState.values || {};
+  const formErrors = formState.errors || {};
+  delete req.session.contactForm;
+
   res.render('contact', {
-    pageTitle: 'Contact Aurora Nexus Skyhaven'
+    pageTitle: 'Contact Aurora Nexus Skyhaven',
+    formValues,
+    formErrors
   });
 });
 
@@ -133,9 +179,14 @@ router.post('/contact', (req, res) => {
   };
   const { error, value } = contactSchema.validate(payload, { abortEarly: false });
   if (error) {
+    req.session.contactForm = {
+      values: payload,
+      errors: mapContactErrors(error.details)
+    };
     req.pushAlert('danger', 'We could not send your transmission. Please verify the highlighted fields.');
     return res.redirect('/contact');
   }
+  delete req.session.contactForm;
   const inquiry = addInquiry(value);
   const io = req.app.get('io');
   if (io) {
