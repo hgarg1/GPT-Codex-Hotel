@@ -3,6 +3,58 @@
   const root = document.documentElement;
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
   const toggleButton = document.querySelector('[data-theme-toggle]');
+  const navContainer = document.querySelector('[data-nav-container]');
+  const navToggle = document.querySelector('[data-nav-toggle]');
+  const navPanel = document.querySelector('[data-nav-panel]');
+  const navBackdrop = document.querySelector('[data-nav-backdrop]');
+
+  const closeMobileNav = ({ returnFocus } = { returnFocus: false }) => {
+    if (!navContainer) return;
+    navContainer.classList.remove('is-nav-open');
+    document.body.classList.remove('nav-open');
+    if (navToggle) {
+      navToggle.setAttribute('aria-expanded', 'false');
+      if (returnFocus) {
+        navToggle.focus();
+      }
+    }
+  };
+
+  if (navToggle && navContainer && navPanel) {
+    navToggle.addEventListener('click', () => {
+      const willOpen = !navContainer.classList.contains('is-nav-open');
+      navContainer.classList.toggle('is-nav-open', willOpen);
+      document.body.classList.toggle('nav-open', willOpen);
+      navToggle.setAttribute('aria-expanded', String(willOpen));
+
+      if (willOpen) {
+        const focusable = navPanel.querySelector(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        focusable?.focus();
+      }
+    });
+
+    navBackdrop?.addEventListener('click', () => closeMobileNav({ returnFocus: true }));
+
+    navPanel.querySelectorAll('a[href]').forEach((link) => {
+      link.addEventListener('click', () => closeMobileNav());
+    });
+
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && navContainer.classList.contains('is-nav-open')) {
+        event.preventDefault();
+        closeMobileNav({ returnFocus: true });
+      }
+    });
+
+    const mq = window.matchMedia('(min-width: 901px)');
+    mq.addEventListener('change', (event) => {
+      if (event.matches) {
+        closeMobileNav();
+      }
+    });
+  }
 
   if (toggleButton && csrfToken) {
     toggleButton.addEventListener('click', async () => {

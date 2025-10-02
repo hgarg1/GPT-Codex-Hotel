@@ -1,41 +1,56 @@
 <body class="app-body">
-  <header class="site-header">
+  <header class="site-header" data-nav-container>
     <div class="brand">
       <a href="/" class="brand-link">
         <span class="brand-mark">✦</span>
         <span class="brand-text"><%= hotelName %></span>
       </a>
     </div>
-    <nav class="primary-nav">
-      <a href="/" class="nav-link">Home</a>
-      <a href="/rooms" class="nav-link">Rooms</a>
-      <a href="/amenities" class="nav-link">Amenities</a>
-      <a href="/leadership" class="nav-link">Leadership</a>
-      <a href="/book" class="nav-link">Book</a>
-      <a href="/contact" class="nav-link">Contact</a>
-      <% if (currentUser) { %>
-        <a href="/chat" class="nav-link">Chat</a>
-        <a href="/dashboard" class="nav-link">Dashboard</a>
-        <% if (currentUser.role === 'admin') { %>
-          <a href="/admin" class="nav-link">Admin</a>
+    <button
+      class="nav-toggle"
+      type="button"
+      data-nav-toggle
+      aria-label="Toggle navigation"
+      aria-expanded="false"
+    >
+      <span class="sr-only">Toggle navigation</span>
+      <span class="nav-toggle-bar" aria-hidden="true"></span>
+      <span class="nav-toggle-bar" aria-hidden="true"></span>
+      <span class="nav-toggle-bar" aria-hidden="true"></span>
+    </button>
+    <div class="nav-panel" data-nav-panel>
+      <nav class="primary-nav">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/rooms" class="nav-link">Rooms</a>
+        <a href="/amenities" class="nav-link">Amenities</a>
+        <a href="/leadership" class="nav-link">Leadership</a>
+        <a href="/book" class="nav-link">Book</a>
+        <a href="/contact" class="nav-link">Contact</a>
+        <% if (currentUser) { %>
+          <a href="/chat" class="nav-link">Chat</a>
+          <a href="/dashboard" class="nav-link">Dashboard</a>
+          <% if (currentUser.role === 'admin') { %>
+            <a href="/admin" class="nav-link">Admin</a>
+          <% } %>
         <% } %>
-      <% } %>
-    </nav>
-    <div class="nav-actions">
-      <button class="toggle-theme" data-theme-toggle type="button" aria-label="Toggle theme">
-        <span class="toggle-icon">☀︎</span>
-        <span class="toggle-icon">☾</span>
-      </button>
-      <% if (!currentUser) { %>
-        <a class="pill-link" href="/login">Log in</a>
-        <a class="pill-link primary" href="/signup">Join</a>
-      <% } else { %>
-        <form action="/logout" method="post" class="logout-form">
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-          <button type="submit" class="pill-link">Log out</button>
-        </form>
-      <% } %>
+      </nav>
+      <div class="nav-actions">
+        <button class="toggle-theme" data-theme-toggle type="button" aria-label="Toggle theme">
+          <span class="toggle-icon">☀︎</span>
+          <span class="toggle-icon">☾</span>
+        </button>
+        <% if (!currentUser) { %>
+          <a class="pill-link" href="/login">Log in</a>
+          <a class="pill-link primary" href="/signup">Join</a>
+        <% } else { %>
+          <form action="/logout" method="post" class="logout-form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <button type="submit" class="pill-link">Log out</button>
+          </form>
+        <% } %>
+      </div>
     </div>
   </header>
+  <div class="nav-backdrop" data-nav-backdrop aria-hidden="true"></div>
   <div class="background-sheen" aria-hidden="true"></div>
   <main class="page-content">
