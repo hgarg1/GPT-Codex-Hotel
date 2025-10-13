@@ -12,6 +12,27 @@ let sqliteReady = false;
 
 const fallbackCourseOrder = diningMenuSections.map((section) => section.key);
 
+function tableHasColumn(database, tableName, columnName) {
+  try {
+    const rows = database.prepare(`PRAGMA table_info(${tableName})`).all();
+    return rows.some((row) => row.name === columnName);
+  } catch (error) {
+    console.warn(`Unable to inspect schema for ${tableName}.`, error.message);
+    return false;
+  }
+}
+
+function toSlug(value) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
+}
+
 function centsToPrice(cents) {
   if (!Number.isFinite(cents)) {
     return null;
@@ -128,16 +149,23 @@ function readMenuFromDatabase() {
   }
   try {
     const db = getDb();
-    const sections = db
-      .prepare('SELECT id, slug, title FROM dining_menu_sections ORDER BY "order" ASC')
-      .all();
+    const hasSlugColumn = tableHasColumn(db, 'dining_menu_sections', 'slug');
+    const sectionQuery = hasSlugColumn
+      ? 'SELECT id, slug, title FROM dining_menu_sections ORDER BY "order" ASC'
+      : 'SELECT id, title, NULL as slug FROM dining_menu_sections ORDER BY "order" ASC';
+    const sections = db.prepare(sectionQuery).all();
     if (!sections.length) {
       return null;
     }
     const sectionKeyById = new Map();
     const courseOrder = [];
     sections.forEach((section) => {
-      const key = section.slug || section.key || section.title?.toLowerCase() || section.id;
+      const key =
+        section.slug ||
+        section.key ||
+        toSlug(section.title) ||
+        section.title?.toLowerCase() ||
+        section.id;
       sectionKeyById.set(section.id, key);
       courseOrder.push(key);
     });
