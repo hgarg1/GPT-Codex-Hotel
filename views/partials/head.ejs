@@ -16,15 +16,16 @@
   <link rel="alternate icon" type="image/svg+xml" sizes="192x192" href="/icons/aurora-icon-192.svg" />
   <link rel="mask-icon" href="/icons/aurora-icon-maskable.svg" color="#0ea5e9" />
   <link rel="apple-touch-icon" type="image/svg+xml" sizes="192x192" href="/icons/aurora-icon-192.svg" />
-  <% if (canonicalUrl) { %>
-    <link rel="canonical" href="<%= canonicalUrl %>" />
+  <% const canonicalLink = typeof canonicalUrl === 'string' && canonicalUrl.length ? canonicalUrl : null; %>
+  <% if (canonicalLink) { %>
+    <link rel="canonical" href="<%= canonicalLink %>" />
   <% } %>
   <% const ogMeta = openGraph || {}; %>
   <meta property="og:title" content="<%= ogMeta.title || (pageTitle ? pageTitle + ' | ' + hotelName : hotelName) %>" />
   <meta property="og:description" content="<%= ogMeta.description || metaDescriptionValue %>" />
   <meta property="og:type" content="<%= ogMeta.type || 'website' %>" />
-  <% if (ogMeta.url || canonicalUrl) { %>
-    <meta property="og:url" content="<%= ogMeta.url || canonicalUrl %>" />
+  <% if (ogMeta.url || canonicalLink) { %>
+    <meta property="og:url" content="<%= ogMeta.url || canonicalLink %>" />
   <% } %>
   <% if (ogMeta.image) { %>
     <meta property="og:image" content="<%= ogMeta.image %>" />
