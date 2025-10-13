@@ -2230,20 +2230,407 @@ tr.is-low .inventory-pill {
   color: var(--color-muted);
 }
 
-.compare-table .table-wrapper {
+.compare-table {
+  margin-top: 4rem;
+  display: grid;
+  gap: 1.6rem;
+}
+
+.compare-table h2 {
+  font-size: clamp(1.9rem, 2.4vw, 2.4rem);
+}
+
+.compare-table .compare-subtitle {
+  max-width: 760px;
+  color: var(--color-muted);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.matrix-controls {
+  display: grid;
+  gap: 1rem;
+  align-items: center;
+}
+
+.matrix-controls .control {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.matrix-controls .control-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-muted);
+}
+
+.matrix-controls input[type='search'] {
+  min-width: min(360px, 100%);
+  padding: 0.65rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(94, 252, 255, 0.25);
+  background: rgba(8, 12, 30, 0.65);
+  color: inherit;
+  box-shadow: inset 0 0 0 1px rgba(94, 252, 255, 0.15);
+}
+
+.matrix-controls input[type='search']::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.matrix-controls .pill-link.subtle {
+  padding: 0.35rem 0.9rem;
+  background: rgba(94, 252, 255, 0.12);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: 1px solid transparent;
+  transition: transform 0.25s ease, background 0.25s ease, border 0.25s ease;
+}
+
+.matrix-controls .pill-link.subtle:hover,
+.matrix-controls .pill-link.subtle:focus-visible {
+  background: rgba(94, 252, 255, 0.3);
+  border-color: rgba(94, 252, 255, 0.6);
+  transform: translateY(-2px);
+}
+
+.matrix-controls .pill-link.subtle.is-active {
+  background: linear-gradient(135deg, rgba(94, 252, 255, 0.25), rgba(94, 252, 255, 0.5));
+  border-color: rgba(94, 252, 255, 0.8);
+  box-shadow: 0 0 0 1px rgba(94, 252, 255, 0.35);
+}
+
+.matrix-controls .control.toggle {
+  justify-self: flex-start;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(94, 252, 255, 0.3);
+  background: transparent;
+  color: inherit;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+.matrix-controls .control.toggle:hover,
+.matrix-controls .control.toggle:focus-visible {
+  background: rgba(94, 252, 255, 0.2);
+  color: var(--color-bright);
+}
+
+.matrix-controls .control.active-filters {
+  align-items: stretch;
+  gap: 0.6rem;
+}
+
+.filters-empty {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid rgba(94, 252, 255, 0.45);
+  background: rgba(8, 12, 30, 0.6);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: background 0.25s ease, transform 0.25s ease;
+}
+
+.filter-chip:hover,
+.filter-chip:focus-visible {
+  background: rgba(94, 252, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.matrix-filter-panel {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(94, 252, 255, 0.2);
+  background: rgba(5, 10, 28, 0.75);
+  backdrop-filter: blur(12px);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.matrix-filter-panel label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 0.35rem;
+}
+
+.matrix-filter-panel input,
+.matrix-filter-panel select {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(94, 252, 255, 0.2);
+  background: rgba(8, 12, 30, 0.8);
+  color: inherit;
+}
+
+.matrix-filter-panel select {
+  appearance: none;
+  background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="%239df5ff"%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m6 9 6 6 6-6"/%3E%3C/svg%3E');
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  padding-right: 2.2rem;
+}
+
+.matrix-filter-panel option {
+  color: #050114;
+}
+
+.table-wrapper.interactive {
+  position: relative;
   overflow-x: auto;
+  border-radius: 24px;
+  border: 1px solid rgba(94, 252, 255, 0.18);
+  background: radial-gradient(circle at center, rgba(94, 252, 255, 0.12), rgba(5, 6, 28, 0.95));
+  padding: 0.4rem;
+  box-shadow: 0 20px 45px rgba(5, 8, 27, 0.55);
+}
+
+.table-wrapper.interactive::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at var(--hover-x, 50%) var(--hover-y, 50%), rgba(94, 252, 255, 0.12), transparent 45%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.table-wrapper.interactive:hover::before {
+  opacity: 1;
 }
 
 .compare-table table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.95rem;
+  position: relative;
+  isolation: isolate;
 }
 
-.compare-table th,
-.compare-table td {
-  padding: 0.75rem 0.8rem;
-  border-bottom: 1px solid rgba(94, 252, 255, 0.12);
+.compare-table thead th {
+  position: relative;
+  border-bottom: 1px solid rgba(94, 252, 255, 0.28);
+  padding: 0.9rem 1rem 0.6rem;
+  text-align: left;
+  vertical-align: bottom;
+}
+
+.compare-table thead th button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.compare-table thead th button .label {
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.78rem;
+}
+
+.compare-table thead th button .sort-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 50%;
+  background: rgba(94, 252, 255, 0.14);
+  font-size: 0.8rem;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.compare-table thead th button:hover .sort-indicator,
+.compare-table thead th button:focus-visible .sort-indicator {
+  background: rgba(94, 252, 255, 0.35);
+  transform: translateY(-1px);
+}
+
+.compare-table thead th small {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.compare-table tbody td {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid rgba(94, 252, 255, 0.08);
+  vertical-align: middle;
+}
+
+.compare-table .matrix-empty td {
+  text-align: center;
+  padding: 2.4rem 1rem;
+}
+
+.matrix-empty-state {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: center;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.matrix-empty-state span {
+  font-size: 1.6rem;
+  color: var(--color-bright);
+  filter: drop-shadow(0 0 12px rgba(94, 252, 255, 0.4));
+}
+
+.matrix-empty-state p {
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.compare-table tbody tr {
+  position: relative;
+  transition: background 0.25s ease, transform 0.25s ease;
+}
+
+.compare-table tbody tr:hover,
+.compare-table tbody tr:focus-within {
+  background: rgba(94, 252, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+.compare-table tbody tr::after {
+  content: attr(data-preview);
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 0.25rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+}
+
+.compare-table tbody tr:hover::after,
+.compare-table tbody tr:focus-within::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.compare-table .cell-value {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.compare-table .cell-subtext {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 0.25rem;
+  letter-spacing: 0.05em;
+}
+
+.availability-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: rgba(94, 252, 255, 0.18);
+}
+
+.availability-pill[data-availability='plenty'] {
+  background: rgba(94, 252, 255, 0.22);
+  color: #041b26;
+}
+
+.availability-pill[data-availability='limited'] {
+  background: rgba(255, 196, 77, 0.25);
+  color: #fbe8c2;
+}
+
+.availability-pill[data-availability='low'] {
+  background: rgba(255, 99, 132, 0.28);
+  color: #ffd8e0;
+}
+
+.compare-table thead th.is-dragging {
+  opacity: 0.6;
+}
+
+.compare-table thead th.is-drop-target::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--color-bright);
+  box-shadow: 0 0 12px rgba(94, 252, 255, 0.8);
+}
+
+@media (max-width: 900px) {
+  .matrix-controls {
+    gap: 0.8rem;
+  }
+
+  .matrix-controls .control {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .matrix-controls input[type='search'] {
+    width: 100%;
+  }
+
+  .matrix-controls .control.quick-filters {
+    flex-direction: row;
+  }
+
+  .matrix-filter-panel {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+
+  .compare-table tbody tr::after {
+    position: static;
+    margin-top: 0.4rem;
+  }
 }
 
 .booking-wizard {
