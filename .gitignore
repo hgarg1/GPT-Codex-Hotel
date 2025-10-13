@@ -1,6 +1,7 @@
 node_modules/
 .cache/
 data/
+!src/data/
 .env
 npm-debug.log*
 .DS_Store

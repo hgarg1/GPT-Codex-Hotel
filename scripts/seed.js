@@ -2,6 +2,12 @@ const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../src/db');
 const { encryptText } = require('../src/utils/crypto');
+const {
+  diningMenuSections,
+  diningMenuItems,
+  diningStaff: seedDiningStaff,
+  diningSeats: seedDiningSeats,
+} = require('../src/data/dining');
 
 const db = getDb();
 
@@ -219,6 +225,7 @@ function resetSchema() {
       y INTEGER NOT NULL,
       rotation INTEGER NOT NULL DEFAULT 0,
       zone TEXT,
+      status TEXT NOT NULL DEFAULT 'available',
       active INTEGER NOT NULL DEFAULT 1,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL
@@ -227,6 +234,7 @@ function resetSchema() {
     CREATE TABLE dining_menu_sections (
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
+      slug TEXT NOT NULL UNIQUE,
       "order" INTEGER NOT NULL,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL
@@ -242,6 +250,8 @@ function resetSchema() {
       vegan INTEGER NOT NULL DEFAULT 0,
       glutenFree INTEGER NOT NULL DEFAULT 0,
       spicyLevel INTEGER NOT NULL DEFAULT 0,
+      hoverDetail TEXT,
+      tags TEXT NOT NULL DEFAULT '[]',
       active INTEGER NOT NULL DEFAULT 1,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL,
@@ -281,6 +291,8 @@ function resetSchema() {
       role TEXT NOT NULL,
       bio TEXT,
       photoUrl TEXT,
+      badges TEXT NOT NULL DEFAULT '[]',
+      nextShift TEXT,
       active INTEGER NOT NULL DEFAULT 1,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL
@@ -852,34 +864,22 @@ function syncDiningUsersFromCore() {
 }
 
 function insertDiningTables() {
-  const tables = Array.from({ length: 10 }, (_, index) => {
-    const number = index + 1;
-    return {
-      label: `T${number}`,
-      capacity: number <= 4 ? 2 + (number % 4) : 6,
-      x: 50 * number,
-      y: 40 * number,
-      rotation: (number % 4) * 15,
-      zone: number <= 5 ? 'Main Hall' : 'Window',
-      active: 1,
-    };
-  });
-
   const stmt = db.prepare(`
-    INSERT INTO dining_tables (id, label, capacity, x, y, rotation, zone, active, createdAt, updatedAt)
-    VALUES (@id, @label, @capacity, @x, @y, @rotation, @zone, @active, @createdAt, @updatedAt)
+    INSERT INTO dining_tables (id, label, capacity, x, y, rotation, zone, status, active, createdAt, updatedAt)
+    VALUES (@id, @label, @capacity, @x, @y, @rotation, @zone, @status, @active, @createdAt, @updatedAt)
   `);
   const now = new Date().toISOString();
-  tables.forEach((table) => {
+  seedDiningSeats.forEach((seat, index) => {
     stmt.run({
-      id: uuidv4(),
-      label: table.label,
-      capacity: table.capacity,
-      x: table.x,
-      y: table.y,
-      rotation: table.rotation,
-      zone: table.zone,
-      active: table.active,
+      id: seat.id,
+      label: seat.label,
+      capacity: seat.capacity,
+      x: 40 * (index + 1),
+      y: 30 * (index + 1),
+      rotation: (index % 4) * 15,
+      zone: seat.zone,
+      status: seat.status,
+      active: 1,
       createdAt: now,
       updatedAt: now,
     });
@@ -888,49 +888,48 @@ function insertDiningTables() {
 
 function insertDiningMenu() {
   const now = new Date().toISOString();
-  const sectionId = uuidv4();
-  db.prepare(`
-    INSERT INTO dining_menu_sections (id, title, "order", createdAt, updatedAt)
-    VALUES (@id, @title, @order, @createdAt, @updatedAt)
-  `).run({
-    id: sectionId,
-    title: "Chef's Signatures",
-    order: 1,
-    createdAt: now,
-    updatedAt: now,
+  const sectionStmt = db.prepare(`
+    INSERT INTO dining_menu_sections (id, title, slug, "order", createdAt, updatedAt)
+    VALUES (@id, @title, @slug, @order, @createdAt, @updatedAt)
+  `);
+  const sectionIdByKey = new Map();
+  diningMenuSections.forEach((section) => {
+    const id = uuidv4();
+    sectionIdByKey.set(section.key, id);
+    sectionStmt.run({
+      id,
+      title: section.title,
+      slug: section.key,
+      order: section.order,
+      createdAt: now,
+      updatedAt: now,
+    });
   });
 
-  const items = [
-    {
-      name: 'Seared Scallops',
-      description: 'Day-boat scallops with citrus beurre blanc and crispy pancetta.',
-      priceCents: 3200,
-      glutenFree: 1,
-    },
-    {
-      name: 'Black Garlic Wagyu',
-      description: 'Miyazaki A5 wagyu, smoked pomme puree, and charred spring onions.',
-      priceCents: 5800,
-      glutenFree: 0,
-    },
-  ];
-
-  const stmt = db.prepare(`
-    INSERT INTO dining_menu_items (id, sectionId, name, description, priceCents, vegetarian, vegan, glutenFree, spicyLevel, active, createdAt, updatedAt)
-    VALUES (@id, @sectionId, @name, @description, @priceCents, @vegetarian, @vegan, @glutenFree, @spicyLevel, @active, @createdAt, @updatedAt)
+  const itemStmt = db.prepare(`
+    INSERT INTO dining_menu_items (id, sectionId, name, description, priceCents, vegetarian, vegan, glutenFree, spicyLevel, hoverDetail, tags, active, createdAt, updatedAt)
+    VALUES (@id, @sectionId, @name, @description, @priceCents, @vegetarian, @vegan, @glutenFree, @spicyLevel, @hoverDetail, @tags, @active, @createdAt, @updatedAt)
   `);
 
-  items.forEach((item) => {
-    stmt.run({
+  diningMenuItems.forEach((item) => {
+    const sectionId = sectionIdByKey.get(item.course);
+    if (!sectionId) {
+      return;
+    }
+    const tags = Array.isArray(item.tags) ? item.tags : [];
+    const normalizedTags = tags.map((tag) => tag.toLowerCase());
+    itemStmt.run({
       id: uuidv4(),
       sectionId,
       name: item.name,
       description: item.description,
       priceCents: item.priceCents,
-      vegetarian: 0,
-      vegan: 0,
-      glutenFree: item.glutenFree,
-      spicyLevel: 1,
+      vegetarian: normalizedTags.includes('vegetarian') ? 1 : 0,
+      vegan: normalizedTags.includes('vegan') ? 1 : 0,
+      glutenFree: normalizedTags.includes('gluten-free') ? 1 : 0,
+      spicyLevel: item.spiceLevel ?? 0,
+      hoverDetail: item.hoverDetail ?? null,
+      tags: JSON.stringify(tags),
       active: 1,
       createdAt: now,
       updatedAt: now,
@@ -948,18 +947,23 @@ function insertDiningConfig() {
 
 function insertDiningStaff() {
   const now = new Date().toISOString();
-  db.prepare(`
-    INSERT INTO dining_staff (id, name, role, bio, photoUrl, active, createdAt, updatedAt)
-    VALUES (@id, @name, @role, @bio, @photoUrl, @active, @createdAt, @updatedAt)
-  `).run({
-    id: uuidv4(),
-    name: 'Elena Marquez',
-    role: 'Executive Chef',
-    bio: 'Oversees the Supper Club kitchen with a focus on sustainable coastal cuisine.',
-    photoUrl: 'https://example.com/images/staff/elena-marquez.jpg',
-    active: 1,
-    createdAt: now,
-    updatedAt: now,
+  const stmt = db.prepare(`
+    INSERT INTO dining_staff (id, name, role, bio, photoUrl, badges, nextShift, active, createdAt, updatedAt)
+    VALUES (@id, @name, @role, @bio, @photoUrl, @badges, @nextShift, @active, @createdAt, @updatedAt)
+  `);
+  seedDiningStaff.forEach((member) => {
+    stmt.run({
+      id: member.id,
+      name: member.name,
+      role: member.role,
+      bio: member.bio ?? null,
+      photoUrl: member.photoUrl ?? null,
+      badges: JSON.stringify(member.badges || []),
+      nextShift: member.nextShift ?? null,
+      active: 1,
+      createdAt: now,
+      updatedAt: now,
+    });
   });
 }
 
@@ -974,13 +978,14 @@ function insertDiningReservations() {
     INSERT INTO dining_reservations (id, userId, date, time, partySize, tableIds, status, dietaryPrefs, allergies, contactPhone, contactEmail, notes, createdAt, updatedAt)
     VALUES (@id, @userId, @date, @time, @partySize, @tableIds, @status, @dietaryPrefs, @allergies, @contactPhone, @contactEmail, @notes, @createdAt, @updatedAt)
   `);
+  const reservedTableIds = [tables[0].id, tables[1].id];
   stmt.run({
     id: uuidv4(),
     userId: diningUsers[0].id,
     date: '2024-08-15',
     time: '19:00',
     partySize: 2,
-    tableIds: JSON.stringify([tables[0].id, tables[1].id]),
+    tableIds: JSON.stringify(reservedTableIds),
     status: 'CONFIRMED',
     dietaryPrefs: 'No shellfish',
     allergies: null,
@@ -989,6 +994,12 @@ function insertDiningReservations() {
     notes: 'Anniversary celebration',
     createdAt: now,
     updatedAt: now,
+  });
+  const updateSeatStatus = db.prepare(
+    'UPDATE dining_tables SET status = @status, updatedAt = @updatedAt WHERE id = @id'
+  );
+  reservedTableIds.forEach((tableId) => {
+    updateSeatStatus.run({ id: tableId, status: 'reserved', updatedAt: now });
   });
 }
 
