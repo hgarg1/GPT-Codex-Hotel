@@ -184,9 +184,10 @@
 }
 
 .menu-filters {
-  display: flex;
+  display: grid;
   gap: 1.5rem;
-  flex-wrap: wrap;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  align-items: start;
   background: rgba(16, 20, 36, 0.7);
   padding: 1rem 1.5rem;
   border-radius: 12px;
@@ -196,6 +197,16 @@
 .menu-filters fieldset {
   border: none;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.menu-filters label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
 }
 
 .menu-section {
@@ -330,13 +341,31 @@
 
 .reserve-form input,
 .reserve-form textarea,
-.menu-filters input,
+.menu-filters input:not([type='checkbox']),
 .menu-filters select {
   background: rgba(16, 20, 36, 0.8);
   border: 1px solid rgba(207, 168, 88, 0.25);
   border-radius: 10px;
   padding: 0.75rem;
   color: var(--dining-text);
+}
+
+.menu-filters input[type='checkbox'] {
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 4px;
+  border: 1px solid rgba(207, 168, 88, 0.4);
+  background: rgba(5, 7, 15, 0.8);
+  accent-color: var(--dining-accent);
+  flex-shrink: 0;
+}
+
+.menu-filters .btn {
+  justify-self: end;
+  padding-inline: 1.75rem;
+  max-width: 100%;
+  text-align: center;
+  white-space: normal;
 }
 
 .seat-stage {
