@@ -89,7 +89,7 @@ const corsOptions: CorsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 app.set('trust proxy', true);
 app.disable('x-powered-by');
