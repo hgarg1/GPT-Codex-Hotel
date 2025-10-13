@@ -72,11 +72,6 @@ app.use(
   })
 );
 
-function isLocalHost(hostname = '') {
-  const normalized = hostname.split(':')[0];
-  return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
-}
-
 const shouldEnforceHsts = (() => {
   if (process.env.ENABLE_HSTS === 'true') {
     return true;

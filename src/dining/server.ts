@@ -169,6 +169,7 @@ if (shouldEnforceHsts) {
     }
     hsts(req, res, next);
   });
+  app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true }));
 }
 app.use(helmet.noSniff());
 app.use((req, res, next) => {
