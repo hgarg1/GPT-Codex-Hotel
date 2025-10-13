@@ -72,7 +72,35 @@ app.use(
   })
 );
 
-app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true }));
+function isLocalHost(hostname = '') {
+  const normalized = hostname.split(':')[0];
+  return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
+}
+
+const shouldEnforceHsts = (() => {
+  if (process.env.ENABLE_HSTS === 'true') {
+    return true;
+  }
+  if (process.env.NODE_ENV === 'production') {
+    return true;
+  }
+  const publicBaseUrl = process.env.PUBLIC_BASE_URL;
+  if (typeof publicBaseUrl === 'string' && publicBaseUrl.startsWith('https://')) {
+    return true;
+  }
+  return false;
+})();
+
+if (shouldEnforceHsts) {
+  const hsts = helmet.hsts({ maxAge: 31536000, includeSubDomains: true });
+  app.use((req, res, next) => {
+    const hostHeader = req.get('host');
+    if (hostHeader && isLocalHost(hostHeader)) {
+      return next();
+    }
+    return hsts(req, res, next);
+  });
+}
 app.use(helmet.noSniff());
 app.use((req, res, next) => {
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');

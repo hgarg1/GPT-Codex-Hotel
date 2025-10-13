@@ -12,13 +12,40 @@ const { lockSeat, releaseSeat, getCurrentSeats } = require('../services/diningSe
 
 const router = express.Router();
 
-function buildBaseUrl(req) {
-  if (process.env.PUBLIC_BASE_URL) {
-    return process.env.PUBLIC_BASE_URL;
+function isLocalHost(hostname) {
+  if (!hostname) {
+    return false;
   }
+  const normalized = hostname.split(':')[0];
+  return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
+}
+
+function buildBaseUrl(req) {
+  const hostHeader = req.get('host');
+  const host = hostHeader && hostHeader.length > 0 ? hostHeader : `localhost:${process.env.PORT || 3000}`;
+  const configuredBase = process.env.PUBLIC_BASE_URL;
+  const localHost = isLocalHost(host);
+
+  if (configuredBase) {
+    try {
+      const configuredUrl = new URL(configuredBase);
+      const configuredHost = configuredUrl.host;
+
+      if (!host || configuredHost === host) {
+        if (localHost && req.protocol === 'http' && configuredUrl.protocol === 'https:') {
+          return `${req.protocol}://${host}`;
+        }
+        return `${configuredUrl.protocol}//${configuredHost}`;
+      }
+    } catch (error) {
+      // Ignore malformed configured base URLs and fall back to request data.
+    }
+  }
+
   const forwardedProto = req.get('x-forwarded-proto');
-  const protocol = forwardedProto ? forwardedProto.split(',')[0] : req.protocol;
-  const host = req.get('host');
+  const forwardedProtocol = forwardedProto ? forwardedProto.split(',')[0].trim() : '';
+  const protocol = forwardedProtocol && !localHost ? forwardedProtocol : req.protocol;
+
   return `${protocol}://${host}`;
 }
 

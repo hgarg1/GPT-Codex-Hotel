@@ -10,12 +10,15 @@ const sessionStore = new SQLiteStore({
 
 const sessionCookieName = process.env.SESSION_COOKIE_NAME || 'skyhaven_session';
 const sessionCookieDomain = process.env.SESSION_COOKIE_DOMAIN || undefined;
-const sessionCookieSecure =
-  process.env.SESSION_COOKIE_SECURE === 'true'
-    ? true
-    : process.env.SESSION_COOKIE_SECURE === 'false'
-      ? false
-      : process.env.NODE_ENV === 'production';
+const sessionCookieSecure = (() => {
+  if (process.env.SESSION_COOKIE_SECURE === 'true') {
+    return true;
+  }
+  if (process.env.SESSION_COOKIE_SECURE === 'false') {
+    return false;
+  }
+  return 'auto';
+})();
 
 const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || 'aurora-nexus-skyhaven-secret',
