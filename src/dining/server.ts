@@ -1,4 +1,5 @@
 import express, { type Request, type Response } from 'express';
+import cors, { type CorsOptions } from 'cors';
 import QRCode from 'qrcode';
 import { fileURLToPath } from 'url';
 import { createServer } from 'node:http';
@@ -33,6 +34,62 @@ import {
 } from './data.js';
 
 const app = express();
+
+function normalizeOrigin(origin: string): string {
+  try {
+    const url = new URL(origin);
+    return `${url.protocol}//${url.host}`;
+  } catch (error) {
+    return origin;
+  }
+}
+
+const allowedOrigins = new Set<string>();
+
+function registerCorsOrigin(origin: string | undefined | null): void {
+  if (!origin) return;
+  origin
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .forEach((value) => {
+      const normalized = normalizeOrigin(value);
+      allowedOrigins.add(normalized);
+      if (normalized.startsWith('http://')) {
+        allowedOrigins.add(normalized.replace('http://', 'https://'));
+      }
+      if (normalized.startsWith('https://')) {
+        allowedOrigins.add(normalized.replace('https://', 'http://'));
+      }
+    });
+}
+
+const hotelPort = Number(process.env.PORT ?? 3000);
+registerCorsOrigin(`http://localhost:${hotelPort}`);
+registerCorsOrigin(`http://127.0.0.1:${hotelPort}`);
+registerCorsOrigin(process.env.PUBLIC_BASE_URL ?? null);
+registerCorsOrigin(process.env.DINING_ALLOWED_ORIGINS ?? null);
+registerCorsOrigin(process.env.SOCKET_ORIGIN ?? null);
+registerCorsOrigin(process.env.SOCKET_ORIGINS ?? null);
+
+const corsOptions: CorsOptions = {
+  origin(origin, callback) {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+    const normalized = normalizeOrigin(origin);
+    if (allowedOrigins.has(normalized)) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error('Origin not allowed by CORS'));
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.set('trust proxy', true);
 app.disable('x-powered-by');
