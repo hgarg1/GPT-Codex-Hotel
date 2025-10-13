@@ -24,7 +24,7 @@ app.set('views', path.join(__dirname, '..', 'views'));
 
 const cspDirectives = {
   defaultSrc: ["'self'"],
-  scriptSrc: ["'self'", "'unsafe-inline'"],
+  scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com'],
   styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://fonts.googleapis.com'],
   imgSrc: ["'self'", 'data:'],
   connectSrc: ["'self'", 'ws:', 'wss:', 'ws://localhost:3000', 'ws://127.0.0.1:3000'],

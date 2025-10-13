@@ -1,4 +1,4 @@
-<body class="app-body">
+<body class="app-body" data-current-user="<%= currentUser ? currentUser.id : '' %>">
   <header class="site-header" data-nav-container>
     <div class="brand">
       <a href="/" class="brand-link">
@@ -27,7 +27,16 @@
         <a href="/book" class="nav-link">Book</a>
         <a href="/contact" class="nav-link">Contact</a>
         <% if (currentUser) { %>
-          <a href="/chat" class="nav-link">Chat</a>
+          <a href="/chat" class="nav-link" data-chat-link>
+            Chat
+            <span
+              class="chat-badge"
+              data-chat-unread
+              <%= chatUnreadCount && chatUnreadCount > 0 ? '' : 'hidden' %>
+            >
+              <%= chatUnreadCount || 0 %>
+            </span>
+          </a>
           <a href="/dashboard" class="nav-link">Dashboard</a>
           <% if (currentUser.role === 'admin') { %>
             <a href="/admin" class="nav-link">Admin</a>

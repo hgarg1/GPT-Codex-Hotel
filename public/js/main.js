@@ -126,6 +126,98 @@
     toast.addEventListener('focusout', resume);
   });
 
+  const chatBadge = document.querySelector('[data-chat-unread]');
+  const chatLayout = document.querySelector('.chat-layout');
+
+  const updateChatBadge = (total) => {
+    if (!chatBadge) return;
+    const value = Number(total) || 0;
+    chatBadge.textContent = value;
+    chatBadge.hidden = value <= 0;
+  };
+
+  const spawnChatToast = ({ from, preview, channelLabel }) => {
+    const toast = document.createElement('div');
+    toast.className = 'toast-alert toast-info chat-toast';
+    toast.setAttribute('data-autodismiss', '8000');
+    const wrapper = document.createElement('div');
+    wrapper.className = 'chat-toast-content';
+    const header = document.createElement('div');
+    header.className = 'chat-toast-header';
+    header.textContent = from?.name || 'New message';
+    const meta = document.createElement('span');
+    meta.className = 'chat-toast-meta';
+    meta.textContent = channelLabel || 'Chat';
+    const body = document.createElement('p');
+    body.className = 'chat-toast-body';
+    body.textContent = preview || '';
+    wrapper.append(header, meta, body);
+    toast.appendChild(wrapper);
+    toast.style.cursor = 'pointer';
+    const stack =
+      document.querySelector('[data-alert-stack]') ||
+      (() => {
+        const container = document.createElement('div');
+        container.className = 'alert-stack';
+        container.setAttribute('data-alert-stack', '');
+        document.body.appendChild(container);
+        return container;
+      })();
+    stack.appendChild(toast);
+    let timer = setTimeout(() => dismissToast(toast), 8000);
+    toast.addEventListener('click', () => {
+      dismissToast(toast);
+      window.location.href = '/chat';
+    });
+    toast.addEventListener('mouseenter', () => {
+      clearTimeout(timer);
+      timer = null;
+    });
+    toast.addEventListener('mouseleave', () => {
+      if (timer !== null) return;
+      timer = setTimeout(() => dismissToast(toast), 8000);
+    });
+  };
+
+  const initChatNotifications = () => {
+    const currentUserId = document.body?.dataset.currentUser;
+    if (!currentUserId) {
+      return;
+    }
+    updateChatBadge(chatBadge?.textContent || 0);
+    let socket = window.skyhavenSocket;
+    if (!socket) {
+      socket = window.io(window.location.origin, {
+        path: '/socket.io',
+        transports: ['websocket', 'polling'],
+        withCredentials: true,
+        autoConnect: true,
+        reconnectionAttempts: 6
+      });
+      window.skyhavenSocket = socket;
+    }
+
+    const handleUnread = ({ total }) => {
+      updateChatBadge(total);
+    };
+
+    const handleNotification = (payload = {}) => {
+      const activeRoom = chatLayout?.getAttribute('data-active-room');
+      if (payload.room && activeRoom === payload.room && document.hasFocus()) {
+        return;
+      }
+      spawnChatToast(payload);
+    };
+
+    socket.off('chat:unread', handleUnread);
+    socket.on('chat:unread', handleUnread);
+    socket.off('chat:notification', handleNotification);
+    socket.on('chat:notification', handleNotification);
+    socket.emit('chat:requestUnread');
+  };
+
+  initChatNotifications();
+
   const heroCarousel = document.querySelector('[data-hero-carousel]');
   if (heroCarousel) {
     const slides = Array.from(heroCarousel.querySelectorAll('.hero-slide'));
