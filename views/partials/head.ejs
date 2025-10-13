@@ -20,7 +20,7 @@
   <% if (canonicalLink) { %>
     <link rel="canonical" href="<%= canonicalLink %>" />
   <% } %>
-  <% const ogMeta = openGraph || {}; %>
+  <% const ogMeta = typeof openGraph !== 'undefined' && openGraph ? openGraph : {}; %>
   <meta property="og:title" content="<%= ogMeta.title || (pageTitle ? pageTitle + ' | ' + hotelName : hotelName) %>" />
   <meta property="og:description" content="<%= ogMeta.description || metaDescriptionValue %>" />
   <meta property="og:type" content="<%= ogMeta.type || 'website' %>" />
@@ -33,7 +33,7 @@
   <% if (ogMeta.imageAlt) { %>
     <meta property="og:image:alt" content="<%= ogMeta.imageAlt %>" />
   <% } %>
-  <% const twitterMeta = twitter || {}; %>
+  <% const twitterMeta = typeof twitter !== 'undefined' && twitter ? twitter : {}; %>
   <% if (twitterMeta.card || ogMeta.image) { %>
     <meta name="twitter:card" content="<%= twitterMeta.card || 'summary_large_image' %>" />
   <% } %>
