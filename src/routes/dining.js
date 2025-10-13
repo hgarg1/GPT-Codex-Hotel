@@ -61,12 +61,9 @@ router.get('/dining/menu', async (req, res) => {
 });
 
 router.get('/dining/reserve', ensureDiningAuthenticated, (req, res) => {
-  const { step = 'date' } = req.query;
-  const seats = getCurrentSeats();
   res.render('dining/reserve', {
     title: 'Reserve Your Evening',
-    step,
-    seats
+    step: 'schedule'
   });
 });
 

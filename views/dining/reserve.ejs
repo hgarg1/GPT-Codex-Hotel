@@ -1,67 +1,14 @@
 <%- include('../partials/head', { pageTitle: title, hotelName, csrfToken, darkMode }) %>
-<link rel="stylesheet" href="/css/dining.css">
-<script defer src="/js/dining-seat-map.js"></script>
+<link rel="stylesheet" href="/css/dining-reserve.css">
 <%- include('../partials/nav') %>
 <%- include('../partials/alerts') %>
-<main class="dining-reserve" data-theme="dining">
-  <header class="reserve-header">
+<main class="reserve-app" data-theme="dining">
+  <header class="reserve-hero">
     <h1>Reserve your evening</h1>
-    <p>Five steps stand between you and an unforgettable tasting.</p>
+    <p>Five measured steps to secure Skyhaven’s signature tasting.</p>
   </header>
-  <ol class="reserve-steps">
-    <li class="<%= step === 'date' ? 'active' : '' %>">Date &amp; Time</li>
-    <li class="<%= step === 'party' ? 'active' : '' %>">Party size</li>
-    <li class="<%= step === 'seating' ? 'active' : '' %>">Seat selection</li>
-    <li class="<%= step === 'details' ? 'active' : '' %>">Guest details</li>
-    <li class="<%= step === 'review' ? 'active' : '' %>">Review &amp; pay</li>
-  </ol>
-  <section class="reserve-stage" data-stage="<%= step %>">
-    <% if(step === 'date') { %>
-      <form class="reserve-form" method="get">
-        <input type="hidden" name="step" value="party">
-        <label>Date <input type="date" name="date" required></label>
-        <label>Time <input type="time" name="time" required></label>
-        <button class="btn btn-primary" type="submit">Continue</button>
-      </form>
-    <% } %>
-    <% if(step === 'party') { %>
-      <form class="reserve-form" method="get">
-        <input type="hidden" name="step" value="seating">
-        <label>Party size <input type="number" name="partySize" min="1" max="8" required></label>
-        <button class="btn btn-primary" type="submit">Select seats</button>
-      </form>
-    <% } %>
-    <% if(step === 'seating') { %>
-      <div class="seat-stage" data-seats='<%- JSON.stringify(seats) %>'>
-        <div class="seat-stage__map" id="seat-map" aria-live="polite"></div>
-        <aside class="seat-stage__sidebar">
-          <h2>Live availability</h2>
-          <p>Select the seats that match your party. They will be held for five minutes.</p>
-          <div class="lock-status" data-role="status"></div>
-          <form class="reserve-form" method="get">
-            <input type="hidden" name="step" value="details">
-            <input type="hidden" name="lockedSeat" id="locked-seat" required>
-            <button class="btn btn-primary" type="submit">Continue</button>
-          </form>
-        </aside>
-      </div>
-    <% } %>
-    <% if(step === 'details') { %>
-      <form class="reserve-form" method="get">
-        <input type="hidden" name="step" value="review">
-        <label>Primary phone <input type="tel" name="phone" required></label>
-        <label>Dietary notes <textarea name="dietary" rows="3"></textarea></label>
-        <label>Celebration or notes <textarea name="notes" rows="3"></textarea></label>
-        <button class="btn btn-primary" type="submit">Review</button>
-      </form>
-    <% } %>
-    <% if(step === 'review') { %>
-      <article class="reserve-review">
-        <h2>Review &amp; secure</h2>
-        <p>Deposit required for weekend tastings. A concierge will confirm within minutes.</p>
-        <button class="btn btn-primary">Place reservation</button>
-      </article>
-    <% } %>
-  </section>
+  <section id="dining-reserve-alerts" aria-live="polite"></section>
+  <section id="dining-reserve-root" class="reserve-root"></section>
 </main>
+<script type="module" src="/js/dining-reserve/ui.js"></script>
 <%- include('../partials/footer') %>
