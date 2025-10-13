@@ -5,13 +5,10 @@ const { ensureAuthenticated } = require('../middleware/auth');
 const { listBookingsByUser, getBookingById, updateBookingStatus } = require('../models/bookings');
 const { adjustRoomAvailability } = require('../models/rooms');
 const { listReservationsByUser } = require('../models/amenities');
-const {
-  updateUserProfile,
-  updateUserPassword,
-  getUserPasswordHash
-} = require('../models/users');
+const { updateUserProfile, updateUserPassword, getUserPasswordHash } = require('../models/users');
 const { getPaymentByBookingId } = require('../models/payments');
 const { sanitizeString } = require('../utils/sanitize');
+const { listReservationsForUser: listDiningReservationsForUser } = require('../services/diningAccount');
 
 const router = express.Router();
 
@@ -35,16 +32,23 @@ const passwordSchema = Joi.object({
   newPassword: passwordComplexity
 });
 
-router.get('/dashboard', ensureAuthenticated, (req, res) => {
+router.get('/dashboard', ensureAuthenticated, async (req, res) => {
   const bookings = listBookingsByUser(req.user.id).map((booking) => ({
     ...booking,
-    payment: getPaymentByBookingId(booking.id)
+    payment: getPaymentByBookingId(booking.id),
   }));
   const reservations = listReservationsByUser(req.user.id);
+  let diningReservations = { upcoming: [], past: [] };
+  try {
+    diningReservations = await listDiningReservationsForUser(req.user.id);
+  } catch (error) {
+    console.warn('Unable to load dining reservations for dashboard', error);
+  }
   res.render('dashboard/index', {
     pageTitle: 'Your Dashboard',
     bookings,
-    reservations
+    reservations,
+    diningReservations,
   });
 });
 

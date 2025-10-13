@@ -3,17 +3,88 @@ import type { Reservation } from '@prisma/client';
 import QRCode from 'qrcode';
 import { fileURLToPath } from 'url';
 import { createServer } from 'node:http';
+import helmet from 'helmet';
 import { prisma } from './prismaClient.js';
 import { verifySession } from '../auth/verifySession.js';
 import { getDiningAvailability } from './availability.js';
 import { createHold, releaseHold, getHoldById, extendHold } from './holds.js';
 import { attachDiningRealtime } from './realtime.js';
 import { requireAdmin } from './requireAdmin.js';
+import type { AuthenticatedUser } from '../auth/verifySession.js';
 
 const app = express();
 
+app.set('trust proxy', true);
+app.disable('x-powered-by');
+
+const connectSrc = new Set(["'self'", 'https:', 'wss:', 'ws:']);
+
+function addOrigin(origin: string | undefined | null) {
+  if (!origin) return;
+  origin
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .forEach((value) => {
+      try {
+        const url = new URL(value);
+        connectSrc.add(`${url.protocol}//${url.host}`);
+      } catch (error) {
+        connectSrc.add(value);
+      }
+    });
+}
+
+addOrigin(process.env.SOCKET_ORIGIN);
+addOrigin(process.env.SOCKET_ORIGINS);
+addOrigin(process.env.PUBLIC_BASE_URL);
+
+const cspDirectives = {
+  defaultSrc: ["'self'"],
+  scriptSrc: ["'self'", "'unsafe-inline'"],
+  styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+  imgSrc: ["'self'", 'data:', 'https:'],
+  connectSrc: Array.from(connectSrc),
+  fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+};
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: cspDirectives,
+    },
+    referrerPolicy: {
+      policy: 'strict-origin-when-cross-origin',
+    },
+    crossOriginEmbedderPolicy: false,
+  }),
+);
+
+app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true }));
+app.use(helmet.noSniff());
+app.use((req, res, next) => {
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  next();
+});
+
 app.use(express.json());
 app.use('/api/admin', verifySession, requireAdmin);
+
+async function ensureDiningUserRecord(user: AuthenticatedUser | undefined) {
+  if (!user?.id || !user.email) {
+    return;
+  }
+  try {
+    await prisma.user.upsert({
+      where: { id: user.id },
+      update: { email: user.email, name: user.name ?? null },
+      create: { id: user.id, email: user.email, name: user.name ?? null },
+    });
+  } catch (error) {
+    console.error('Failed to synchronise dining user', error);
+    throw new Error('Dining profile unavailable');
+  }
+}
 
 app.get('/api/admin/dining/reservations', async (req: Request, res: Response) => {
   try {
@@ -981,6 +1052,8 @@ app.post('/api/dining/reservations', verifySession, async (req: Request, res: Re
       return;
     }
 
+    await ensureDiningUserRecord(req.user);
+
     const normalizedDate = normalizeDate(req.body?.date);
     const normalizedTime = normalizeTime(req.body?.time);
     const partySize = normalizePartySize(req.body?.partySize);
@@ -1130,6 +1203,7 @@ app.get('/api/dining/reservations/me', verifySession, async (req: Request, res: 
   }
 
   try {
+    await ensureDiningUserRecord(req.user);
     const reservations: Reservation[] = await prisma.reservation.findMany({
       where: { userId: req.user.id },
       orderBy: [{ date: 'asc' }, { time: 'asc' }],

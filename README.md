@@ -9,35 +9,96 @@ Aurora Nexus Skyhaven is an end-to-end Express.js experience showcasing a futuri
 - **Amenities hub** with detail pages and reservation workflow that respects capacity.
 - **Mock payment flow** (Luhn validation, capture, invoices, webhook endpoint, admin refund).
 - **Guest dashboard** showing bookings, amenity reservations, profile/security management.
+- **Dining integration** with shared authentication, real-time seat selection, and account management.
 - **Live chat** for lobby, stay-specific rooms, and direct messages. Presence, typing indicators, rate limiting, profanity filtering, and persistence are included.
 - **Admin control deck** to adjust inventory, review bookings/payments, and handle refunds.
 - **SQLite persistence** with a dedicated seed script and session storage.
 
 ## Getting Started
 
+1. Install dependencies and seed both the hotel (SQLite) and dining (Prisma/PostgreSQL) stores:
+
 ```bash
 npm install
-npm run seed
+npm run seed          # seeds the hotel SQLite database
+npm run prisma:seed   # seeds dining tables/menu via Prisma
+```
+
+2. Start the hotel shell and the dining API in separate terminals:
+
+```bash
+# Terminal A – hotel experience (Express + EJS)
+npm run hotel:dev
+
+# Terminal B – dining API (Node/Prisma/Socket.IO)
 npm run dev
 ```
 
-- Visit `http://localhost:3000` for the experience.
-- Use one of the seeded accounts (password `skyhaven123`):
-  - `astra@skyhaven.test` (admin)
-  - `kael@skyhaven.test` (admin)
-  - `nova@guest.test`
-  - `juno@guest.test`
-  - `mira@guest.test`
+3. Visit `http://localhost:3000` for the hotel site. The dining experience lives at `/dining` and shares the same session token.
+
+Seeded credentials (password `skyhaven123`):
+
+- `astra@skyhaven.test` (admin)
+- `kael@skyhaven.test` (admin)
+- `nova@guest.test`
+- `juno@guest.test`
+- `mira@guest.test`
+
+> **Tip:** When developing locally over HTTP set `SESSION_TOKEN_SECURE=false` so the shared `session_token` cookie can be issued without TLS.
+
+### Required environment variables
+
+| Variable | Purpose | Notes |
+| --- | --- | --- |
+| `DATABASE_URL` | Connection string for the dining Prisma database | PostgreSQL connection used by `npm run prisma:seed` and the dining API. |
+| `HOTEL_JWT_PRIVATE_KEY` or `HOTEL_JWT_SECRET` | Signing material for the `session_token` JWT shared with the dining API | Use an RSA private key (PEM) for RS256 or a symmetric secret for HS256. |
+| `HOTEL_JWT_PUBLIC_KEY` or `HOTEL_JWT_SECRET` | Verification key exposed to the dining API | Must match the signing material above. |
+| `SESSION_COOKIE_DOMAIN` | (Optional) Shared cookie domain for multi-host deployments | Example: `.skyhaven.test`. |
+| `SESSION_COOKIE_SECURE` | Controls the Express session cookie security flag | Defaults to `true` in production. |
+| `SESSION_TOKEN_SECURE` | Controls the JWT cookie security flag | Defaults to `true`; set to `false` for local HTTP development only. |
+| `SOCKET_ORIGIN` / `SOCKET_ORIGINS` | Additional websocket origins for CSP | Comma-separated list supported. |
 
 ## Scripts
 
-- `npm run dev` – start the development server with nodemon.
-- `npm run seed` – reset and seed the SQLite database with demo data.
+- `npm run hotel:dev` – hotel Express application with hot reload.
+- `npm run dev` – start the dining API with tsx + nodemon.
+- `npm run seed` – reset and seed the hotel SQLite database with demo data.
+- `npm run prisma:seed` – seed dining tables, menu sections, and staff via Prisma.
 - `npm test` – run Jest tests covering booking creation, payment capture, and chat persistence.
+- `npm run test:e2e` – execute Cypress dining integration tests (requires both servers running).
+- `npm run cy:open` / `npm run cy:run` – open or headlessly run the Cypress test suite.
 
 ## Testing Notes
 
-Tests automatically reseed the database before each case. The chat tests exercise the persistence layer, while booking and payment tests validate totals and captured state.
+Tests automatically reseed the database before each case. The chat tests exercise the persistence layer, while booking and payment tests validate totals and captured state. For Cypress, start the hotel (`npm run hotel:dev`) and dining (`npm run dev`) servers and, if developing over HTTP, export `SESSION_TOKEN_SECURE=false` so the shared cookie can be issued locally:
+
+```bash
+SESSION_TOKEN_SECURE=false npm run test:e2e
+```
+
+## Dining reservation lifecycle
+
+```mermaid
+sequenceDiagram
+    participant Guest
+    participant HotelApp
+    participant DiningAPI
+    participant PrismaDB
+
+    Guest->>HotelApp: Navigate to /dining/reserve
+    HotelApp->>Guest: Collect schedule, party, seating, guest details
+    Guest->>HotelApp: Submit seating selection
+    HotelApp->>DiningAPI: POST /api/dining/hold (tables, time)
+    DiningAPI->>PrismaDB: Validate availability & create hold
+    DiningAPI-->>HotelApp: Hold token & expiry
+    Guest->>HotelApp: Confirm reservation
+    HotelApp->>DiningAPI: POST /api/dining/reservations (holdId, guest data)
+    DiningAPI->>PrismaDB: Verify hold, upsert guest, create reservation
+    DiningAPI-->>HotelApp: Confirmation payload + QR code
+    HotelApp-->>Guest: Confirmation screen & account listing
+
+    Note over DiningAPI,PrismaDB: Holds auto-expire and collision checks run before commit
+```
 
 ## Real-time Chat Tips
 

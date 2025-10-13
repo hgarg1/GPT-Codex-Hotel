@@ -1,15 +1,20 @@
 :root {
   --dining-bg: #05070f;
   --dining-surface: #101424;
+  --dining-surface-soft: rgba(16, 20, 36, 0.85);
   --dining-accent: #cfa858;
+  --dining-accent-soft: rgba(207, 168, 88, 0.25);
   --dining-text: #f8f5ef;
   --dining-muted: #8b8f9c;
+  --dining-focus-ring: rgba(207, 168, 88, 0.85);
+  --dining-warning: #ffcd70;
+  --dining-danger: #ff9ba8;
 }
 
 [data-theme="dining"] {
   color: var(--dining-text);
   background: var(--dining-bg);
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-body);
 }
 
 [data-theme="dining"] a:not(.btn) {
@@ -24,7 +29,7 @@
 .dining-staff,
 .dining-account,
 .dining-admin {
-  padding: 4rem 6vw;
+  padding: var(--space-8) max(6vw, var(--space-6));
   background: var(--dining-bg);
   color: var(--dining-text);
 }
@@ -136,28 +141,34 @@
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  border-radius: 999px;
-  padding: 0.75rem 1.8rem;
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-5);
   text-decoration: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform var(--transition-snappy), box-shadow var(--transition-snappy), background var(--transition-snappy);
 }
 
 .btn-primary {
   background: var(--dining-accent);
   color: #05070f;
-  box-shadow: 0 0 25px rgba(207, 168, 88, 0.3);
+  box-shadow: 0 0 25px rgba(207, 168, 88, 0.35);
   border: none;
 }
 
 .btn-outline {
   border: 1px solid rgba(207, 168, 88, 0.45);
   color: var(--dining-accent);
-  background: rgba(5, 7, 15, 0.55);
-  box-shadow: inset 0 0 0 1px rgba(207, 168, 88, 0.1);
+  background: rgba(5, 7, 15, 0.65);
+  box-shadow: inset 0 0 0 1px rgba(207, 168, 88, 0.16);
 }
 
 .btn:hover {
   transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--dining-focus-ring);
+  outline-offset: 2px;
 }
 
 @media (max-width: 720px) {
@@ -380,26 +391,338 @@
 }
 
 .seat {
-  border: 1px solid rgba(207, 168, 88, 0.35);
-  border-radius: 10px;
-  padding: 0.75rem;
+  border: 1px solid rgba(207, 168, 88, 0.45);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
   font-weight: 600;
-  background: rgba(207, 168, 88, 0.08);
+  background: rgba(207, 168, 88, 0.12);
   color: var(--dining-text);
+  cursor: pointer;
+  transition: transform var(--transition-snappy), box-shadow var(--transition-snappy);
 }
 
 .seat--available {
-  background: rgba(207, 168, 88, 0.15);
+  background: rgba(207, 168, 88, 0.22);
 }
 
 .seat--held {
-  background: rgba(255, 142, 75, 0.15);
-  border-color: rgba(255, 142, 75, 0.6);
+  background: rgba(255, 184, 108, 0.28);
+  border-color: rgba(255, 184, 108, 0.7);
+  color: #1b1204;
 }
 
 .seat--reserved {
-  background: rgba(212, 36, 78, 0.2);
-  border-color: rgba(212, 36, 78, 0.7);
+  background: rgba(212, 36, 78, 0.35);
+  border-color: rgba(212, 36, 78, 0.75);
+}
+
+.seat--selected {
+  background: rgba(207, 168, 88, 0.4);
+  border-color: rgba(207, 168, 88, 0.85);
+  color: #140e03;
+}
+
+.seat:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.seat:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+}
+
+.seat:focus-visible {
+  outline: 3px solid var(--dining-focus-ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(207, 168, 88, 0.25);
+}
+
+.dining-account {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.account-header {
+  display: flex;
+  gap: var(--space-5);
+  justify-content: space-between;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.account-header > div {
+  max-width: 520px;
+}
+
+.account-policy {
+  background: var(--dining-surface-soft);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--dining-accent-soft);
+  max-width: 360px;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.35);
+}
+
+.account-policy h2 {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dining-muted);
+  margin-bottom: var(--space-2);
+}
+
+.account-grid {
+  display: grid;
+  gap: var(--space-6);
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  align-items: start;
+}
+
+.account-column {
+  background: var(--dining-surface-soft);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(207, 168, 88, 0.18);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.42);
+  display: grid;
+  gap: var(--space-4);
+}
+
+.account-column--secondary {
+  background: rgba(16, 20, 36, 0.65);
+}
+
+.account-column__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.account-empty {
+  color: var(--dining-muted);
+}
+
+.reservation-stack {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.reservation-card {
+  background: rgba(5, 8, 18, 0.85);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(207, 168, 88, 0.2);
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+}
+
+.reservation-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.reservation-card__sub {
+  color: var(--dining-muted);
+  margin-top: var(--space-1);
+}
+
+.reservation-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.reservation-meta dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--dining-muted);
+}
+
+.reservation-meta dd {
+  margin: 0;
+  font-weight: 500;
+}
+
+.reservation-notes,
+.reservation-tables {
+  color: var(--dining-muted);
+  margin: 0;
+}
+
+.reservation-manage {
+  background: rgba(16, 20, 36, 0.65);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(207, 168, 88, 0.18);
+  padding: var(--space-3);
+}
+
+.reservation-manage > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--dining-accent);
+  list-style: none;
+}
+
+.reservation-manage > summary::marker,
+.reservation-manage > summary::-webkit-details-marker {
+  display: none;
+}
+
+.reservation-manage > summary:focus-visible {
+  outline: 3px solid var(--dining-focus-ring);
+  outline-offset: 2px;
+}
+
+.reservation-manage[open] {
+  box-shadow: inset 0 0 0 1px rgba(207, 168, 88, 0.25);
+}
+
+.reservation-form {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.reservation-form label {
+  display: grid;
+  gap: var(--space-1);
+  font-size: 0.9rem;
+}
+
+.reservation-form input,
+.reservation-form textarea {
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(207, 168, 88, 0.25);
+  background: rgba(12, 16, 28, 0.7);
+  color: var(--dining-text);
+}
+
+.reservation-form input:focus-visible,
+.reservation-form textarea:focus-visible {
+  outline: 3px solid var(--dining-focus-ring);
+  outline-offset: 2px;
+}
+
+.reservation-form textarea {
+  resize: vertical;
+  min-height: 3.5rem;
+}
+
+.reservation-cancel {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.reservation-cancel .btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.reservation-warning {
+  color: var(--dining-warning);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.reservation-warning::before {
+  content: '⚠ ';
+}
+
+.reservation-history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.reservation-history__item {
+  background: rgba(12, 16, 30, 0.75);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(207, 168, 88, 0.18);
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.reservation-history__status {
+  margin: 0;
+}
+
+.reservation-history__note {
+  margin: 0;
+  color: var(--dining-muted);
+}
+
+.dining-account .status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(207, 168, 88, 0.22);
+  color: var(--dining-accent);
+}
+
+.dining-account .status-chip.status-cancelled {
+  background: rgba(212, 36, 78, 0.32);
+  color: #ffdce4;
+}
+
+.dining-account .status-chip.status-confirmed {
+  background: rgba(111, 220, 180, 0.28);
+  color: #7ff0c9;
+}
+
+.dining-account .status-chip.status-pending {
+  background: rgba(255, 205, 112, 0.28);
+  color: var(--dining-warning);
+}
+
+.dining-account .reservation-card__header .status-chip {
+  margin-left: auto;
+}
+
+@media (max-width: 960px) {
+  .account-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account-column__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .account-column__header .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .reservation-meta {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  .reservation-card {
+    padding: var(--space-3);
+  }
 }
 
 .lock-status[data-tone="success"] {

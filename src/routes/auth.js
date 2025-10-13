@@ -1,13 +1,9 @@
 const express = require('express');
 const Joi = require('joi');
-const {
-  getUserAuthByEmail,
-  getUserByEmail,
-  createUser,
-  verifyPassword
-} = require('../models/users');
-const { getUserFromRequest } = require('../utils/jwt');
+const { getUserAuthByEmail, getUserByEmail, createUser, verifyPassword } = require('../models/users');
+const { getUserFromRequest, issueSessionToken, clearSessionToken } = require('../utils/jwt');
 const { sanitizeString } = require('../utils/sanitize');
+const { syncDiningProfile } = require('../services/diningAccount');
 
 const router = express.Router();
 
@@ -37,7 +33,7 @@ router.get('/signup', (req, res) => {
   });
 });
 
-router.post('/signup', (req, res, next) => {
+router.post('/signup', async (req, res, next) => {
   const payload = {
     name: sanitizeString(req.body.name),
     email: sanitizeString(req.body.email),
@@ -52,6 +48,12 @@ router.post('/signup', (req, res, next) => {
     const user = createUser(value);
     req.session.userId = user.id;
     req.session.createdAt = Date.now();
+    try {
+      await syncDiningProfile(user);
+    } catch (profileError) {
+      console.warn('Failed to sync dining profile on signup', profileError);
+    }
+    issueSessionToken(res, user);
     req.pushAlert('success', `Welcome aboard, ${user.name}. Your Skyhaven profile is ready.`);
     const redirectPath = req.session.returnTo || '/dashboard';
     delete req.session.returnTo;
@@ -68,7 +70,7 @@ router.get('/login', (req, res) => {
   });
 });
 
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const payload = {
     email: sanitizeString(req.body.email),
     password: sanitizeString(req.body.password)
@@ -91,6 +93,12 @@ router.post('/login', (req, res) => {
   const user = getUserByEmail(userRecord.email);
   req.session.userId = user.id;
   req.session.createdAt = Date.now();
+  try {
+    await syncDiningProfile(user);
+  } catch (profileError) {
+    console.warn('Failed to sync dining profile on login', profileError);
+  }
+  issueSessionToken(res, user);
   req.pushAlert('success', `Welcome back, ${user.name}.`);
   const redirectPath = req.session.returnTo || '/dashboard';
   delete req.session.returnTo;
@@ -98,6 +106,7 @@ router.post('/login', (req, res) => {
 });
 
 router.post('/logout', (req, res) => {
+  clearSessionToken(res);
   req.session.destroy(() => {
     res.redirect('/');
   });

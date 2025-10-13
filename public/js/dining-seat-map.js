@@ -16,8 +16,10 @@
   const lockedSeatInput = document.getElementById('locked-seat');
   let lockId = null;
   let lockedSeatId = null;
+  let currentSeats = initialSeats;
 
   function renderSeats(seats) {
+    currentSeats = seats.map((seat) => ({ ...seat }));
     mapEl.innerHTML = '';
     seats.forEach((seat) => {
       const button = document.createElement('button');
@@ -26,6 +28,16 @@
       button.dataset.seatId = seat.id;
       button.textContent = seat.label;
       button.disabled = seat.status !== 'available' && seat.id !== lockedSeatId;
+      button.dataset.status = seat.status;
+      const labelStatus = seat.status === 'available' ? 'available' : seat.status === 'held' ? 'held by another guest' : 'reserved';
+      let accessibilityLabel = `${seat.label}, ${labelStatus}`;
+      if (lockedSeatId === seat.id) {
+        button.classList.add('seat--selected');
+        accessibilityLabel = `${seat.label}, selected for your party`;
+      }
+      button.setAttribute('aria-label', accessibilityLabel);
+      button.setAttribute('aria-pressed', lockedSeatId === seat.id ? 'true' : 'false');
+      button.setAttribute('aria-disabled', button.disabled ? 'true' : 'false');
       button.addEventListener('click', () => handleSeatClick(seat.id));
       mapEl.appendChild(button);
     });
@@ -57,6 +69,7 @@
       lockedSeatId = null;
       if (lockedSeatInput) lockedSeatInput.value = '';
       updateStatus('Seat released. Choose another or continue.');
+      renderSeats(currentSeats);
       return;
     }
 
@@ -78,6 +91,7 @@
     lockedSeatId = seatId;
     if (lockedSeatInput) lockedSeatInput.value = seatId;
     updateStatus(`Seat ${seatId} held for five minutes.`, 'success');
+    renderSeats(currentSeats);
   }
 
   renderSeats(initialSeats);
