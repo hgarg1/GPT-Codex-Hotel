@@ -80,21 +80,28 @@
     });
   }
 
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('is-visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    },
-    { threshold: 0.2 }
-  );
+  const animatedElements = document.querySelectorAll('[data-animate]');
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.2 }
+    );
 
-  document.querySelectorAll('[data-animate]').forEach((element) => {
-    observer.observe(element);
-  });
+    animatedElements.forEach((element) => {
+      observer.observe(element);
+    });
+  } else {
+    animatedElements.forEach((element) => {
+      element.classList.add('is-visible');
+    });
+  }
 
   const dismissToast = (toast) => {
     if (!toast || toast.classList.contains('is-dismissed')) return;
