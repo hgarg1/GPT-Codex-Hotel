@@ -283,6 +283,90 @@ function insertRoomTypes() {
         { id: 'soundbath', name: 'Sound bath immersion', price: 55 }
       ],
       availability: 10
+    },
+    {
+      name: 'Luminous Tidal Pavilion',
+      slug: 'luminous-tidal-pavilion',
+      pricePerNight: 980,
+      capacity: 5,
+      squareFeet: 1500,
+      bedConfig: '2 Tidal Queens + 1 Halo Nest',
+      view: 'Bioluminescent tide garden',
+      description: 'Floating pavilion with kinetic tide pools choreographed to lunar rhythms.',
+      features: [
+        'Kinetic tide pool deck',
+        'Ocean-resonance sound chamber',
+        'Private moonbeam tasting bar'
+      ],
+      images: ['/images/suite.svg', '/images/skyline.svg'],
+      addOns: [
+        { id: 'tidal-tasting', name: 'Moonbeam tasting flight', price: 180 },
+        { id: 'tide-concierge', name: 'Tide concierge for night rituals', price: 140 }
+      ],
+      availability: 4
+    },
+    {
+      name: 'Zenith Observatory Pod',
+      slug: 'zenith-observatory-pod',
+      pricePerNight: 560,
+      capacity: 2,
+      squareFeet: 720,
+      bedConfig: '1 Horizon King',
+      view: '360° starfield dome',
+      description: 'Observation pod with adaptive telescope canopy and meteor shower alarms.',
+      features: [
+        'Celestial projection dome',
+        'Autonomous star-mapping assistant',
+        'Aurora tea ritual bench'
+      ],
+      images: ['/images/nebula.svg', '/images/skyline.svg'],
+      addOns: [
+        { id: 'meteor-alert', name: 'Personal meteor alert service', price: 65 },
+        { id: 'stargazer', name: 'Guided midnight constellation walk', price: 95 }
+      ],
+      availability: 9
+    },
+    {
+      name: 'Chrono Dream Capsule',
+      slug: 'chrono-dream-capsule',
+      pricePerNight: 360,
+      capacity: 1,
+      squareFeet: 420,
+      bedConfig: '1 Chrono Cocoon',
+      view: 'Temporal meditation atrium',
+      description: 'Solo capsule designed for chrono-therapy sleep with lucid dream sequencing.',
+      features: [
+        'Chrono sleep sequencer',
+        'Lucid dream guidance AI',
+        'Aroma memory diffuser'
+      ],
+      images: ['/images/nebula.svg'],
+      addOns: [
+        { id: 'chrono-coach', name: 'Chrono sleep coach session', price: 70 },
+        { id: 'memory-journal', name: 'Dream memory journal kit', price: 35 }
+      ],
+      availability: 12
+    },
+    {
+      name: 'Solar Flare Gallery Suite',
+      slug: 'solar-flare-gallery-suite',
+      pricePerNight: 740,
+      capacity: 3,
+      squareFeet: 1100,
+      bedConfig: '1 Radiant King + 1 Lumen Lounger',
+      view: 'Solar flare art promenade',
+      description: 'Immersive art gallery suite where kinetic sculptures respond to solar activity.',
+      features: [
+        'Solar flare kinetic gallery',
+        'Private scent-wave atelier',
+        'AI-curated vinyl lounge'
+      ],
+      images: ['/images/suite.svg', '/images/nebula.svg'],
+      addOns: [
+        { id: 'gallery-tour', name: 'Curated art immersion tour', price: 160 },
+        { id: 'vinyl-session', name: 'Analog vinyl soundscape session', price: 90 }
+      ],
+      availability: 6
     }
   ];
 

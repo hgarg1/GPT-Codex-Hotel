@@ -86,31 +86,164 @@
 </section>
 
 <section class="compare-table" data-animate="fade-up">
-  <h2>Compare at a glance</h2>
-  <div class="table-wrapper">
-    <table>
+  <h2>Galactic accommodation matrix</h2>
+  <p class="compare-subtitle">
+    Search, sort, and remix our celestial inventory. Drag column headings to reorder, shift-click to build layered sorts,
+    and use filters to surface the exact habitat for your orbit.
+  </p>
+  <div class="matrix-controls" data-room-matrix-controls>
+    <label class="control search" for="room-matrix-search">
+      <span class="control-label">Search the constellation</span>
+      <input
+        id="room-matrix-search"
+        type="search"
+        placeholder="Search by room, vibe, feature, or view"
+        autocomplete="off"
+        data-room-matrix-search
+      />
+    </label>
+    <div class="control quick-filters" role="group" aria-label="Quick filters">
+      <button type="button" data-quick-filter="luxury" class="pill-link subtle">Ultra-luxe</button>
+      <button type="button" data-quick-filter="wellness" class="pill-link subtle">Wellness-forward</button>
+      <button type="button" data-quick-filter="solo" class="pill-link subtle">Solo retreats</button>
+    </div>
+    <div class="control active-filters" data-room-matrix-active-filters aria-live="polite"></div>
+    <button class="control toggle" type="button" data-room-matrix-filter-toggle aria-expanded="false">
+      Column filters
+    </button>
+  </div>
+  <div class="matrix-filter-panel" data-room-matrix-filter-panel hidden>
+    <div class="filter" data-filter-key="name">
+      <label for="filter-name">Room</label>
+      <input id="filter-name" type="text" placeholder="Type a room name" data-column-filter="name" />
+    </div>
+    <div class="filter" data-filter-key="capacity">
+      <label for="filter-capacity">Capacity</label>
+      <select id="filter-capacity" data-column-filter="capacity">
+        <option value="">Any</option>
+        <option value="1">Solo traveller</option>
+        <option value="2">2 guests</option>
+        <option value="3">3 guests</option>
+        <option value="4">4 guests</option>
+        <option value="5">5 guests</option>
+        <option value="6+">6 or more</option>
+      </select>
+    </div>
+    <div class="filter" data-filter-key="squareFeet">
+      <label for="filter-space">Space</label>
+      <select id="filter-space" data-column-filter="squareFeet">
+        <option value="">Any</option>
+        <option value="<700">Under 700 sq ft</option>
+        <option value="700-1000">700 - 1000 sq ft</option>
+        <option value=">1000">Over 1000 sq ft</option>
+      </select>
+    </div>
+    <div class="filter" data-filter-key="view">
+      <label for="filter-view">View</label>
+      <select id="filter-view" data-column-filter="view">
+        <option value="">Any</option>
+        <% Array.from(new Set(rooms.map(room => room.view))).forEach(function(view) { %>
+          <option value="<%= view %>"><%= view %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="filter" data-filter-key="pricePerNight">
+      <label for="filter-price">Nightly rate</label>
+      <select id="filter-price" data-column-filter="pricePerNight">
+        <option value="">Any</option>
+        <option value="<500">Under $500</option>
+        <option value="500-800">$500 - $800</option>
+        <option value=">800">Over $800</option>
+      </select>
+    </div>
+  </div>
+  <div class="table-wrapper interactive" data-room-matrix-wrapper>
+    <table data-room-matrix-table>
       <thead>
         <tr>
-          <th>Room</th>
-          <th>Capacity</th>
-          <th>Space</th>
-          <th>View</th>
-          <th>From (night)</th>
+          <th scope="col" data-key="name" draggable="true">
+            <button type="button" data-sort-trigger>
+              <span class="label">Name</span>
+              <span class="sort-indicator" aria-hidden="true">↕</span>
+              <span class="sort-order sr-only" data-sort-order></span>
+            </button>
+            <small>Drag to reorder</small>
+          </th>
+          <th scope="col" data-key="capacity" draggable="true">
+            <button type="button" data-sort-trigger>
+              <span class="label">Capacity</span>
+              <span class="sort-indicator" aria-hidden="true">↕</span>
+              <span class="sort-order sr-only" data-sort-order></span>
+            </button>
+            <small>Guests</small>
+          </th>
+          <th scope="col" data-key="squareFeet" draggable="true">
+            <button type="button" data-sort-trigger>
+              <span class="label">Space</span>
+              <span class="sort-indicator" aria-hidden="true">↕</span>
+              <span class="sort-order sr-only" data-sort-order></span>
+            </button>
+            <small>sq ft</small>
+          </th>
+          <th scope="col" data-key="view" draggable="true">
+            <button type="button" data-sort-trigger>
+              <span class="label">View</span>
+              <span class="sort-indicator" aria-hidden="true">↕</span>
+              <span class="sort-order sr-only" data-sort-order></span>
+            </button>
+            <small>Atmosphere</small>
+          </th>
+          <th scope="col" data-key="pricePerNight" draggable="true">
+            <button type="button" data-sort-trigger>
+              <span class="label">From (night)</span>
+              <span class="sort-indicator" aria-hidden="true">↕</span>
+              <span class="sort-order sr-only" data-sort-order></span>
+            </button>
+            <small>USD</small>
+          </th>
+          <th scope="col" data-key="availability" draggable="true">
+            <button type="button" data-sort-trigger>
+              <span class="label">Availability</span>
+              <span class="sort-indicator" aria-hidden="true">↕</span>
+              <span class="sort-order sr-only" data-sort-order></span>
+            </button>
+            <small>Suites</small>
+          </th>
         </tr>
       </thead>
-      <tbody>
+      <tbody data-room-matrix-body>
         <% rooms.forEach(function(room) { %>
           <tr>
-            <td><a href="#<%= room.slug %>"><%= room.name %></a></td>
-            <td><%= room.capacity %></td>
-            <td><%= room.squareFeet %> sq ft</td>
-            <td><%= room.view %></td>
-            <td>$<%= room.pricePerNight %></td>
+            <td data-key="name"><a href="#<%= room.slug %>"><%= room.name %></a></td>
+            <td data-key="capacity"><%= room.capacity %></td>
+            <td data-key="squareFeet"><%= room.squareFeet %> sq ft</td>
+            <td data-key="view"><%= room.view %></td>
+            <td data-key="pricePerNight">$<%= room.pricePerNight %></td>
+            <td data-key="availability"><%= room.availability %> ready</td>
           </tr>
         <% }) %>
       </tbody>
     </table>
   </div>
 </section>
+
+<script type="application/json" id="room-matrix-data">
+  <%- JSON.stringify(rooms.map(function(room) {
+    return {
+      name: room.name,
+      slug: room.slug,
+      capacity: room.capacity,
+      squareFeet: room.squareFeet,
+      view: room.view,
+      pricePerNight: room.pricePerNight,
+      availability: room.availability,
+      bedConfig: room.bedConfig,
+      features: room.features,
+      addOns: room.addOns,
+      vibe: room.description
+    };
+  })) %>
+</script>
+<script defer src="/js/rooms.js"></script>
 
 <%- include('partials/footer') %>
