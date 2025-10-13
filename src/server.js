@@ -4,7 +4,19 @@ const app = require('./app');
 const { sessionMiddleware } = require('./middleware/session');
 const { getUserById } = require('./models/users');
 const { listBookingsByUser } = require('./models/bookings');
-const { saveMessage, isBlocked } = require('./models/chat');
+const { decryptBuffer } = require('./utils/crypto');
+const {
+  saveMessage,
+  saveAttachmentForMessage,
+  isBlocked,
+  toggleReaction,
+  markChannelSeen,
+  countUnreadMessages,
+  getMessageById,
+  getMessageRowById,
+  userCanAccessMessage,
+  REACTION_EMOJIS
+} = require('./models/chat');
 
 const PORT = process.env.PORT || 3000;
 const {
@@ -77,6 +89,74 @@ io.use((socket, next) => {
 const onlineUsers = new Map();
 const recentMessageTimestamps = new Map();
 const bannedWords = ['damn', 'hell', 'shit'];
+const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10 MB
+
+function emitToUser(userId, event, payload) {
+  const sockets = onlineUsers.get(userId);
+  if (!sockets) return;
+  sockets.forEach((socketId) => {
+    io.to(socketId).emit(event, payload);
+  });
+}
+
+function emitUnreadUpdate(userId) {
+  const total = countUnreadMessages(userId);
+  emitToUser(userId, 'chat:unread', { total });
+}
+
+function buildStayLabel(room) {
+  const match = /^stay-(\d{4}-\d{2}-\d{2})-(\d{4}-\d{2}-\d{2})$/.exec(room || '');
+  if (!match) return room;
+  const [, start, end] = match;
+  const startLabel = new Date(start).toLocaleDateString();
+  const endLabel = new Date(end).toLocaleDateString();
+  return `Stay · ${startLabel} → ${endLabel}`;
+}
+
+function buildChannelLabel(message, viewerId) {
+  if (message.toUserId) {
+    const partnerId = message.fromUserId === viewerId ? message.toUserId : message.fromUserId;
+    const partner = partnerId ? getUserById(partnerId) : null;
+    return partner ? `DM · ${partner.name}` : 'Direct message';
+  }
+  if (message.room === 'lobby') {
+    return 'Lobby';
+  }
+  if (message.room && message.room.startsWith('stay-')) {
+    return buildStayLabel(message.room);
+  }
+  return message.room;
+}
+
+function buildMessagePreview(message) {
+  const text = message.body?.trim();
+  if (text) {
+    return text.length > 120 ? `${text.slice(0, 117)}…` : text;
+  }
+  if (message.attachments?.length) {
+    const first = message.attachments[0];
+    if (first?.mimeType?.startsWith('image/')) {
+      return 'Sent a photo';
+    }
+    if (first?.mimeType === 'application/pdf') {
+      return 'Shared a PDF';
+    }
+    return `Shared ${first?.filename || 'a file'}`;
+  }
+  return 'New chat activity';
+}
+
+function notifyUserOfMessage(userId, message) {
+  emitToUser(userId, 'chat:notification', {
+    room: message.room,
+    channelLabel: buildChannelLabel(message, userId),
+    from: {
+      id: message.fromUserId,
+      name: getUserById(message.fromUserId)?.name || 'Guest'
+    },
+    preview: buildMessagePreview(message)
+  });
+}
 
 function trackPresence(userId, socketId) {
   const sockets = onlineUsers.get(userId) || new Set();
@@ -133,6 +213,7 @@ io.on('connection', (socket) => {
   trackPresence(user.id, socket.id);
   socket.join('lobby');
   socket.emit('presence:init', Array.from(onlineUsers.keys()));
+  emitUnreadUpdate(user.id);
 
   socket.on('admin:subscribe', (channel) => {
     if (user.role !== 'admin') {
@@ -166,42 +247,165 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('chat:message', (payload, callback) => {
-    const { room, body, toUserId } = payload || {};
-    if (!body || typeof body !== 'string' || body.trim().length === 0) {
-      return callback?.({ error: 'Message cannot be empty.' });
-    }
-    if (body.length > 400) {
-      return callback?.({ error: 'Message exceeds maximum length.' });
-    }
-    if (isProfane(body)) {
-      return callback?.({ error: 'Please keep the conversation respectful.' });
-    }
-    if (!withinRateLimit(user.id)) {
-      return callback?.({ error: 'You are sending messages too quickly.' });
-    }
-    let targetRoom = room;
-    if (toUserId) {
-      const safeTarget = String(toUserId);
-      if (isBlocked(user.id, safeTarget) || isBlocked(safeTarget, user.id)) {
-        return callback?.({ error: 'Direct messages are blocked.' });
+  socket.on('chat:message', async (payload, callback) => {
+    try {
+      const { room, body, toUserId, attachment } = payload || {};
+      const text = typeof body === 'string' ? body.trim() : '';
+      if (!text && !attachment) {
+        return callback?.({ error: 'Message cannot be empty.' });
       }
-      targetRoom = `dm-${[user.id, safeTarget].sort().join(':')}`;
+      if (text.length > 400) {
+        return callback?.({ error: 'Message exceeds maximum length.' });
+      }
+      if (text && isProfane(text)) {
+        return callback?.({ error: 'Please keep the conversation respectful.' });
+      }
+      if (!withinRateLimit(user.id)) {
+        return callback?.({ error: 'You are sending messages too quickly.' });
+      }
+      let targetRoom = room;
+      let safeTarget = null;
+      if (toUserId) {
+        safeTarget = String(toUserId);
+        if (isBlocked(user.id, safeTarget) || isBlocked(safeTarget, user.id)) {
+          return callback?.({ error: 'Direct messages are blocked.' });
+        }
+        targetRoom = `dm-${[user.id, safeTarget].sort().join(':')}`;
+      }
+      if (!targetRoom) {
+        return callback?.({ error: 'Chat room missing.' });
+      }
+
+      let fileBuffer = null;
+      let fileName = null;
+      let fileType = null;
+      if (attachment) {
+        const { name, mimeType, data, encrypted } = attachment;
+        try {
+          fileBuffer = Buffer.from(String(data || ''), 'base64');
+        } catch (error) {
+          return callback?.({ error: 'Invalid attachment payload.' });
+        }
+        if (!fileBuffer || fileBuffer.length === 0) {
+          return callback?.({ error: 'Attachment could not be processed.' });
+        }
+        if (fileBuffer.length > MAX_ATTACHMENT_SIZE) {
+          return callback?.({ error: 'Attachment exceeds the 10 MB limit.' });
+        }
+        const encryptedForTransit = Boolean(encrypted);
+        fileName = typeof name === 'string' && name.trim().length > 0 ? name.trim().slice(0, 160) : 'attachment';
+        fileName = fileName.replace(/[\\/]/g, '_');
+        fileType = typeof mimeType === 'string' && mimeType.trim().length > 0 ? mimeType : 'application/octet-stream';
+        if (encryptedForTransit) {
+          const sessionKey = socket.request?.session?.chatEncryptionKey;
+          if (!sessionKey) {
+            return callback?.({ error: 'Secure attachment key missing.' });
+          }
+          try {
+            fileBuffer = decryptBuffer(fileBuffer, Buffer.from(sessionKey, 'base64'));
+          } catch (error) {
+            return callback?.({ error: 'Unable to decrypt attachment.' });
+          }
+        }
+        const claimedSize = Number(attachment.size);
+        if (Number.isFinite(claimedSize) && claimedSize > 0 && fileBuffer.length !== claimedSize) {
+          return callback?.({ error: 'Attachment size mismatch.' });
+        }
+      }
+
+      const saved = saveMessage({
+        room: targetRoom,
+        fromUserId: user.id,
+        toUserId: safeTarget || null,
+        body: text
+      });
+
+      if (fileBuffer) {
+        saveAttachmentForMessage(saved.id, {
+          filename: fileName,
+          mimeType: fileType,
+          buffer: fileBuffer
+        });
+      }
+
+      const messageForBroadcast = getMessageById(saved.id);
+      const messageForSender = getMessageById(saved.id, user.id);
+
+      io.to(targetRoom).emit('chat:message', {
+        ...messageForBroadcast,
+        sender: { id: user.id, name: user.name }
+      });
+
+      markChannelSeen(user.id, targetRoom, messageForBroadcast.createdAt);
+      emitUnreadUpdate(user.id);
+
+      callback?.({ ok: true, message: messageForSender });
+
+      const recipients = new Set();
+      if (safeTarget) {
+        recipients.add(safeTarget);
+      } else {
+        const socketsInRoom = await io.in(targetRoom).fetchSockets();
+        socketsInRoom.forEach((participantSocket) => {
+          const participantId = participantSocket.data?.user?.id;
+          if (participantId && participantId !== user.id) {
+            recipients.add(participantId);
+          }
+        });
+      }
+
+      recipients.forEach((recipientId) => {
+        if (recipientId === user.id) return;
+        emitUnreadUpdate(recipientId);
+        notifyUserOfMessage(recipientId, messageForBroadcast);
+      });
+    } catch (error) {
+      callback?.({ error: 'Unable to send message right now.' });
     }
-    if (!targetRoom) {
-      return callback?.({ error: 'Chat room missing.' });
+  });
+
+  socket.on('chat:react', (payload, callback) => {
+    try {
+      const messageId = String(payload?.messageId || '');
+      const emoji = payload?.emoji;
+      if (!messageId || typeof emoji !== 'string') {
+        return callback?.({ error: 'Invalid reaction payload.' });
+      }
+      if (!REACTION_EMOJIS.includes(emoji)) {
+        return callback?.({ error: 'Reaction not supported.' });
+      }
+      const message = getMessageRowById(messageId);
+      if (!message) {
+        return callback?.({ error: 'Message not found.' });
+      }
+      if (!userCanAccessMessage(user.id, message)) {
+        return callback?.({ error: 'You cannot react to this message.' });
+      }
+      const result = toggleReaction({ messageId, userId: user.id, emoji });
+      io.to(message.room).emit('chat:reaction', {
+        messageId,
+        reactions: result.reactions,
+        userId: user.id,
+        emoji: result.emoji
+      });
+      callback?.({ ok: true, emoji: result.emoji });
+    } catch (error) {
+      callback?.({ error: 'Unable to update reaction.' });
     }
-    const message = saveMessage({
-      room: toUserId ? targetRoom : targetRoom,
-      fromUserId: user.id,
-      toUserId: toUserId || null,
-      body: body.trim()
-    });
-    io.to(targetRoom).emit('chat:message', {
-      ...message,
-      sender: { id: user.id, name: user.name }
-    });
-    callback?.({ ok: true, message });
+  });
+
+  socket.on('chat:seen', (payload = {}) => {
+    const roomId = typeof payload.room === 'string' ? payload.room : null;
+    if (!roomId) {
+      return;
+    }
+    const lastSeenAt = typeof payload.lastSeenAt === 'string' ? payload.lastSeenAt : undefined;
+    markChannelSeen(user.id, roomId, lastSeenAt);
+    emitUnreadUpdate(user.id);
+  });
+
+  socket.on('chat:requestUnread', () => {
+    emitUnreadUpdate(user.id);
   });
 
   socket.on('disconnect', () => {
