@@ -76,3 +76,12 @@ model Staff {
   photoUrl String?
   active   Boolean @default(true)
 }
+
+model DiningConfig {
+  id            String   @id @default("default")
+  dwellMinutes  Int      @default(120)
+  blackoutDates String[] @default([])
+  policyText    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

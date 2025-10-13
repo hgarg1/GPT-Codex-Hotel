@@ -8,10 +8,557 @@ import { verifySession } from '../auth/verifySession.js';
 import { getDiningAvailability } from './availability.js';
 import { createHold, releaseHold, getHoldById, extendHold } from './holds.js';
 import { attachDiningRealtime } from './realtime.js';
+import { requireAdmin } from './requireAdmin.js';
 
 const app = express();
 
 app.use(express.json());
+app.use('/api/admin', verifySession, requireAdmin);
+
+app.get('/api/admin/dining/reservations', async (req: Request, res: Response) => {
+  try {
+    const { date, time, status, zone } = req.query;
+
+    const where: Record<string, unknown> = {};
+
+    if (typeof status === 'string' && status.trim().length > 0) {
+      where.status = status.trim().toUpperCase();
+    }
+
+    if (typeof date === 'string') {
+      const normalizedDate = normalizeDate(date);
+      if (!normalizedDate) {
+        res.status(400).json({ error: 'Invalid date filter' });
+        return;
+      }
+      where.date = new Date(`${normalizedDate}T00:00:00`);
+    }
+
+    if (typeof time === 'string') {
+      const normalizedTime = normalizeTime(time);
+      if (!normalizedTime) {
+        res.status(400).json({ error: 'Invalid time filter' });
+        return;
+      }
+      where.time = normalizedTime;
+    }
+
+    const reservations = await prisma.reservation.findMany({
+      where,
+      orderBy: [{ date: 'desc' }, { time: 'asc' }],
+      include: {
+        user: { select: { id: true, email: true, name: true } },
+      },
+    });
+
+    const tableMap = await getTableMap(reservations.flatMap((reservation) => reservation.tableIds));
+    const normalizedZone = typeof zone === 'string' && zone.trim().length > 0 ? zone.trim().toLowerCase() : null;
+
+    const payload = reservations
+      .map((reservation) => {
+        const tables = mapReservationTables(reservation, tableMap);
+        return {
+          id: reservation.id,
+          date: reservation.date.toISOString().slice(0, 10),
+          time: reservation.time,
+          status: reservation.status,
+          partySize: reservation.partySize,
+          tableIds: reservation.tableIds,
+          tables,
+          contactPhone: reservation.contactPhone,
+          contactEmail: reservation.contactEmail,
+          dietaryPrefs: reservation.dietaryPrefs,
+          allergies: reservation.allergies,
+          notes: reservation.notes,
+          user: reservation.user,
+          createdAt: reservation.createdAt,
+        };
+      })
+      .filter((reservation) => {
+        if (!normalizedZone) {
+          return true;
+        }
+        return reservation.tables.some((table) => (table.zone ?? '').toLowerCase() === normalizedZone);
+      });
+
+    res.json({ reservations: payload });
+  } catch (error) {
+    console.error('Failed to fetch admin reservations', error);
+    res.status(500).json({ error: 'Failed to fetch reservations' });
+  }
+});
+
+app.get('/api/admin/dining/reservations/export', async (req: Request, res: Response) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const normalizedStart = normalizeDate(startDate);
+    const normalizedEnd = normalizeDate(endDate);
+
+    if (!normalizedStart || !normalizedEnd) {
+      res.status(400).json({ error: 'Valid startDate and endDate are required' });
+      return;
+    }
+
+    const start = new Date(`${normalizedStart}T00:00:00`);
+    const end = new Date(`${normalizedEnd}T23:59:59`);
+
+    if (end.getTime() < start.getTime()) {
+      res.status(400).json({ error: 'endDate must be after startDate' });
+      return;
+    }
+
+    const reservations = await prisma.reservation.findMany({
+      where: {
+        date: { gte: start, lte: end },
+      },
+      orderBy: [{ date: 'asc' }, { time: 'asc' }],
+      include: {
+        user: { select: { id: true, email: true, name: true } },
+      },
+    });
+
+    const tableMap = await getTableMap(reservations.flatMap((reservation) => reservation.tableIds));
+
+    const header = [
+      'Reservation ID',
+      'Date',
+      'Time',
+      'Status',
+      'Guest Name',
+      'Guest Email',
+      'Contact Phone',
+      'Party Size',
+      'Tables',
+      'Zones',
+      'Notes',
+    ];
+
+    const lines = reservations.map((reservation) => {
+      const tables = mapReservationTables(reservation, tableMap);
+      const tableLabels = tables.map((table) => table.label).join(' | ');
+      const zones = tables
+        .map((table) => table.zone ?? '')
+        .filter((value) => value.length > 0)
+        .join(' | ');
+
+      const columns = [
+        reservation.id,
+        reservation.date.toISOString().slice(0, 10),
+        reservation.time,
+        reservation.status,
+        reservation.user?.name ?? '',
+        reservation.user?.email ?? '',
+        reservation.contactPhone ?? '',
+        reservation.partySize.toString(),
+        tableLabels,
+        zones,
+        (reservation.notes ?? '').replace(/\s+/g, ' ').trim(),
+      ];
+      return columns.map((value) => `"${value.replace(/"/g, '""')}` + '"').join(',');
+    });
+
+    const csv = [header.join(','), ...lines].join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="reservations-${normalizedStart}-to-${normalizedEnd}.csv"`,
+    );
+    res.send(csv);
+  } catch (error) {
+    console.error('Failed to export reservations CSV', error);
+    res.status(500).json({ error: 'Failed to export reservations' });
+  }
+});
+
+app.get('/api/admin/dining/tables', async (_req: Request, res: Response) => {
+  try {
+    const tables = await prisma.diningTable.findMany({ orderBy: [{ label: 'asc' }] });
+    res.json({ tables });
+  } catch (error) {
+    console.error('Failed to fetch admin dining tables', error);
+    res.status(500).json({ error: 'Failed to fetch tables' });
+  }
+});
+
+app.post('/api/admin/dining/tables', async (req: Request, res: Response) => {
+  try {
+    const { label, capacity, x, y, rotation, zone, active } = req.body ?? {};
+
+    const normalizedLabel = sanitizeText(label, 60);
+    const normalizedCapacity = normalizeInteger(capacity, { min: 1, max: 20 });
+    const normalizedX = normalizeInteger(x, { min: 0, max: 2000 });
+    const normalizedY = normalizeInteger(y, { min: 0, max: 2000 });
+    const normalizedRotation = normalizeInteger(rotation ?? 0, { min: 0, max: 359 });
+    const normalizedActive = typeof active === 'boolean' ? active : true;
+
+    if (!normalizedLabel || !normalizedCapacity || normalizedX === null || normalizedY === null) {
+      res.status(400).json({ error: 'Invalid table payload' });
+      return;
+    }
+
+    const table = await prisma.diningTable.create({
+      data: {
+        label: normalizedLabel,
+        capacity: normalizedCapacity,
+        x: normalizedX,
+        y: normalizedY,
+        rotation: normalizedRotation ?? 0,
+        zone: normalizeOptionalText(zone, 40),
+        active: normalizedActive,
+      },
+    });
+
+    res.status(201).json({ table });
+  } catch (error) {
+    console.error('Failed to create dining table', error);
+    res.status(500).json({ error: 'Failed to create table' });
+  }
+});
+
+app.patch('/api/admin/dining/tables', async (req: Request, res: Response) => {
+  try {
+    const updates = Array.isArray(req.body?.tables)
+      ? req.body.tables
+      : req.body && typeof req.body === 'object' && 'id' in req.body
+        ? [req.body]
+        : [];
+
+    if (updates.length === 0) {
+      res.status(400).json({ error: 'No table updates provided' });
+      return;
+    }
+
+    const results = await prisma.$transaction(
+      updates.map((update: Record<string, unknown>) => {
+        const id = typeof update.id === 'string' ? update.id : null;
+        if (!id) {
+          throw new Error('Missing table id');
+        }
+
+        const data: Record<string, unknown> = {};
+
+        if (update.label !== undefined) {
+          const value = sanitizeText(update.label, 60);
+          if (!value) {
+            throw new Error('Invalid label');
+          }
+          data.label = value;
+        }
+
+        if (update.capacity !== undefined) {
+          const value = normalizeInteger(update.capacity, { min: 1, max: 20 });
+          if (value === null) {
+            throw new Error('Invalid capacity');
+          }
+          data.capacity = value;
+        }
+
+        if (update.x !== undefined) {
+          const value = normalizeInteger(update.x, { min: 0, max: 2000 });
+          if (value === null) {
+            throw new Error('Invalid x coordinate');
+          }
+          data.x = value;
+        }
+
+        if (update.y !== undefined) {
+          const value = normalizeInteger(update.y, { min: 0, max: 2000 });
+          if (value === null) {
+            throw new Error('Invalid y coordinate');
+          }
+          data.y = value;
+        }
+
+        if (update.rotation !== undefined) {
+          const value = normalizeInteger(update.rotation, { min: 0, max: 359 });
+          if (value === null) {
+            throw new Error('Invalid rotation');
+          }
+          data.rotation = value;
+        }
+
+        if (update.zone !== undefined) {
+          data.zone = normalizeOptionalText(update.zone, 40);
+        }
+
+        if (update.active !== undefined) {
+          const value = normalizeBoolean(update.active);
+          if (value === null) {
+            throw new Error('Invalid active flag');
+          }
+          data.active = value;
+        }
+
+        if (Object.keys(data).length === 0) {
+          throw new Error('No updatable fields provided');
+        }
+
+        return prisma.diningTable.update({ where: { id }, data });
+      }),
+    );
+
+    res.json({ tables: results });
+  } catch (error) {
+    console.error('Failed to update dining tables', error);
+    res.status(400).json({ error: error instanceof Error ? error.message : 'Failed to update tables' });
+  }
+});
+
+app.get('/api/admin/dining/menu', async (_req: Request, res: Response) => {
+  try {
+    const sections = await prisma.menuSection.findMany({
+      orderBy: { order: 'asc' },
+      include: {
+        items: {
+          orderBy: { name: 'asc' },
+        },
+      },
+    });
+
+    res.json({ sections });
+  } catch (error) {
+    console.error('Failed to fetch admin menu', error);
+    res.status(500).json({ error: 'Failed to fetch menu' });
+  }
+});
+
+app.post('/api/admin/dining/menu', async (req: Request, res: Response) => {
+  try {
+    const { kind } = req.body ?? {};
+    if (kind === 'section') {
+      const title = sanitizeText(req.body?.title, 120);
+      if (!title) {
+        res.status(400).json({ error: 'Section title is required' });
+        return;
+      }
+      const order = normalizeInteger(req.body?.order, { min: 0 });
+      const maxOrder = await prisma.menuSection.aggregate({ _max: { order: true } });
+      const nextOrder = order ?? ((maxOrder._max.order ?? -1) + 1);
+      const section = await prisma.menuSection.create({ data: { title, order: nextOrder } });
+      res.status(201).json({ section });
+      return;
+    }
+
+    if (kind === 'item') {
+      const sectionId = typeof req.body?.sectionId === 'string' ? req.body.sectionId : null;
+      const name = sanitizeText(req.body?.name, 160);
+      const priceCents = normalizeInteger(req.body?.priceCents, { min: 0 });
+      if (!sectionId || !name || priceCents === null) {
+        res.status(400).json({ error: 'Invalid menu item payload' });
+        return;
+      }
+      const item = await prisma.menuItem.create({
+        data: {
+          sectionId,
+          name,
+          description: normalizeOptionalText(req.body?.description, 500),
+          priceCents,
+          vegetarian: normalizeBoolean(req.body?.vegetarian) ?? false,
+          vegan: normalizeBoolean(req.body?.vegan) ?? false,
+          glutenFree: normalizeBoolean(req.body?.glutenFree) ?? false,
+          spicyLevel: normalizeInteger(req.body?.spicyLevel, { min: 0, max: 5 }) ?? 0,
+          active: normalizeBoolean(req.body?.active) ?? true,
+        },
+      });
+      res.status(201).json({ item });
+      return;
+    }
+
+    res.status(400).json({ error: 'Unsupported menu payload' });
+  } catch (error) {
+    console.error('Failed to create menu entry', error);
+    res.status(500).json({ error: 'Failed to create menu entry' });
+  }
+});
+
+app.patch('/api/admin/dining/menu/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { kind } = req.body ?? {};
+
+    if (!id) {
+      res.status(400).json({ error: 'Menu id is required' });
+      return;
+    }
+
+    if (kind === 'section') {
+      const data: Record<string, unknown> = {};
+      if (req.body?.title !== undefined) {
+        const title = sanitizeText(req.body.title, 120);
+        if (!title) {
+          res.status(400).json({ error: 'Section title is required' });
+          return;
+        }
+        data.title = title;
+      }
+      if (req.body?.order !== undefined) {
+        const order = normalizeInteger(req.body.order, { min: 0 });
+        if (order === null) {
+          res.status(400).json({ error: 'Invalid section order' });
+          return;
+        }
+        data.order = order;
+      }
+      if (Object.keys(data).length === 0) {
+        res.status(400).json({ error: 'No updates provided' });
+        return;
+      }
+      const section = await prisma.menuSection.update({ where: { id }, data });
+      res.json({ section });
+      return;
+    }
+
+    if (kind === 'item') {
+      const data: Record<string, unknown> = {};
+      if (req.body?.name !== undefined) {
+        const name = sanitizeText(req.body.name, 160);
+        if (!name) {
+          res.status(400).json({ error: 'Item name is required' });
+          return;
+        }
+        data.name = name;
+      }
+      if (req.body?.description !== undefined) {
+        data.description = normalizeOptionalText(req.body.description, 500);
+      }
+      if (req.body?.priceCents !== undefined) {
+        const price = normalizeInteger(req.body.priceCents, { min: 0 });
+        if (price === null) {
+          res.status(400).json({ error: 'Invalid price' });
+          return;
+        }
+        data.priceCents = price;
+      }
+      if (req.body?.vegetarian !== undefined) {
+        const value = normalizeBoolean(req.body.vegetarian);
+        if (value === null) {
+          res.status(400).json({ error: 'Invalid vegetarian flag' });
+          return;
+        }
+        data.vegetarian = value;
+      }
+      if (req.body?.vegan !== undefined) {
+        const value = normalizeBoolean(req.body.vegan);
+        if (value === null) {
+          res.status(400).json({ error: 'Invalid vegan flag' });
+          return;
+        }
+        data.vegan = value;
+      }
+      if (req.body?.glutenFree !== undefined) {
+        const value = normalizeBoolean(req.body.glutenFree);
+        if (value === null) {
+          res.status(400).json({ error: 'Invalid glutenFree flag' });
+          return;
+        }
+        data.glutenFree = value;
+      }
+      if (req.body?.spicyLevel !== undefined) {
+        const spicy = normalizeInteger(req.body.spicyLevel, { min: 0, max: 5 });
+        if (spicy === null) {
+          res.status(400).json({ error: 'Invalid spicy level' });
+          return;
+        }
+        data.spicyLevel = spicy;
+      }
+      if (req.body?.active !== undefined) {
+        const active = normalizeBoolean(req.body.active);
+        if (active === null) {
+          res.status(400).json({ error: 'Invalid active flag' });
+          return;
+        }
+        data.active = active;
+      }
+      if (Object.keys(data).length === 0) {
+        res.status(400).json({ error: 'No updates provided' });
+        return;
+      }
+      const item = await prisma.menuItem.update({ where: { id }, data });
+      res.json({ item });
+      return;
+    }
+
+    res.status(400).json({ error: 'Unsupported menu update' });
+  } catch (error) {
+    console.error('Failed to update menu entry', error);
+    res.status(500).json({ error: 'Failed to update menu entry' });
+  }
+});
+
+app.delete('/api/admin/dining/menu/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { kind } = req.query;
+    if (!id) {
+      res.status(400).json({ error: 'Menu id is required' });
+      return;
+    }
+    if (kind === 'section') {
+      await prisma.menuSection.delete({ where: { id } });
+      res.status(204).send();
+      return;
+    }
+    if (kind === 'item') {
+      await prisma.menuItem.delete({ where: { id } });
+      res.status(204).send();
+      return;
+    }
+    res.status(400).json({ error: 'Menu kind must be specified as section or item' });
+  } catch (error) {
+    console.error('Failed to delete menu entry', error);
+    res.status(500).json({ error: 'Failed to delete menu entry' });
+  }
+});
+
+app.get('/api/admin/dining/config', async (_req: Request, res: Response) => {
+  try {
+    const config = await loadDiningConfig();
+    res.json({ config });
+  } catch (error) {
+    console.error('Failed to load dining config', error);
+    res.status(500).json({ error: 'Failed to load config' });
+  }
+});
+
+app.post('/api/admin/dining/config', async (req: Request, res: Response) => {
+  try {
+    const current = await loadDiningConfig();
+    const dwellMinutes =
+      req.body?.dwellMinutes === undefined
+        ? current.dwellMinutes
+        : normalizeInteger(req.body?.dwellMinutes, { min: 15, max: 360 });
+    if (dwellMinutes === null) {
+      res.status(400).json({ error: 'Invalid dwellMinutes' });
+      return;
+    }
+
+    const blackoutDatesRaw = Array.isArray(req.body?.blackoutDates)
+      ? req.body.blackoutDates
+      : current.blackoutDates;
+    const blackoutDates = blackoutDatesRaw
+      .map((value: unknown) => normalizeDate(value))
+      .filter((value): value is string => Boolean(value));
+
+    const policyTextValue =
+      req.body?.policyText !== undefined ? normalizeOptionalText(req.body.policyText, 2000) : current.policyText;
+
+    const config = await prisma.$queryRaw<DiningConfigRecord[]>`
+      UPDATE "DiningConfig"
+      SET "dwellMinutes" = ${dwellMinutes},
+          "blackoutDates" = ${blackoutDates},
+          "policyText" = ${policyTextValue ?? null},
+          "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "id" = 'default'
+      RETURNING "id", "dwellMinutes", "blackoutDates", "policyText", "createdAt", "updatedAt"
+    `;
+    const updated = config[0] ?? (await loadDiningConfig());
+
+    res.json({ config: updated });
+  } catch (error) {
+    console.error('Failed to update dining config', error);
+    res.status(500).json({ error: 'Failed to update config' });
+  }
+});
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
@@ -69,6 +616,106 @@ function sanitizeText(value: unknown, maxLength = 500): string {
     return '';
   }
   return value.replace(/\s+/g, ' ').trim().slice(0, maxLength);
+}
+
+function normalizeOptionalText(value: unknown, maxLength = 500): string | null {
+  const sanitized = sanitizeText(value, maxLength);
+  return sanitized.length > 0 ? sanitized : null;
+}
+
+function normalizeInteger(
+  value: unknown,
+  { min, max }: { min?: number; max?: number } = {},
+): number | null {
+  const parsed = typeof value === 'number' ? value : Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+    return null;
+  }
+  if (typeof min === 'number' && parsed < min) {
+    return null;
+  }
+  if (typeof max === 'number' && parsed > max) {
+    return null;
+  }
+  return parsed;
+}
+
+function normalizeBoolean(value: unknown): boolean | null {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'string') {
+    if (value.toLowerCase() === 'true') return true;
+    if (value.toLowerCase() === 'false') return false;
+  }
+  return null;
+}
+
+type DiningConfigRecord = {
+  id: string;
+  dwellMinutes: number;
+  blackoutDates: string[];
+  policyText: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+async function loadDiningConfig(): Promise<DiningConfigRecord> {
+  const [record] = await prisma.$queryRaw<DiningConfigRecord[]>`
+    SELECT "id", "dwellMinutes", "blackoutDates", "policyText", "createdAt", "updatedAt"
+    FROM "DiningConfig"
+    WHERE "id" = 'default'
+    LIMIT 1
+  `;
+
+  if (record) {
+    return record;
+  }
+
+  await prisma.$executeRaw`
+    INSERT INTO "DiningConfig" ("id", "dwellMinutes", "blackoutDates", "policyText")
+    VALUES ('default', 120, ARRAY[]::TEXT[], NULL)
+    ON CONFLICT ("id") DO NOTHING
+  `;
+
+  const [created] = await prisma.$queryRaw<DiningConfigRecord[]>`
+    SELECT "id", "dwellMinutes", "blackoutDates", "policyText", "createdAt", "updatedAt"
+    FROM "DiningConfig"
+    WHERE "id" = 'default'
+    LIMIT 1
+  `;
+
+  if (!created) {
+    throw new Error('Unable to initialize dining config');
+  }
+
+  return created;
+}
+
+function mapReservationTables(
+  reservation: Reservation,
+  tableMap: Map<string, { id: string; label: string; capacity: number; zone: string | null; rotation: number }>,
+) {
+  return reservation.tableIds
+    .map((id) => tableMap.get(id))
+    .filter((table): table is { id: string; label: string; capacity: number; zone: string | null; rotation: number } =>
+      Boolean(table),
+    );
+}
+
+async function getTableMap(tableIds: string[]) {
+  if (tableIds.length === 0) {
+    return new Map<string, { id: string; label: string; capacity: number; zone: string | null; rotation: number }>();
+  }
+  const tables = await prisma.diningTable.findMany({
+    where: { id: { in: [...new Set(tableIds)] } },
+  });
+  return new Map(
+    tables.map((table) => [
+      table.id,
+      { id: table.id, label: table.label, capacity: table.capacity, zone: table.zone ?? null, rotation: table.rotation },
+    ]),
+  );
 }
 
 function normalizePhone(value: unknown): string | null {
