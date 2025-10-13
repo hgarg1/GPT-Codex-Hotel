@@ -186,23 +186,30 @@
 }
 
 .menu-header {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 1.5rem;
+  display: grid;
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  align-items: start;
+  gap: 2rem;
   margin-bottom: 3rem;
+}
+
+.menu-header > div {
+  display: grid;
+  gap: 0.75rem;
 }
 
 .menu-filters {
   display: grid;
   gap: 1.5rem;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   align-items: start;
   background: rgba(16, 20, 36, 0.7);
-  padding: 1rem 1.5rem;
-  border-radius: 12px;
+  padding: 1.5rem;
+  border-radius: 16px;
   border: 1px solid rgba(207, 168, 88, 0.2);
+  width: min(100%, 640px);
+  justify-self: end;
+  box-shadow: 0 20px 40px rgba(5, 7, 15, 0.45);
 }
 
 .menu-filters fieldset {
@@ -377,6 +384,17 @@
   max-width: 100%;
   text-align: center;
   white-space: normal;
+}
+
+@media (max-width: 1024px) {
+  .menu-header {
+    grid-template-columns: 1fr;
+  }
+
+  .menu-filters {
+    width: 100%;
+    justify-self: stretch;
+  }
 }
 
 .seat-stage {
