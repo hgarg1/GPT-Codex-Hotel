@@ -72,7 +72,23 @@ app.use(
   })
 );
 
-app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true }));
+const shouldEnforceHsts = (() => {
+  if (process.env.ENABLE_HSTS === 'true') {
+    return true;
+  }
+  if (process.env.NODE_ENV === 'production') {
+    return true;
+  }
+  const publicBaseUrl = process.env.PUBLIC_BASE_URL;
+  if (typeof publicBaseUrl === 'string' && publicBaseUrl.startsWith('https://')) {
+    return true;
+  }
+  return false;
+})();
+
+if (shouldEnforceHsts) {
+  app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true }));
+}
 app.use(helmet.noSniff());
 app.use((req, res, next) => {
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
