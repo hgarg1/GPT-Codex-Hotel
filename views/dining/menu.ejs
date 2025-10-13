@@ -3,6 +3,7 @@
 <%- include('../partials/nav') %>
 <%- include('../partials/alerts') %>
 <main class="dining-menu" data-theme="dining">
+  <% const sectionLabels = { starters: 'Starters', mains: 'Mains', desserts: 'Desserts', drinks: 'Drinks', kids: 'Kids' }; %>
   <header class="menu-header">
     <div>
       <p class="eyebrow">Chef Kenji Nakamoto presents</p>
@@ -25,24 +26,39 @@
         <legend>Price</legend>
         <select name="priceRange">
           <option value="">All</option>
-          <option value="0-25" <% if(filters.priceRange === '0-25') { %>selected<% } %>>Under $25</option>
-          <option value="25-50" <% if(filters.priceRange === '25-50') { %>selected<% } %>>$25-$50</option>
+          <option value="0-15" <% if(filters.priceRange === '0-15') { %>selected<% } %>>Under $15</option>
+          <option value="15-30" <% if(filters.priceRange === '15-30') { %>selected<% } %>>$15-$30</option>
+          <option value="30-50" <% if(filters.priceRange === '30-50') { %>selected<% } %>>$30-$50</option>
           <option value="50-100" <% if(filters.priceRange === '50-100') { %>selected<% } %>>$50-$100</option>
         </select>
+      </fieldset>
+      <fieldset>
+        <legend>Course</legend>
+        <% Object.keys(sectionLabels).forEach((courseKey) => { %>
+          <label>
+            <input
+              type="checkbox"
+              name="course"
+              value="<%= courseKey %>"
+              <% if(Array.isArray(filters.course) ? filters.course.includes(courseKey) : filters.course === courseKey) { %>checked<% } %>
+            >
+            <%= sectionLabels[courseKey] %>
+          </label>
+        <% }) %>
       </fieldset>
       <button type="submit" class="btn btn-outline">Filter</button>
     </form>
   </header>
-  <% const sections = { starters: 'Starters', mains: 'Mains', desserts: 'Desserts', drinks: 'Drinks' }; %>
-  <% Object.keys(sections).forEach((sectionKey) => { %>
+  <% Object.keys(sectionLabels).forEach((sectionKey) => { %>
     <section class="menu-section">
       <div class="menu-section__header">
-        <h2><%= sections[sectionKey] %></h2>
+        <h2><%= sectionLabels[sectionKey] %></h2>
         <span class="divider"></span>
       </div>
       <div class="menu-grid">
         <% (menu[sectionKey] || []).forEach((item) => { %>
-          <article class="menu-item">
+          <% const hoverDetail = item.hoverDetail || (item.name ? 'Chef highlight: ' + item.name : null); %>
+          <article class="menu-item" tabindex="0">
             <header>
               <h3><%= item.name %></h3>
               <span class="price">$<%= item.price %></span>
@@ -56,6 +72,9 @@
               </ul>
             <% } %>
             <p class="spice">Heat Level: <%= ['None', 'Warm', 'Ember'][item.spiceLevel] || 'Gentle' %></p>
+            <% if(hoverDetail) { %>
+              <div class="hover-info" aria-hidden="true"><%= hoverDetail %></div>
+            <% } %>
           </article>
         <% }) %>
         <% if(!(menu[sectionKey] || []).length) { %>

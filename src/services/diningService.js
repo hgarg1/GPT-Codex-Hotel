@@ -16,7 +16,8 @@ const fallbackMenu = [
     price: 18,
     tags: ['vegetarian', 'gluten-free'],
     spiceLevel: 1,
-    description: 'Shaved beets, pistachio praline, Meyer lemon gel.'
+    description: 'Shaved beets, pistachio praline, Meyer lemon gel.',
+    hoverDetail: 'Mountain beets are shaved tableside and kissed with smoked olive oil.'
   },
   {
     id: 'starter-2',
@@ -25,7 +26,38 @@ const fallbackMenu = [
     price: 24,
     tags: ['gluten-free'],
     spiceLevel: 2,
-    description: 'Yuzu kosho, compressed cucumber, sesame tuile.'
+    description: 'Yuzu kosho, compressed cucumber, sesame tuile.',
+    hoverDetail: 'Hamachi is line-caught in Hokkaido and finished with our in-house citrus ash.'
+  },
+  {
+    id: 'starter-3',
+    name: 'Charred Octopus Kintsugi',
+    course: 'starters',
+    price: 26,
+    tags: ['gluten-free'],
+    spiceLevel: 1,
+    description: 'Coal-grilled octopus, miso caramel, finger lime pearls.',
+    hoverDetail: 'Octopus is marinated 24 hours in koji before being seared over binchōtan coals.'
+  },
+  {
+    id: 'starter-4',
+    name: 'Snow Pea & Burrata Fresca',
+    course: 'starters',
+    price: 19,
+    tags: ['vegetarian'],
+    spiceLevel: 0,
+    description: 'Fresh burrata, snap pea tendrils, basil cloud.',
+    hoverDetail: 'Burrata arrives twice weekly from a micro-dairy and is plated within hours of delivery.'
+  },
+  {
+    id: 'starter-5',
+    name: 'Glacier Oyster Trio',
+    course: 'starters',
+    price: 23,
+    tags: ['gluten-free'],
+    spiceLevel: 2,
+    description: 'Three varietals with spruce tip mignonette and trout roe.',
+    hoverDetail: 'Each oyster is paired with a distinct spruce infusion to echo alpine aromatics.'
   },
   {
     id: 'main-1',
@@ -34,7 +66,8 @@ const fallbackMenu = [
     price: 64,
     tags: [],
     spiceLevel: 1,
-    description: 'Charred onion soubise, truffle pomme purée.'
+    description: 'Charred onion soubise, truffle pomme purée.',
+    hoverDetail: 'The striploin is A5 grade from Miyazaki, seared in brown butter for 45 seconds per side.'
   },
   {
     id: 'main-2',
@@ -43,7 +76,38 @@ const fallbackMenu = [
     price: 36,
     tags: ['vegan', 'gluten-free'],
     spiceLevel: 2,
-    description: 'Harissa, preserved lemon, smoked almond cream.'
+    description: 'Harissa, preserved lemon, smoked almond cream.',
+    hoverDetail: 'Cauliflower is lacquered in black garlic molasses then finished over the hearth.'
+  },
+  {
+    id: 'main-3',
+    name: 'Cedar-Smoked Salmon Fillet',
+    course: 'mains',
+    price: 42,
+    tags: ['gluten-free'],
+    spiceLevel: 1,
+    description: 'Roasted roots, pine sap glaze, foraged chanterelles.',
+    hoverDetail: 'Salmon is smoked in our open-fire hearth with hand-cut cedar planks from British Columbia.'
+  },
+  {
+    id: 'main-4',
+    name: 'Porcini Crusted Venison',
+    course: 'mains',
+    price: 58,
+    tags: ['gluten-free'],
+    spiceLevel: 2,
+    description: 'Cocoa jus, black currant, juniper ash.',
+    hoverDetail: 'Wild venison is dry-aged 14 days and dusted with porcini powder and cocoa nib.'
+  },
+  {
+    id: 'main-5',
+    name: 'Saffron Lobster Tagliatelle',
+    course: 'mains',
+    price: 49,
+    tags: ['shellfish'],
+    spiceLevel: 1,
+    description: 'House-made saffron pasta, lobster coral butter, citrus zest.',
+    hoverDetail: 'Pasta dough is infused with Iranian saffron and rolled to order for every seating.'
   },
   {
     id: 'dessert-1',
@@ -52,7 +116,48 @@ const fallbackMenu = [
     price: 19,
     tags: ['vegetarian'],
     spiceLevel: 0,
-    description: 'Hazelnut praline, salted caramel, cocoa nib crunch.'
+    description: 'Hazelnut praline, salted caramel, cocoa nib crunch.',
+    hoverDetail: 'The marquise is poured into custom molds lined with tempered chocolate filigree.'
+  },
+  {
+    id: 'dessert-2',
+    name: 'Aurora Citrus Pavlova',
+    course: 'desserts',
+    price: 17,
+    tags: ['gluten-free'],
+    spiceLevel: 0,
+    description: 'Citrus curd, grapefruit sorbet, candied fennel.',
+    hoverDetail: 'Meringues are slow-dried for six hours to achieve the aurora-inspired swirls.'
+  },
+  {
+    id: 'dessert-3',
+    name: 'Midnight Sesame Soufflé',
+    course: 'desserts',
+    price: 18,
+    tags: ['vegetarian'],
+    spiceLevel: 1,
+    description: 'Black sesame sponge, ginger anglaise, honeycomb.',
+    hoverDetail: 'Soufflés are fired individually and whisked with freshly ground black sesame paste.'
+  },
+  {
+    id: 'dessert-4',
+    name: 'Frozen Garden Tisane',
+    course: 'desserts',
+    price: 16,
+    tags: ['vegan', 'gluten-free'],
+    spiceLevel: 0,
+    description: 'Herbal granité, compressed melon, verbena bubbles.',
+    hoverDetail: 'Verbena leaves are steeped tableside and poured over the granité for a cloud of aroma.'
+  },
+  {
+    id: 'dessert-5',
+    name: 'Caramelized Pear Mille-Feuille',
+    course: 'desserts',
+    price: 20,
+    tags: ['vegetarian'],
+    spiceLevel: 0,
+    description: 'Vanilla bean custard, burnt honey, almond brittle.',
+    hoverDetail: 'Each mille-feuille uses laminated pastry baked hourly for optimal shatter.'
   },
   {
     id: 'drink-1',
@@ -61,7 +166,98 @@ const fallbackMenu = [
     price: 21,
     tags: ['gluten-free'],
     spiceLevel: 1,
-    description: 'Barrel-aged gin, cacao vermouth, amaro, orange oils.'
+    description: 'Barrel-aged gin, cacao vermouth, amaro, orange oils.',
+    hoverDetail: 'Finished with a flamed cacao mist expressed from the bar\'s rotovap.'
+  },
+  {
+    id: 'drink-2',
+    name: 'Alpenglow Spritz',
+    course: 'drinks',
+    price: 18,
+    tags: ['gluten-free'],
+    spiceLevel: 0,
+    description: 'Sparkling rosé, mountain berry shrub, smoked thyme.',
+    hoverDetail: 'Shrub berries are foraged from local alpine farms and macerated for 72 hours.'
+  },
+  {
+    id: 'drink-3',
+    name: 'Juniper Ember',
+    course: 'drinks',
+    price: 19,
+    tags: ['gluten-free'],
+    spiceLevel: 2,
+    description: 'Smoked gin, charred citrus, ember bitters.',
+    hoverDetail: 'The cocktail is smoked in a cedar cloche before arriving at the table.'
+  },
+  {
+    id: 'drink-4',
+    name: 'Crystal Garden Mocktail',
+    course: 'drinks',
+    price: 14,
+    tags: ['gluten-free', 'vegan'],
+    spiceLevel: 0,
+    description: 'Seedlip grove, cucumber nectar, basil crystalline.',
+    hoverDetail: 'Edible basil crystals are dehydrated in-house for each service.'
+  },
+  {
+    id: 'drink-5',
+    name: 'Spiced Chai Old Fashioned',
+    course: 'drinks',
+    price: 20,
+    tags: ['gluten-free'],
+    spiceLevel: 1,
+    description: 'Single barrel bourbon, masala syrup, smoked vanilla.',
+    hoverDetail: 'Bourbon is fat-washed with toasted coconut and paired with house chai bitters.'
+  },
+  {
+    id: 'kids-1',
+    name: 'Mini Garden Poke Bowl',
+    course: 'kids',
+    price: 12,
+    tags: ['kids', 'gluten-free'],
+    spiceLevel: 0,
+    description: 'Marinated tofu, sushi rice, rainbow veggies, sweet soy drizzle.',
+    hoverDetail: 'Rice is gently seasoned with apple cider vinegar to keep flavors bright for young palates.'
+  },
+  {
+    id: 'kids-2',
+    name: 'Sprout Slider Duo',
+    course: 'kids',
+    price: 11,
+    tags: ['kids'],
+    spiceLevel: 0,
+    description: 'Grass-fed beef sliders, cheddar melt, soft milk buns.',
+    hoverDetail: 'Sliders use a hidden carrot purée for extra sweetness and nutrients.'
+  },
+  {
+    id: 'kids-3',
+    name: 'Starlit Pasta Twirls',
+    course: 'kids',
+    price: 10,
+    tags: ['kids', 'vegetarian'],
+    spiceLevel: 0,
+    description: 'Mini farfalle, roasted tomato sauce, parmesan snowfall.',
+    hoverDetail: 'Tomatoes are slow-roasted with basil to deliver sweetness without heat.'
+  },
+  {
+    id: 'kids-4',
+    name: 'Aurora Chicken Bites',
+    course: 'kids',
+    price: 12,
+    tags: ['kids', 'gluten-free'],
+    spiceLevel: 0,
+    description: 'Air-baked chicken, quinoa crust, honey herb dip.',
+    hoverDetail: 'Chicken is brined in citrus and oven-baked for a crunchy crust without frying.'
+  },
+  {
+    id: 'kids-5',
+    name: 'Moonbeam Fruit Parfait',
+    course: 'kids',
+    price: 8,
+    tags: ['kids', 'vegetarian', 'gluten-free'],
+    spiceLevel: 0,
+    description: 'Vanilla yogurt, berry constellations, granola clusters.',
+    hoverDetail: 'Granola clusters are nut-free and toasted with maple syrup for gentle sweetness.'
   }
 ];
 
@@ -275,12 +471,13 @@ async function initModels() {
   }
 }
 
-function normalizeFilters({ dietary, spice, priceRange } = {}) {
+function normalizeFilters({ dietary, spice, priceRange, course } = {}) {
   const parseList = (value) => (Array.isArray(value) ? value.filter(Boolean) : value ? [value] : []);
   const parsedDietary = parseList(dietary);
   const parsedSpice = parseList(spice).map((value) => Number(value));
   const parsedPrice = priceRange ? priceRange.split('-').map((value) => Number(value)) : [];
-  return { parsedDietary, parsedSpice, parsedPrice };
+  const parsedCourse = parseList(course);
+  return { parsedDietary, parsedSpice, parsedPrice, parsedCourse };
 }
 
 function groupMenuByCourse(items) {
@@ -293,12 +490,15 @@ function groupMenuByCourse(items) {
 }
 
 function filterFallbackMenu(filters) {
-  const { parsedDietary, parsedSpice, parsedPrice } = normalizeFilters(filters);
+  const { parsedDietary, parsedSpice, parsedPrice, parsedCourse } = normalizeFilters(filters);
   return fallbackMenu.filter((item) => {
     if (parsedDietary.length && !parsedDietary.every((tag) => item.tags.includes(tag))) {
       return false;
     }
     if (parsedSpice.length && !parsedSpice.includes(item.spiceLevel)) {
+      return false;
+    }
+    if (parsedCourse.length && !parsedCourse.includes(item.course)) {
       return false;
     }
     if (parsedPrice.length === 2) {
@@ -314,13 +514,16 @@ function filterFallbackMenu(filters) {
 async function getMenuByCourse(filters = {}) {
   if (sequelizeReady && MenuItem) {
     try {
-      const { parsedDietary, parsedSpice, parsedPrice } = normalizeFilters(filters);
+      const { parsedDietary, parsedSpice, parsedPrice, parsedCourse } = normalizeFilters(filters);
       const where = { active: true };
       if (parsedDietary.length) {
         where.tags = { [Op.contains]: parsedDietary };
       }
       if (parsedSpice.length) {
         where.spiceLevel = parsedSpice;
+      }
+      if (parsedCourse.length) {
+        where.course = { [Op.in]: parsedCourse };
       }
       if (parsedPrice.length === 2) {
         where.price = { [Op.between]: parsedPrice };
