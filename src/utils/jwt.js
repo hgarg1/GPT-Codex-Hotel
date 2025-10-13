@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const cookie = require('cookie');
+const { DEFAULT_JWT_SECRET } = require('./jwtDefaults');
 
 function parseCookies(req) {
   const header = req.headers?.cookie || req.request?.headers?.cookie;
@@ -23,7 +24,7 @@ function getSigningConfig() {
   if (process.env.HOTEL_JWT_SECRET) {
     return { key: process.env.HOTEL_JWT_SECRET, algorithm: process.env.HOTEL_JWT_ALGORITHM || 'HS256' };
   }
-  return null;
+  return { key: DEFAULT_JWT_SECRET, algorithm: 'HS256' };
 }
 
 function verifyHotelToken(token) {
@@ -40,7 +41,7 @@ function verifyHotelToken(token) {
     if (process.env.HOTEL_JWT_SECRET) {
       return jwt.verify(token, process.env.HOTEL_JWT_SECRET, verifyOptions);
     }
-    return jwt.decode(token);
+    return jwt.verify(token, DEFAULT_JWT_SECRET, verifyOptions);
   } catch (error) {
     return null;
   }

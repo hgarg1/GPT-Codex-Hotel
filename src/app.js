@@ -3,6 +3,7 @@ const express = require('express');
 const csrf = require('csurf');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 const { hydrateUser } = require('./middleware/auth');
 const { sessionMiddleware } = require('./middleware/session');
 const { notFoundHandler, errorHandler } = require('./middleware/errors');
@@ -31,6 +32,24 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'views'));
 
 const connectSrc = new Set(["'self'", 'https:', 'wss:', 'ws:', `ws://localhost:${process.env.PORT || 3000}`, `ws://127.0.0.1:${process.env.PORT || 3000}`]);
+
+const diningApiOrigin = (() => {
+  const explicitOrigin = process.env.DINING_API_URL || process.env.DINING_API_ORIGIN;
+  if (explicitOrigin) {
+    return explicitOrigin;
+  }
+  const port = process.env.DINING_PORT || 4000;
+  return `http://127.0.0.1:${port}`;
+})();
+
+const diningApiTarget = diningApiOrigin.replace(/\/$/, '') + '/api/dining';
+
+try {
+  const parsedDiningOrigin = new URL(diningApiOrigin);
+  connectSrc.add(`${parsedDiningOrigin.protocol}//${parsedDiningOrigin.host}`);
+} catch (error) {
+  console.warn('Invalid dining API origin provided, falling back to default.', error);
+}
 
 function registerOrigin(origin) {
   if (!origin) return;
@@ -87,6 +106,23 @@ app.use((req, res, next) => {
 
 // Serve immersive assets and parse request payloads.
 app.use(express.static(path.join(__dirname, '..', 'public')));
+
+app.use(
+  '/api/dining',
+  createProxyMiddleware({
+    target: diningApiTarget,
+    changeOrigin: true,
+    ws: true,
+    proxyTimeout: 15000,
+    onError: (error, req, res) => {
+      console.error('Dining API proxy error', error);
+      if (!res.headersSent) {
+        res.status(502).json({ error: 'Dining service is currently unavailable. Please try again shortly.' });
+      }
+    },
+  }),
+);
+
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
