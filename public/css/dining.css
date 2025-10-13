@@ -12,7 +12,7 @@
   font-family: 'Outfit', sans-serif;
 }
 
-[data-theme="dining"] a {
+[data-theme="dining"] a:not(.btn) {
   color: var(--dining-accent);
 }
 
@@ -37,14 +37,30 @@
   margin-bottom: 4rem;
 }
 
+.dining-hero__copy {
+  max-width: 540px;
+  margin-inline: auto;
+}
+
 .dining-hero__copy h1 {
   font-size: clamp(2.8rem, 5vw, 4rem);
   margin-bottom: 1rem;
 }
 
+.dining-hero__copy p {
+  margin-bottom: 1.75rem;
+  line-height: 1.7;
+}
+
 .dining-hero__copy .cta-group {
   display: flex;
   gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.dining-hero__copy .cta-group .btn {
+  flex: 1 1 200px;
+  justify-content: center;
 }
 
 .dining-hero__media {
@@ -136,11 +152,26 @@
 .btn-outline {
   border: 1px solid rgba(207, 168, 88, 0.45);
   color: var(--dining-accent);
-  background: transparent;
+  background: rgba(5, 7, 15, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(207, 168, 88, 0.1);
 }
 
 .btn:hover {
   transform: translateY(-2px);
+}
+
+@media (max-width: 720px) {
+  .dining-hero {
+    text-align: center;
+  }
+
+  .dining-hero__copy {
+    margin-inline: 0;
+  }
+
+  .dining-hero__copy .cta-group {
+    justify-content: center;
+  }
 }
 
 .menu-header {
