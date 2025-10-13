@@ -2,6 +2,7 @@
 (() => {
   const root = document.documentElement;
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+  root?.setAttribute('data-animations', 'enabled');
   if (csrfToken) {
     window.__CSRF_TOKEN__ = csrfToken;
   }

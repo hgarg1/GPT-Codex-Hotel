@@ -2026,13 +2026,19 @@ tr.is-low .inventory-pill {
   }
 }
 
+/* Ensure animated sections stay visible when JavaScript is unavailable */
 [data-animate] {
+  opacity: 1;
+  transform: none;
+}
+
+html[data-animations='enabled'] [data-animate] {
   opacity: 0;
   transform: translateY(24px);
   transition: opacity 0.8s ease, transform 0.8s ease;
 }
 
-[data-animate].is-visible {
+html[data-animations='enabled'] [data-animate].is-visible {
   opacity: 1;
   transform: translateY(0);
 }
