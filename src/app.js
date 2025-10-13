@@ -82,17 +82,58 @@ app.use((req, res, next) => {
   next();
 });
 
-const authLimiter = rateLimit({
+const buildLimiter = ({ windowMs, max, skipSuccessfulRequests = false, message }) => {
+  const retryAfterSeconds = Math.ceil(windowMs / 1000);
+  const friendlyMessage =
+    message || 'Too many requests detected. Please slow down and try again soon.';
+
+  return rateLimit({
+    windowMs,
+    max,
+    skipSuccessfulRequests,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    handler: (req, res) => {
+      const acceptsHtml = req.headers.accept && req.headers.accept.includes('text/html');
+      const responsePayload = {
+        error: friendlyMessage,
+        retryAfter: retryAfterSeconds
+      };
+
+      res.setHeader('Retry-After', retryAfterSeconds);
+
+      if (acceptsHtml) {
+        if (typeof req.pushAlert === 'function') {
+          req.pushAlert(
+            'danger',
+            `${friendlyMessage} Please wait ${retryAfterSeconds} seconds before retrying.`
+          );
+        }
+
+        const redirectTarget = req.get('referer') || req.originalUrl || '/';
+        return res.status(429).redirect(redirectTarget);
+      }
+
+      return res.status(429).json(responsePayload);
+    }
+  });
+};
+
+const authLimiter = buildLimiter({
   windowMs: 60 * 1000,
-  max: 10
+  max: 30,
+  skipSuccessfulRequests: true,
+  message: 'Too many authentication attempts detected.'
 });
-const paymentLimiter = rateLimit({
+const paymentLimiter = buildLimiter({
   windowMs: 60 * 1000,
-  max: 5
+  max: 15,
+  message: 'Too many payment attempts detected.'
 });
-const chatLimiter = rateLimit({
+const chatLimiter = buildLimiter({
   windowMs: 10 * 1000,
-  max: 20
+  max: 60,
+  message: 'Chat is rate limited due to high activity.'
 });
 
 app.use('/', publicRoutes);
