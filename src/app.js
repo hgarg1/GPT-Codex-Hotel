@@ -87,7 +87,14 @@ const shouldEnforceHsts = (() => {
 })();
 
 if (shouldEnforceHsts) {
-  app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true }));
+  const hsts = helmet.hsts({ maxAge: 31536000, includeSubDomains: true });
+  app.use((req, res, next) => {
+    const hostHeader = req.get('host');
+    if (hostHeader && isLocalHost(hostHeader)) {
+      return next();
+    }
+    return hsts(req, res, next);
+  });
 }
 app.use(helmet.noSniff());
 app.use((req, res, next) => {

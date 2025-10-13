@@ -137,6 +137,14 @@ app.use(
   }),
 );
 
+function isLocalHost(hostname: string | undefined | null): boolean {
+  if (!hostname) {
+    return false;
+  }
+  const normalized = hostname.split(':')[0];
+  return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
+}
+
 const shouldEnforceHsts = (() => {
   if (process.env.ENABLE_HSTS === 'true') {
     return true;
@@ -152,6 +160,15 @@ const shouldEnforceHsts = (() => {
 })();
 
 if (shouldEnforceHsts) {
+  const hsts = helmet.hsts({ maxAge: 31536000, includeSubDomains: true });
+  app.use((req, res, next) => {
+    const hostHeader = req.get('host');
+    if (hostHeader && isLocalHost(hostHeader)) {
+      next();
+      return;
+    }
+    hsts(req, res, next);
+  });
   app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true }));
 }
 app.use(helmet.noSniff());
