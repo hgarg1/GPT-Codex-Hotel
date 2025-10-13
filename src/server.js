@@ -9,11 +9,44 @@ const { saveMessage, isBlocked } = require('./models/chat');
 const PORT = process.env.PORT || 3000;
 
 const server = http.createServer(app);
-const defaultOrigin = `http://localhost:${PORT}`;
-const fallbackOrigin = `http://127.0.0.1:${PORT}`;
-const allowedOrigins = new Set([defaultOrigin, fallbackOrigin]);
+function normalizeOrigin(origin) {
+  try {
+    const url = new URL(origin);
+    return `${url.protocol}//${url.host}`;
+  } catch (error) {
+    return origin;
+  }
+}
+
+function addOriginVariants(origin, set) {
+  if (!origin) return;
+  const normalized = normalizeOrigin(origin);
+  if (!normalized) return;
+  set.add(normalized);
+  if (normalized.startsWith('http://')) {
+    set.add(normalized.replace('http://', 'https://'));
+  }
+  if (normalized.startsWith('https://')) {
+    set.add(normalized.replace('https://', 'http://'));
+  }
+}
+
+const allowedOrigins = new Set();
+addOriginVariants(`http://localhost:${PORT}`, allowedOrigins);
+addOriginVariants(`http://127.0.0.1:${PORT}`, allowedOrigins);
+
 if (process.env.SOCKET_ORIGIN) {
-  allowedOrigins.add(process.env.SOCKET_ORIGIN);
+  addOriginVariants(process.env.SOCKET_ORIGIN, allowedOrigins);
+}
+
+if (process.env.SOCKET_ORIGINS) {
+  process.env.SOCKET_ORIGINS.split(',').forEach((origin) => {
+    addOriginVariants(origin.trim(), allowedOrigins);
+  });
+}
+
+if (process.env.RENDER_EXTERNAL_URL) {
+  addOriginVariants(process.env.RENDER_EXTERNAL_URL, allowedOrigins);
 }
 
 const io = new Server(server, {
