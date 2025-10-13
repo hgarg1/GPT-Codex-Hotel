@@ -1,24 +1,27 @@
 const { getUserById } = require('../models/users');
+const { countUnreadMessages } = require('../models/chat');
 
 // Ensures a user is attached to the request if their session is active.
 function hydrateUser(req, res, next) {
   if (req.session.userId) {
     const user = getUserById(req.session.userId);
-      if (user) {
-        req.user = user;
-        res.locals.currentUser = {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          bio: user.bio,
-          phone: user.phone
-        };
+    if (user) {
+      req.user = user;
+      res.locals.currentUser = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        bio: user.bio,
+        phone: user.phone
+      };
+      res.locals.chatUnreadCount = countUnreadMessages(user.id);
       return next();
     }
     delete req.session.userId;
   }
   res.locals.currentUser = null;
+  res.locals.chatUnreadCount = 0;
   return next();
 }
 

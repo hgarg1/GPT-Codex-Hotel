@@ -2,7 +2,15 @@
 <%- include('../partials/nav') %>
 <%- include('../partials/alerts') %>
 
-<section class="chat-layout" data-animate="fade-up" data-current-user="<%= currentUser.id %>">
+<section
+  class="chat-layout"
+  data-animate="fade-up"
+  data-current-user="<%= currentUser.id %>"
+  data-active-room="lobby"
+  data-active-dm=""
+  data-encryption-key="<%= encryptionKey %>"
+  data-reaction-set='<%= JSON.stringify(reactions || []) %>'
+>
   <aside class="chat-sidebar">
     <div class="chat-section">
       <h2>Rooms</h2>
@@ -60,8 +68,18 @@
     </div>
     <form class="chat-composer" data-chat-form>
       <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-      <textarea name="message" placeholder="Send a message" rows="2" required maxlength="400"></textarea>
-      <button class="cta-button primary" type="submit">Send</button>
+      <div class="chat-composer-controls">
+        <label class="chat-upload" data-file-trigger>
+          <span aria-hidden="true">📎</span>
+          <span class="sr-only">Attach a file</span>
+          <input type="file" name="attachment" data-file-input />
+        </label>
+        <textarea name="message" placeholder="Send a message" rows="2" maxlength="400"></textarea>
+      </div>
+      <div class="chat-composer-actions">
+        <span class="chat-file-indicator" data-file-indicator hidden>No file selected</span>
+        <button class="cta-button primary" type="submit">Send</button>
+      </div>
     </form>
   </div>
 </section>
