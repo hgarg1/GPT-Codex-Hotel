@@ -10,6 +10,6 @@
     "resolveJsonModule": true,
     "types": ["node", "express"]
   },
-  "include": ["src", "prisma"],
+  "include": ["src"],
   "exclude": ["node_modules", "dist"]
 }

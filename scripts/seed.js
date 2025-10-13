@@ -7,6 +7,13 @@ const db = getDb();
 
 function resetSchema() {
   db.exec(`
+    DROP TABLE IF EXISTS dining_reservations;
+    DROP TABLE IF EXISTS dining_menu_items;
+    DROP TABLE IF EXISTS dining_menu_sections;
+    DROP TABLE IF EXISTS dining_tables;
+    DROP TABLE IF EXISTS dining_users;
+    DROP TABLE IF EXISTS dining_config;
+    DROP TABLE IF EXISTS dining_staff;
     DROP TABLE IF EXISTS payment_reversals;
     DROP TABLE IF EXISTS chat_reports;
     DROP TABLE IF EXISTS chat_blocks;
@@ -193,6 +200,90 @@ function resetSchema() {
       amount REAL NOT NULL,
       createdAt TEXT NOT NULL,
       FOREIGN KEY (paymentId) REFERENCES payments(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE dining_users (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      name TEXT,
+      phone TEXT,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
+
+    CREATE TABLE dining_tables (
+      id TEXT PRIMARY KEY,
+      label TEXT NOT NULL,
+      capacity INTEGER NOT NULL,
+      x INTEGER NOT NULL,
+      y INTEGER NOT NULL,
+      rotation INTEGER NOT NULL DEFAULT 0,
+      zone TEXT,
+      active INTEGER NOT NULL DEFAULT 1,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
+
+    CREATE TABLE dining_menu_sections (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      "order" INTEGER NOT NULL,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
+
+    CREATE TABLE dining_menu_items (
+      id TEXT PRIMARY KEY,
+      sectionId TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      priceCents INTEGER NOT NULL,
+      vegetarian INTEGER NOT NULL DEFAULT 0,
+      vegan INTEGER NOT NULL DEFAULT 0,
+      glutenFree INTEGER NOT NULL DEFAULT 0,
+      spicyLevel INTEGER NOT NULL DEFAULT 0,
+      active INTEGER NOT NULL DEFAULT 1,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      FOREIGN KEY (sectionId) REFERENCES dining_menu_sections(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE dining_reservations (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      date TEXT NOT NULL,
+      time TEXT NOT NULL,
+      partySize INTEGER NOT NULL,
+      tableIds TEXT NOT NULL,
+      status TEXT NOT NULL,
+      dietaryPrefs TEXT,
+      allergies TEXT,
+      contactPhone TEXT,
+      contactEmail TEXT,
+      notes TEXT,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      FOREIGN KEY (userId) REFERENCES dining_users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE dining_config (
+      id TEXT PRIMARY KEY,
+      dwellMinutes INTEGER NOT NULL,
+      blackoutDates TEXT NOT NULL,
+      policyText TEXT,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
+
+    CREATE TABLE dining_staff (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      role TEXT NOT NULL,
+      bio TEXT,
+      photoUrl TEXT,
+      active INTEGER NOT NULL DEFAULT 1,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
     );
   `);
 }
@@ -741,15 +832,181 @@ function insertChatHistory() {
   });
 }
 
+function syncDiningUsersFromCore() {
+  const users = db.prepare('SELECT id, email, name, phone FROM users').all();
+  const stmt = db.prepare(`
+    INSERT INTO dining_users (id, email, name, phone, createdAt, updatedAt)
+    VALUES (@id, @email, @name, @phone, @createdAt, @updatedAt)
+  `);
+  const now = new Date().toISOString();
+  users.forEach((user) => {
+    stmt.run({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      phone: user.phone ?? null,
+      createdAt: now,
+      updatedAt: now
+    });
+  });
+}
+
+function insertDiningTables() {
+  const tables = Array.from({ length: 10 }, (_, index) => {
+    const number = index + 1;
+    return {
+      label: `T${number}`,
+      capacity: number <= 4 ? 2 + (number % 4) : 6,
+      x: 50 * number,
+      y: 40 * number,
+      rotation: (number % 4) * 15,
+      zone: number <= 5 ? 'Main Hall' : 'Window',
+      active: 1,
+    };
+  });
+
+  const stmt = db.prepare(`
+    INSERT INTO dining_tables (id, label, capacity, x, y, rotation, zone, active, createdAt, updatedAt)
+    VALUES (@id, @label, @capacity, @x, @y, @rotation, @zone, @active, @createdAt, @updatedAt)
+  `);
+  const now = new Date().toISOString();
+  tables.forEach((table) => {
+    stmt.run({
+      id: uuidv4(),
+      label: table.label,
+      capacity: table.capacity,
+      x: table.x,
+      y: table.y,
+      rotation: table.rotation,
+      zone: table.zone,
+      active: table.active,
+      createdAt: now,
+      updatedAt: now,
+    });
+  });
+}
+
+function insertDiningMenu() {
+  const now = new Date().toISOString();
+  const sectionId = uuidv4();
+  db.prepare(`
+    INSERT INTO dining_menu_sections (id, title, "order", createdAt, updatedAt)
+    VALUES (@id, @title, @order, @createdAt, @updatedAt)
+  `).run({
+    id: sectionId,
+    title: "Chef's Signatures",
+    order: 1,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const items = [
+    {
+      name: 'Seared Scallops',
+      description: 'Day-boat scallops with citrus beurre blanc and crispy pancetta.',
+      priceCents: 3200,
+      glutenFree: 1,
+    },
+    {
+      name: 'Black Garlic Wagyu',
+      description: 'Miyazaki A5 wagyu, smoked pomme puree, and charred spring onions.',
+      priceCents: 5800,
+      glutenFree: 0,
+    },
+  ];
+
+  const stmt = db.prepare(`
+    INSERT INTO dining_menu_items (id, sectionId, name, description, priceCents, vegetarian, vegan, glutenFree, spicyLevel, active, createdAt, updatedAt)
+    VALUES (@id, @sectionId, @name, @description, @priceCents, @vegetarian, @vegan, @glutenFree, @spicyLevel, @active, @createdAt, @updatedAt)
+  `);
+
+  items.forEach((item) => {
+    stmt.run({
+      id: uuidv4(),
+      sectionId,
+      name: item.name,
+      description: item.description,
+      priceCents: item.priceCents,
+      vegetarian: 0,
+      vegan: 0,
+      glutenFree: item.glutenFree,
+      spicyLevel: 1,
+      active: 1,
+      createdAt: now,
+      updatedAt: now,
+    });
+  });
+}
+
+function insertDiningConfig() {
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO dining_config (id, dwellMinutes, blackoutDates, policyText, createdAt, updatedAt)
+    VALUES ('default', 120, '[]', NULL, @createdAt, @updatedAt)
+  `).run({ createdAt: now, updatedAt: now });
+}
+
+function insertDiningStaff() {
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO dining_staff (id, name, role, bio, photoUrl, active, createdAt, updatedAt)
+    VALUES (@id, @name, @role, @bio, @photoUrl, @active, @createdAt, @updatedAt)
+  `).run({
+    id: uuidv4(),
+    name: 'Elena Marquez',
+    role: 'Executive Chef',
+    bio: 'Oversees the Supper Club kitchen with a focus on sustainable coastal cuisine.',
+    photoUrl: 'https://example.com/images/staff/elena-marquez.jpg',
+    active: 1,
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
+function insertDiningReservations() {
+  const diningUsers = db.prepare('SELECT id FROM dining_users ORDER BY createdAt ASC').all();
+  const tables = db.prepare('SELECT id FROM dining_tables ORDER BY label ASC').all();
+  if (diningUsers.length === 0 || tables.length < 2) {
+    return;
+  }
+  const now = new Date().toISOString();
+  const stmt = db.prepare(`
+    INSERT INTO dining_reservations (id, userId, date, time, partySize, tableIds, status, dietaryPrefs, allergies, contactPhone, contactEmail, notes, createdAt, updatedAt)
+    VALUES (@id, @userId, @date, @time, @partySize, @tableIds, @status, @dietaryPrefs, @allergies, @contactPhone, @contactEmail, @notes, @createdAt, @updatedAt)
+  `);
+  stmt.run({
+    id: uuidv4(),
+    userId: diningUsers[0].id,
+    date: '2024-08-15',
+    time: '19:00',
+    partySize: 2,
+    tableIds: JSON.stringify([tables[0].id, tables[1].id]),
+    status: 'CONFIRMED',
+    dietaryPrefs: 'No shellfish',
+    allergies: null,
+    contactPhone: '+12025550123',
+    contactEmail: 'guest@example.com',
+    notes: 'Anniversary celebration',
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
 function main() {
   resetSchema();
   insertUsers();
+  syncDiningUsersFromCore();
   insertRoomTypes();
   insertAmenities();
   insertSampleBookings();
   insertAmenityReservations();
   insertGuestInquiries();
   insertChatHistory();
+  insertDiningTables();
+  insertDiningMenu();
+  insertDiningConfig();
+  insertDiningStaff();
+  insertDiningReservations();
   console.log('Database seeded with immersive Skyhaven data.');
 }
 

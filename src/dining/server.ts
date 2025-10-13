@@ -1,16 +1,36 @@
 import express, { type Request, type Response } from 'express';
-import type { Reservation } from '@prisma/client';
 import QRCode from 'qrcode';
 import { fileURLToPath } from 'url';
 import { createServer } from 'node:http';
 import helmet from 'helmet';
-import { prisma } from './prismaClient.js';
 import { verifySession } from '../auth/verifySession.js';
 import { getDiningAvailability } from './availability.js';
 import { createHold, releaseHold, getHoldById, extendHold } from './holds.js';
 import { attachDiningRealtime } from './realtime.js';
 import { requireAdmin } from './requireAdmin.js';
 import type { AuthenticatedUser } from '../auth/verifySession.js';
+import type { DiningReservation } from './types.js';
+import {
+  ensureDiningUserRecord as persistDiningUser,
+  listAdminReservations,
+  listReservationsBetween,
+  listTables,
+  getTablesByIds,
+  createDiningTable,
+  updateDiningTables,
+  listMenuSections,
+  createMenuSection,
+  createMenuItem,
+  updateMenuSection,
+  updateMenuItem,
+  deleteMenuSection,
+  deleteMenuItem,
+  loadDiningConfig,
+  updateDiningConfig,
+  listReservationsForSlot,
+  createReservation,
+  listReservationsForUser,
+} from './data.js';
 
 const app = express();
 
@@ -75,11 +95,7 @@ async function ensureDiningUserRecord(user: AuthenticatedUser | undefined) {
     return;
   }
   try {
-    await prisma.user.upsert({
-      where: { id: user.id },
-      update: { email: user.email, name: user.name ?? null },
-      create: { id: user.id, email: user.email, name: user.name ?? null },
-    });
+    await persistDiningUser({ id: user.id, email: user.email, name: user.name ?? null });
   } catch (error) {
     console.error('Failed to synchronise dining user', error);
     throw new Error('Dining profile unavailable');
@@ -90,36 +106,31 @@ app.get('/api/admin/dining/reservations', async (req: Request, res: Response) =>
   try {
     const { date, time, status, zone } = req.query;
 
-    const where: Record<string, unknown> = {};
+    const normalizedStatus =
+      typeof status === 'string' && status.trim().length > 0 ? status.trim().toUpperCase() : undefined;
 
-    if (typeof status === 'string' && status.trim().length > 0) {
-      where.status = status.trim().toUpperCase();
-    }
-
+    let normalizedDate: string | undefined;
     if (typeof date === 'string') {
-      const normalizedDate = normalizeDate(date);
+      normalizedDate = normalizeDate(date);
       if (!normalizedDate) {
         res.status(400).json({ error: 'Invalid date filter' });
         return;
       }
-      where.date = new Date(`${normalizedDate}T00:00:00`);
     }
 
+    let normalizedTime: string | undefined;
     if (typeof time === 'string') {
-      const normalizedTime = normalizeTime(time);
+      normalizedTime = normalizeTime(time);
       if (!normalizedTime) {
         res.status(400).json({ error: 'Invalid time filter' });
         return;
       }
-      where.time = normalizedTime;
     }
 
-    const reservations = await prisma.reservation.findMany({
-      where,
-      orderBy: [{ date: 'desc' }, { time: 'asc' }],
-      include: {
-        user: { select: { id: true, email: true, name: true } },
-      },
+    const reservations = await listAdminReservations({
+      status: normalizedStatus,
+      date: normalizedDate,
+      time: normalizedTime,
     });
 
     const tableMap = await getTableMap(reservations.flatMap((reservation) => reservation.tableIds));
@@ -178,15 +189,10 @@ app.get('/api/admin/dining/reservations/export', async (req: Request, res: Respo
       return;
     }
 
-    const reservations = await prisma.reservation.findMany({
-      where: {
-        date: { gte: start, lte: end },
-      },
-      orderBy: [{ date: 'asc' }, { time: 'asc' }],
-      include: {
-        user: { select: { id: true, email: true, name: true } },
-      },
-    });
+    const reservations = await listReservationsBetween(
+      normalizedStart,
+      normalizedEnd,
+    );
 
     const tableMap = await getTableMap(reservations.flatMap((reservation) => reservation.tableIds));
 
@@ -243,7 +249,7 @@ app.get('/api/admin/dining/reservations/export', async (req: Request, res: Respo
 
 app.get('/api/admin/dining/tables', async (_req: Request, res: Response) => {
   try {
-    const tables = await prisma.diningTable.findMany({ orderBy: [{ label: 'asc' }] });
+    const tables = await listTables();
     res.json({ tables });
   } catch (error) {
     console.error('Failed to fetch admin dining tables', error);
@@ -267,16 +273,14 @@ app.post('/api/admin/dining/tables', async (req: Request, res: Response) => {
       return;
     }
 
-    const table = await prisma.diningTable.create({
-      data: {
-        label: normalizedLabel,
-        capacity: normalizedCapacity,
-        x: normalizedX,
-        y: normalizedY,
-        rotation: normalizedRotation ?? 0,
-        zone: normalizeOptionalText(zone, 40),
-        active: normalizedActive,
-      },
+    const table = await createDiningTable({
+      label: normalizedLabel,
+      capacity: normalizedCapacity,
+      x: normalizedX,
+      y: normalizedY,
+      rotation: normalizedRotation ?? 0,
+      zone: normalizeOptionalText(zone, 40),
+      active: normalizedActive,
     });
 
     res.status(201).json({ table });
@@ -299,74 +303,83 @@ app.patch('/api/admin/dining/tables', async (req: Request, res: Response) => {
       return;
     }
 
-    const results = await prisma.$transaction(
-      updates.map((update: Record<string, unknown>) => {
-        const id = typeof update.id === 'string' ? update.id : null;
-        if (!id) {
-          throw new Error('Missing table id');
+    const sanitizedUpdates = updates.map((update: Record<string, unknown>) => {
+      const id = typeof update.id === 'string' ? update.id : null;
+      if (!id) {
+        throw new Error('Missing table id');
+      }
+
+      const data: Record<string, unknown> = { id };
+
+      if (update.label !== undefined) {
+        const value = sanitizeText(update.label, 60);
+        if (!value) {
+          throw new Error('Invalid label');
         }
+        data.label = value;
+      }
 
-        const data: Record<string, unknown> = {};
-
-        if (update.label !== undefined) {
-          const value = sanitizeText(update.label, 60);
-          if (!value) {
-            throw new Error('Invalid label');
-          }
-          data.label = value;
+      if (update.capacity !== undefined) {
+        const value = normalizeInteger(update.capacity, { min: 1, max: 20 });
+        if (value === null) {
+          throw new Error('Invalid capacity');
         }
+        data.capacity = value;
+      }
 
-        if (update.capacity !== undefined) {
-          const value = normalizeInteger(update.capacity, { min: 1, max: 20 });
-          if (value === null) {
-            throw new Error('Invalid capacity');
-          }
-          data.capacity = value;
+      if (update.x !== undefined) {
+        const value = normalizeInteger(update.x, { min: 0, max: 2000 });
+        if (value === null) {
+          throw new Error('Invalid x coordinate');
         }
+        data.x = value;
+      }
 
-        if (update.x !== undefined) {
-          const value = normalizeInteger(update.x, { min: 0, max: 2000 });
-          if (value === null) {
-            throw new Error('Invalid x coordinate');
-          }
-          data.x = value;
+      if (update.y !== undefined) {
+        const value = normalizeInteger(update.y, { min: 0, max: 2000 });
+        if (value === null) {
+          throw new Error('Invalid y coordinate');
         }
+        data.y = value;
+      }
 
-        if (update.y !== undefined) {
-          const value = normalizeInteger(update.y, { min: 0, max: 2000 });
-          if (value === null) {
-            throw new Error('Invalid y coordinate');
-          }
-          data.y = value;
+      if (update.rotation !== undefined) {
+        const value = normalizeInteger(update.rotation, { min: 0, max: 359 });
+        if (value === null) {
+          throw new Error('Invalid rotation');
         }
+        data.rotation = value;
+      }
 
-        if (update.rotation !== undefined) {
-          const value = normalizeInteger(update.rotation, { min: 0, max: 359 });
-          if (value === null) {
-            throw new Error('Invalid rotation');
-          }
-          data.rotation = value;
+      if (update.zone !== undefined) {
+        data.zone = normalizeOptionalText(update.zone, 40);
+      }
+
+      if (update.active !== undefined) {
+        const value = normalizeBoolean(update.active);
+        if (value === null) {
+          throw new Error('Invalid active flag');
         }
+        data.active = value;
+      }
 
-        if (update.zone !== undefined) {
-          data.zone = normalizeOptionalText(update.zone, 40);
-        }
+      if (Object.keys(data).length === 1) {
+        throw new Error('No updatable fields provided');
+      }
 
-        if (update.active !== undefined) {
-          const value = normalizeBoolean(update.active);
-          if (value === null) {
-            throw new Error('Invalid active flag');
-          }
-          data.active = value;
-        }
+      return data;
+    });
 
-        if (Object.keys(data).length === 0) {
-          throw new Error('No updatable fields provided');
-        }
-
-        return prisma.diningTable.update({ where: { id }, data });
-      }),
-    );
+    const results = await updateDiningTables(sanitizedUpdates as Array<{
+      id: string;
+      label?: string;
+      capacity?: number;
+      x?: number;
+      y?: number;
+      rotation?: number;
+      zone?: string | null;
+      active?: boolean;
+    }>);
 
     res.json({ tables: results });
   } catch (error) {
@@ -377,14 +390,7 @@ app.patch('/api/admin/dining/tables', async (req: Request, res: Response) => {
 
 app.get('/api/admin/dining/menu', async (_req: Request, res: Response) => {
   try {
-    const sections = await prisma.menuSection.findMany({
-      orderBy: { order: 'asc' },
-      include: {
-        items: {
-          orderBy: { name: 'asc' },
-        },
-      },
-    });
+    const sections = await listMenuSections({ includeInactiveItems: true });
 
     res.json({ sections });
   } catch (error) {
@@ -403,9 +409,10 @@ app.post('/api/admin/dining/menu', async (req: Request, res: Response) => {
         return;
       }
       const order = normalizeInteger(req.body?.order, { min: 0 });
-      const maxOrder = await prisma.menuSection.aggregate({ _max: { order: true } });
-      const nextOrder = order ?? ((maxOrder._max.order ?? -1) + 1);
-      const section = await prisma.menuSection.create({ data: { title, order: nextOrder } });
+      const sections = await listMenuSections({ includeInactiveItems: true });
+      const currentMax = sections.reduce((max, section) => Math.max(max, section.order), -1);
+      const nextOrder = order ?? currentMax + 1;
+      const section = await createMenuSection({ title, order: nextOrder });
       res.status(201).json({ section });
       return;
     }
@@ -418,18 +425,16 @@ app.post('/api/admin/dining/menu', async (req: Request, res: Response) => {
         res.status(400).json({ error: 'Invalid menu item payload' });
         return;
       }
-      const item = await prisma.menuItem.create({
-        data: {
-          sectionId,
-          name,
-          description: normalizeOptionalText(req.body?.description, 500),
-          priceCents,
-          vegetarian: normalizeBoolean(req.body?.vegetarian) ?? false,
-          vegan: normalizeBoolean(req.body?.vegan) ?? false,
-          glutenFree: normalizeBoolean(req.body?.glutenFree) ?? false,
-          spicyLevel: normalizeInteger(req.body?.spicyLevel, { min: 0, max: 5 }) ?? 0,
-          active: normalizeBoolean(req.body?.active) ?? true,
-        },
+      const item = await createMenuItem({
+        sectionId,
+        name,
+        description: normalizeOptionalText(req.body?.description, 500),
+        priceCents,
+        vegetarian: normalizeBoolean(req.body?.vegetarian) ?? false,
+        vegan: normalizeBoolean(req.body?.vegan) ?? false,
+        glutenFree: normalizeBoolean(req.body?.glutenFree) ?? false,
+        spicyLevel: normalizeInteger(req.body?.spicyLevel, { min: 0, max: 5 }) ?? 0,
+        active: normalizeBoolean(req.body?.active) ?? true,
       });
       res.status(201).json({ item });
       return;
@@ -474,7 +479,7 @@ app.patch('/api/admin/dining/menu/:id', async (req: Request, res: Response) => {
         res.status(400).json({ error: 'No updates provided' });
         return;
       }
-      const section = await prisma.menuSection.update({ where: { id }, data });
+      const section = await updateMenuSection(id, data);
       res.json({ section });
       return;
     }
@@ -544,7 +549,7 @@ app.patch('/api/admin/dining/menu/:id', async (req: Request, res: Response) => {
         res.status(400).json({ error: 'No updates provided' });
         return;
       }
-      const item = await prisma.menuItem.update({ where: { id }, data });
+      const item = await updateMenuItem(id, data);
       res.json({ item });
       return;
     }
@@ -565,12 +570,12 @@ app.delete('/api/admin/dining/menu/:id', async (req: Request, res: Response) => 
       return;
     }
     if (kind === 'section') {
-      await prisma.menuSection.delete({ where: { id } });
+      await deleteMenuSection(id);
       res.status(204).send();
       return;
     }
     if (kind === 'item') {
-      await prisma.menuItem.delete({ where: { id } });
+      await deleteMenuItem(id);
       res.status(204).send();
       return;
     }
@@ -613,16 +618,11 @@ app.post('/api/admin/dining/config', async (req: Request, res: Response) => {
     const policyTextValue =
       req.body?.policyText !== undefined ? normalizeOptionalText(req.body.policyText, 2000) : current.policyText;
 
-    const config = await prisma.$queryRaw<DiningConfigRecord[]>`
-      UPDATE "DiningConfig"
-      SET "dwellMinutes" = ${dwellMinutes},
-          "blackoutDates" = ${blackoutDates},
-          "policyText" = ${policyTextValue ?? null},
-          "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "id" = 'default'
-      RETURNING "id", "dwellMinutes", "blackoutDates", "policyText", "createdAt", "updatedAt"
-    `;
-    const updated = config[0] ?? (await loadDiningConfig());
+    const updated = await updateDiningConfig({
+      dwellMinutes,
+      blackoutDates,
+      policyText: policyTextValue ?? null,
+    });
 
     res.json({ config: updated });
   } catch (error) {
@@ -722,49 +722,8 @@ function normalizeBoolean(value: unknown): boolean | null {
   return null;
 }
 
-type DiningConfigRecord = {
-  id: string;
-  dwellMinutes: number;
-  blackoutDates: string[];
-  policyText: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-async function loadDiningConfig(): Promise<DiningConfigRecord> {
-  const [record] = await prisma.$queryRaw<DiningConfigRecord[]>`
-    SELECT "id", "dwellMinutes", "blackoutDates", "policyText", "createdAt", "updatedAt"
-    FROM "DiningConfig"
-    WHERE "id" = 'default'
-    LIMIT 1
-  `;
-
-  if (record) {
-    return record;
-  }
-
-  await prisma.$executeRaw`
-    INSERT INTO "DiningConfig" ("id", "dwellMinutes", "blackoutDates", "policyText")
-    VALUES ('default', 120, ARRAY[]::TEXT[], NULL)
-    ON CONFLICT ("id") DO NOTHING
-  `;
-
-  const [created] = await prisma.$queryRaw<DiningConfigRecord[]>`
-    SELECT "id", "dwellMinutes", "blackoutDates", "policyText", "createdAt", "updatedAt"
-    FROM "DiningConfig"
-    WHERE "id" = 'default'
-    LIMIT 1
-  `;
-
-  if (!created) {
-    throw new Error('Unable to initialize dining config');
-  }
-
-  return created;
-}
-
 function mapReservationTables(
-  reservation: Reservation,
+  reservation: DiningReservation,
   tableMap: Map<string, { id: string; label: string; capacity: number; zone: string | null; rotation: number }>,
 ) {
   return reservation.tableIds
@@ -778,9 +737,7 @@ async function getTableMap(tableIds: string[]) {
   if (tableIds.length === 0) {
     return new Map<string, { id: string; label: string; capacity: number; zone: string | null; rotation: number }>();
   }
-  const tables = await prisma.diningTable.findMany({
-    where: { id: { in: [...new Set(tableIds)] } },
-  });
+  const tables = await getTablesByIds(tableIds);
   return new Map(
     tables.map((table) => [
       table.id,
@@ -852,15 +809,7 @@ app.get('/api/dining/health', (_req: Request, res: Response) => {
 
 app.get('/api/dining/menu', async (_req: Request, res: Response) => {
   try {
-    const sections = await prisma.menuSection.findMany({
-      orderBy: { order: 'asc' },
-      include: {
-        items: {
-          where: { active: true },
-          orderBy: { name: 'asc' },
-        },
-      },
-    });
+    const sections = await listMenuSections({ includeInactiveItems: false });
 
     res.json({ sections });
   } catch (error) {
@@ -871,10 +820,7 @@ app.get('/api/dining/menu', async (_req: Request, res: Response) => {
 
 app.get('/api/dining/tables', async (_req: Request, res: Response) => {
   try {
-    const tables = await prisma.diningTable.findMany({
-      where: { active: true },
-      orderBy: { label: 'asc' },
-    });
+    const tables = await listTables({ activeOnly: true });
     res.json({ tables });
   } catch (error) {
     console.error('Failed to fetch dining tables', error);
@@ -1109,10 +1055,8 @@ app.post('/api/dining/reservations', verifySession, async (req: Request, res: Re
       return;
     }
 
-    const tables = await prisma.diningTable.findMany({
-      where: { id: { in: hold.tableIds } },
-      orderBy: { label: 'asc' },
-    });
+    const tables = await getTablesByIds(hold.tableIds);
+    tables.sort((a, b) => a.label.localeCompare(b.label));
 
     if (tables.length !== hold.tableIds.length) {
       await releaseHold(hold.holdId);
@@ -1126,13 +1070,7 @@ app.post('/api/dining/reservations', verifySession, async (req: Request, res: Re
       return;
     }
 
-    const existingReservations = await prisma.reservation.findMany({
-      where: {
-        status: { not: 'CANCELLED' },
-        date: new Date(`${normalizedDate}T00:00:00`),
-        time: normalizedTime,
-      },
-    });
+    const existingReservations = await listReservationsForSlot(normalizedDate, normalizedTime);
 
     const conflict = existingReservations.some((reservation) =>
       reservation.tableIds.some((tableId) => hold.tableIds.includes(tableId)),
@@ -1144,20 +1082,22 @@ app.post('/api/dining/reservations', verifySession, async (req: Request, res: Re
       return;
     }
 
-    const reservation = await prisma.reservation.create({
-      data: {
-        userId: req.user.id,
-        date: new Date(`${normalizedDate}T00:00:00`),
-        time: normalizedTime,
-        partySize,
-        tableIds: [...hold.tableIds],
-        dietaryPrefs: guestValidation.guest.dietary || null,
-        allergies: guestValidation.guest.allergies || null,
-        contactPhone: guestValidation.guest.phone,
-        contactEmail: guestValidation.guest.email || null,
-        notes: guestValidation.guest.notes || null,
-      },
+    const reservation = await createReservation({
+      userId: req.user.id,
+      date: normalizedDate,
+      time: normalizedTime,
+      partySize,
+      tableIds: [...hold.tableIds],
+      dietaryPrefs: guestValidation.guest.dietary || null,
+      allergies: guestValidation.guest.allergies || null,
+      contactPhone: guestValidation.guest.phone,
+      contactEmail: guestValidation.guest.email || null,
+      notes: guestValidation.guest.notes || null,
     });
+
+    if (!reservation) {
+      throw new Error('Failed to create reservation');
+    }
 
     await releaseHold(hold.holdId);
 
@@ -1204,10 +1144,7 @@ app.get('/api/dining/reservations/me', verifySession, async (req: Request, res: 
 
   try {
     await ensureDiningUserRecord(req.user);
-    const reservations: Reservation[] = await prisma.reservation.findMany({
-      where: { userId: req.user.id },
-      orderBy: [{ date: 'asc' }, { time: 'asc' }],
-    });
+    const reservations: DiningReservation[] = await listReservationsForUser(req.user.id);
 
     res.json({ reservations });
   } catch (error) {
@@ -1231,12 +1168,3 @@ if (process.argv[1]) {
   }
 }
 
-process.on('SIGTERM', async () => {
-  await prisma.$disconnect();
-  process.exit(0);
-});
-
-process.on('SIGINT', async () => {
-  await prisma.$disconnect();
-  process.exit(0);
-});
