@@ -34,6 +34,13 @@ function ensureAuthenticated(req, res, next) {
   return res.redirect('/login');
 }
 
+function ensureApiAuth(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  return next();
+}
+
 function ensureAdmin(req, res, next) {
   if (!req.user) {
     req.session.returnTo = req.originalUrl;
@@ -50,5 +57,6 @@ function ensureAdmin(req, res, next) {
 module.exports = {
   hydrateUser,
   ensureAuthenticated,
+  ensureApiAuth,
   ensureAdmin
 };

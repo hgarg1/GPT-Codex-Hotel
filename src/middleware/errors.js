@@ -10,7 +10,12 @@ function notFoundHandler(req, res, next) {
 
 function errorHandler(err, req, res, next) { // eslint-disable-line no-unused-vars
   if (err.code === 'EBADCSRFTOKEN') {
-    req.pushAlert('danger', 'Security token expired. Please try submitting the form again.');
+    if (req.originalUrl && req.originalUrl.startsWith('/api/')) {
+      return res.status(403).json({ error: 'Invalid CSRF token' });
+    }
+    if (typeof req.pushAlert === 'function') {
+      req.pushAlert('danger', 'Security token expired. Please try submitting the form again.');
+    }
     const fallback = req.get('referer') || '/';
     return res.redirect(fallback);
   }
