@@ -16,6 +16,8 @@ const paymentRoutes = require('./routes/payments');
 const dashboardRoutes = require('./routes/dashboard');
 const chatRoutes = require('./routes/chat');
 const adminRoutes = require('./routes/admin');
+const diningRoutes = require('./routes/dining');
+const adminDiningRoutes = require('./routes/adminDining');
 
 const app = express();
 
@@ -144,6 +146,8 @@ app.use('/', paymentLimiter, paymentRoutes);
 app.use('/', dashboardRoutes);
 app.use('/', chatLimiter, chatRoutes);
 app.use('/', adminRoutes);
+app.use('/', diningRoutes);
+app.use('/', adminDiningRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

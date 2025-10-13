@@ -1,0 +1,24 @@
+<%- include('../partials/head', { pageTitle: title, hotelName, csrfToken, darkMode }) %>
+<link rel="stylesheet" href="/css/dining.css">
+<script defer src="/js/dining-seat-map.js"></script>
+<%- include('../partials/nav') %>
+<main class="dining-map" data-theme="dining">
+  <header>
+    <h1>Seat map</h1>
+    <p>Live view of Supper Club availability. Seats update in real-time as guests hold and confirm.</p>
+  </header>
+  <div class="seat-stage" data-seats='<%- JSON.stringify(seats) %>'>
+    <div class="seat-stage__map" id="seat-map" aria-live="polite"></div>
+    <aside class="seat-stage__sidebar">
+      <h2>Legend</h2>
+      <ul class="seat-legend">
+        <li><span class="seat seat--available"></span> Available</li>
+        <li><span class="seat seat--held"></span> Held</li>
+        <li><span class="seat seat--reserved"></span> Reserved</li>
+      </ul>
+      <div class="lock-status" data-role="status"></div>
+      <p>Lock a seat directly from the map or return to the reservation stepper to continue your booking.</p>
+    </aside>
+  </div>
+</main>
+<%- include('../partials/footer') %>

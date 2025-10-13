@@ -7,6 +7,13 @@ const { listBookingsByUser } = require('./models/bookings');
 const { saveMessage, isBlocked } = require('./models/chat');
 
 const PORT = process.env.PORT || 3000;
+const {
+  seatEmitter,
+  getCurrentSeats,
+  lockSeat: socketLockSeat,
+  releaseSeat: socketReleaseSeat
+} = require('./services/diningSeatLocks');
+const { getUserFromRequest } = require('./utils/jwt');
 
 const server = http.createServer(app);
 function normalizeOrigin(origin) {
@@ -199,6 +206,59 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     clearPresence(user.id, socket.id);
+  });
+});
+
+const diningNamespace = io.of('/dining');
+
+diningNamespace.use((socket, next) => {
+  const requestLike = { headers: socket.handshake.headers };
+  const user = getUserFromRequest(requestLike);
+  if (!user) {
+    return next(new Error('Authentication required'));
+  }
+  socket.data.user = user;
+  return next();
+});
+
+diningNamespace.on('connection', (socket) => {
+  const emitSnapshot = () => {
+    socket.emit('seats:snapshot', getCurrentSeats());
+  };
+  const forwardUpdate = (payload) => {
+    socket.emit('seats:update', payload);
+  };
+  emitSnapshot();
+  seatEmitter.on('update', forwardUpdate);
+
+  socket.on('seat:lock', async ({ seatId }) => {
+    if (!seatId) {
+      socket.emit('seat:error', { error: 'Seat ID required.' });
+      return;
+    }
+    const result = await socketLockSeat(seatId, socket.data.user.id);
+    if (!result.ok) {
+      socket.emit('seat:error', { error: result.error || 'Seat unavailable.' });
+    } else {
+      socket.emit('seat:locked', { seatId, lockId: result.lockId, expiresAt: result.expiresAt });
+    }
+  });
+
+  socket.on('seat:release', async ({ seatId, lockId }) => {
+    if (!seatId || !lockId) {
+      socket.emit('seat:error', { error: 'Seat and lock required.' });
+      return;
+    }
+    const result = await socketReleaseSeat(seatId, lockId);
+    if (!result.ok) {
+      socket.emit('seat:error', { error: 'Unable to release seat.' });
+    } else {
+      socket.emit('seat:released', { seatId });
+    }
+  });
+
+  socket.on('disconnect', () => {
+    seatEmitter.off('update', forwardUpdate);
   });
 });
 

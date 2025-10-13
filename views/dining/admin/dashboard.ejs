@@ -1,0 +1,36 @@
+<%- include('../../partials/head', { pageTitle: title, hotelName, csrfToken, darkMode }) %>
+<link rel="stylesheet" href="/css/dining.css">
+<%- include('../../partials/nav') %>
+<main class="dining-admin" data-theme="dining">
+  <header class="admin-header">
+    <h1>Dining Control Center</h1>
+    <p>Monitor live seat availability, reservations, and staff coverage.</p>
+  </header>
+  <section class="admin-grid">
+    <article class="admin-card">
+      <h2>Seat status</h2>
+      <ul class="admin-list">
+        <% seats.forEach((seat) => { %>
+          <li><strong><%= seat.label %></strong> &mdash; <%= seat.status %> · seats <%= seat.capacity %></li>
+        <% }) %>
+      </ul>
+    </article>
+    <article class="admin-card">
+      <h2>Staff coverage</h2>
+      <ul class="admin-list">
+        <% staff.forEach((member) => { %>
+          <li><strong><%= member.name %></strong> &mdash; <%= member.role %></li>
+        <% }) %>
+      </ul>
+    </article>
+    <article class="admin-card">
+      <h2>Exports</h2>
+      <p>Download nightly reservations and staffing reports for offline review.</p>
+      <div class="cta-group">
+        <button class="btn btn-outline" type="button">Reservations CSV</button>
+        <button class="btn btn-outline" type="button">Shifts CSV</button>
+      </div>
+    </article>
+  </section>
+</main>
+<%- include('../../partials/footer') %>

@@ -4,10 +4,14 @@
   "description": "Express.js backend for the GPT Codex Hotel project.",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
+    "start": "tsx src/dining/server.ts",
+    "dev": "tsx watch src/dining/server.ts",
     "seed": "node scripts/seed.js",
-    "test": "jest"
+    "test": "jest",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "prisma db seed",
+    "hotel:start": "node src/server.js",
+    "hotel:dev": "nodemon src/server.js"
   },
   "keywords": [
     "express",
@@ -18,9 +22,11 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@prisma/client": "^6.17.1",
     "bcrypt": "^5.1.1",
     "better-sqlite3": "^9.4.0",
     "connect-sqlite3": "^0.9.15",
+    "cookie": "^0.6.0",
     "csurf": "^1.11.0",
     "ejs": "^3.1.9",
     "express": "^5.1.0",
@@ -28,17 +34,31 @@
     "express-session": "^1.18.1",
     "express-validator": "^7.0.1",
     "helmet": "^7.0.0",
+    "ioredis": "^5.4.1",
     "joi": "^17.12.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.5",
+    "pg-hstore": "^2.3.4",
     "sanitize-html": "^2.13.0",
+    "sequelize": "^6.37.3",
     "socket.io": "^4.7.5",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "@types/cookie": "^0.6.0",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.7.2",
     "jest": "^29.7.0",
     "nodemon": "^3.1.0",
-    "supertest": "^6.3.4"
+    "prisma": "^6.17.1",
+    "supertest": "^6.3.4",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
   },
   "jest": {
     "testEnvironment": "node"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }

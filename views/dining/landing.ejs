@@ -1,0 +1,57 @@
+<%- include('../partials/head', { pageTitle: title, hotelName, csrfToken, darkMode }) %>
+<link rel="stylesheet" href="/css/dining.css">
+<%- include('../partials/nav') %>
+<%- include('../partials/alerts') %>
+<main class="dining-landing" data-theme="dining">
+  <section class="dining-hero">
+    <div class="dining-hero__copy">
+      <p class="eyebrow">Skyhaven Supper Club</p>
+      <h1>Where twilight becomes a tasting.</h1>
+      <p>
+        Experience a progressive culinary story bathed in aurora lighting, rare vintages, and impeccable choreography.
+      </p>
+      <div class="cta-group">
+        <a class="btn btn-primary" href="/dining/menu">View Menu</a>
+        <a class="btn btn-outline" href="/dining/reserve">Reserve an Evening</a>
+      </div>
+    </div>
+    <div class="dining-hero__media" role="presentation">
+      <div class="hero-orb"></div>
+    </div>
+  </section>
+  <section class="dining-highlights">
+    <% highlights.forEach((highlight) => { %>
+      <article class="dining-card">
+        <div class="dining-card__image" style="background-image: <%= highlight.background %>"></div>
+        <div class="dining-card__content">
+          <h2><%= highlight.title %></h2>
+          <p><%= highlight.body %></p>
+        </div>
+      </article>
+    <% }) %>
+  </section>
+  <section class="dining-overview">
+    <div>
+      <h2>Integrated with your Skyhaven journey</h2>
+      <p>
+        Already a hotel guest? Your Supper Club profile uses the same secure identity and preferences so every dining
+        touchpoint feels choreographed just for you.
+      </p>
+    </div>
+    <dl class="dining-overview__stats">
+      <div>
+        <dt>Signature seats</dt>
+        <dd>42 guests</dd>
+      </div>
+      <div>
+        <dt>Cellar allocations</dt>
+        <dd>1200 labels</dd>
+      </div>
+      <div>
+        <dt>Chef table intervals</dt>
+        <dd>Every 27 minutes</dd>
+      </div>
+    </dl>
+  </section>
+</main>
+<%- include('../partials/footer') %>
