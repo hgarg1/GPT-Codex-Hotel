@@ -3,15 +3,73 @@
 <%- include('../partials/alerts') %>
 <section class="auth-card" data-animate="fade-up">
   <h1>Join <%= hotelName %></h1>
+  <div class="auth-social">
+    <p class="auth-social__label">Continue with</p>
+    <div class="auth-social__grid">
+      <button type="button" class="social-button social-button--google" aria-label="Sign up with Google">
+        <span class="social-button__icon" aria-hidden="true">G</span>
+        <span class="social-button__text">Google</span>
+      </button>
+      <button type="button" class="social-button social-button--microsoft" aria-label="Sign up with Microsoft">
+        <span class="social-button__icon" aria-hidden="true">M</span>
+        <span class="social-button__text">Microsoft</span>
+      </button>
+      <button type="button" class="social-button social-button--apple" aria-label="Sign up with Apple">
+        <span class="social-button__icon" aria-hidden="true">A</span>
+        <span class="social-button__text">Apple</span>
+      </button>
+    </div>
+  </div>
+  <div class="auth-divider" role="presentation"><span>or continue with email</span></div>
   <form action="/signup" method="post" class="auth-form">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
     <label for="name">Name</label>
     <input type="text" id="name" name="name" required />
     <label for="email">Email</label>
     <input type="email" id="email" name="email" required />
-    <label for="password">Password</label>
-    <input type="password" id="password" name="password" required />
-    <button type="submit" class="cta-button primary">Create Account</button>
+    <div class="password-field" data-password-container data-enforce>
+      <label for="password">Password</label>
+      <input
+        type="password"
+        id="password"
+        name="password"
+        required
+        aria-describedby="signup-password-guidance"
+        data-password-input
+      />
+      <div class="password-meter">
+        <div class="password-meter__track">
+          <div class="password-meter__bar" data-password-bar></div>
+        </div>
+        <p class="password-meter__label" role="status" aria-live="polite">
+          Strength:
+          <span data-password-strength>Start typing</span>
+        </p>
+      </div>
+      <ul class="password-criteria" id="signup-password-guidance">
+        <li data-password-criterion="length">
+          <span class="password-criteria__icon" aria-hidden="true"></span>
+          <span>At least 8 characters</span>
+        </li>
+        <li data-password-criterion="lowercase">
+          <span class="password-criteria__icon" aria-hidden="true"></span>
+          <span>Contains a lowercase letter</span>
+        </li>
+        <li data-password-criterion="uppercase">
+          <span class="password-criteria__icon" aria-hidden="true"></span>
+          <span>Contains an uppercase letter</span>
+        </li>
+        <li data-password-criterion="number">
+          <span class="password-criteria__icon" aria-hidden="true"></span>
+          <span>Contains a number</span>
+        </li>
+        <li data-password-criterion="special">
+          <span class="password-criteria__icon" aria-hidden="true"></span>
+          <span>Includes a special character</span>
+        </li>
+      </ul>
+    </div>
+    <button type="submit" class="cta-button primary" data-password-submit>Create Account</button>
     <p class="auth-switch">Already aligned? <a href="/login">Log in</a>.</p>
   </form>
 </section>

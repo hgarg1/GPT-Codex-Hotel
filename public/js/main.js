@@ -182,4 +182,106 @@
       ease: 'power3.out'
     });
   }
+
+  const passwordRules = [
+    { id: 'length', test: (value) => value.length >= 8 },
+    { id: 'lowercase', test: (value) => /[a-z]/.test(value) },
+    { id: 'uppercase', test: (value) => /[A-Z]/.test(value) },
+    { id: 'number', test: (value) => /\d/.test(value) },
+    { id: 'special', test: (value) => /[^A-Za-z0-9]/.test(value) }
+  ];
+
+  const strengthStages = [
+    { score: 0, tone: 'empty', message: 'Start typing' },
+    { score: 1, tone: 'weak', message: 'Weak' },
+    { score: 3, tone: 'fair', message: 'Fair' },
+    { score: 4, tone: 'strong', message: 'Strong' },
+    { score: 5, tone: 'excellent', message: 'Excellent' }
+  ];
+
+  const resolveStrength = (score) => {
+    let current = strengthStages[0];
+    for (const stage of strengthStages) {
+      if (score >= stage.score) {
+        current = stage;
+      }
+    }
+    return current;
+  };
+
+  document.querySelectorAll('[data-password-container]').forEach((container) => {
+    const input = container.querySelector('[data-password-input]');
+    if (!input) return;
+
+    const bar = container.querySelector('[data-password-bar]');
+    const label = container.querySelector('[data-password-strength]');
+    const criteriaItems = new Map();
+    container.querySelectorAll('[data-password-criterion]').forEach((item) => {
+      const key = item.getAttribute('data-password-criterion');
+      if (key) {
+        criteriaItems.set(key, item);
+      }
+    });
+    const form = input.closest('form');
+    const submitButton = form?.querySelector('[data-password-submit]');
+    const enforce = container.hasAttribute('data-enforce');
+    const totalRules = passwordRules.length;
+
+    const evaluate = () => {
+      const value = input.value || '';
+      let score = 0;
+
+      passwordRules.forEach((rule) => {
+        const isMet = rule.test(value);
+        const criterion = criteriaItems.get(rule.id);
+        if (criterion) {
+          criterion.classList.toggle('is-met', isMet);
+        }
+        if (isMet) {
+          score += 1;
+        }
+      });
+
+      const width = Math.max(0, Math.min(100, (score / totalRules) * 100));
+      if (bar) {
+        bar.style.width = `${width}%`;
+      }
+
+      const { tone, message } = resolveStrength(score);
+      container.dataset.passwordStrength = tone;
+      if (label) {
+        label.textContent = message;
+      }
+
+      const meetsAll = score === totalRules;
+      container.classList.toggle('is-complete', meetsAll);
+      if (submitButton && enforce) {
+        submitButton.disabled = !meetsAll;
+        if (meetsAll) {
+          submitButton.removeAttribute('aria-disabled');
+        } else {
+          submitButton.setAttribute('aria-disabled', 'true');
+        }
+      }
+
+      if (enforce) {
+        input.setAttribute('aria-invalid', meetsAll ? 'false' : 'true');
+      }
+
+      return meetsAll;
+    };
+
+    input.addEventListener('input', evaluate);
+    input.addEventListener('blur', evaluate);
+    evaluate();
+
+    if (form && enforce) {
+      form.addEventListener('submit', (event) => {
+        if (!evaluate()) {
+          event.preventDefault();
+          input.focus();
+        }
+      });
+    }
+  });
 })();
