@@ -10,10 +10,19 @@ const { sanitizeString } = require('../utils/sanitize');
 
 const router = express.Router();
 
+const passwordComplexity = Joi.string()
+  .min(8)
+  .max(64)
+  .pattern(/[a-z]/, 'lowercase letter')
+  .pattern(/[A-Z]/, 'uppercase letter')
+  .pattern(/\d/, 'number')
+  .pattern(/[^A-Za-z0-9]/, 'special character')
+  .required();
+
 const signupSchema = Joi.object({
   name: Joi.string().min(2).max(80).required(),
   email: Joi.string().email({ tlds: { allow: false } }).required(),
-  password: Joi.string().min(8).max(64).pattern(/[A-Za-z]/).pattern(/\d|[!@#$%^&*]/).required()
+  password: passwordComplexity
 });
 
 const loginSchema = Joi.object({

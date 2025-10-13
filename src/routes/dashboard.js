@@ -21,9 +21,18 @@ const profileSchema = Joi.object({
   phone: Joi.string().allow('').max(40)
 });
 
+const passwordComplexity = Joi.string()
+  .min(8)
+  .max(64)
+  .pattern(/[a-z]/, 'lowercase letter')
+  .pattern(/[A-Z]/, 'uppercase letter')
+  .pattern(/\d/, 'number')
+  .pattern(/[^A-Za-z0-9]/, 'special character')
+  .required();
+
 const passwordSchema = Joi.object({
   currentPassword: Joi.string().required(),
-  newPassword: Joi.string().min(8).max(64).pattern(/[A-Za-z]/).pattern(/\d|[!@#$%^&*]/).required()
+  newPassword: passwordComplexity
 });
 
 router.get('/dashboard', ensureAuthenticated, (req, res) => {
