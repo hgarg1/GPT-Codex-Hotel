@@ -557,35 +557,10 @@ function listSeats() {
   return fallbackSeats;
 }
 
-function listReservationsForUser(userId) {
-  if (!userId) return [];
-  return [
-    {
-      id: 'res-1',
-      diningDate: '2024-07-01T19:00:00Z',
-      partySize: 2,
-      seatIds: ['A1', 'A2'],
-      status: 'confirmed',
-      depositAmount: 50,
-      dietaryNotes: 'No shellfish'
-    },
-    {
-      id: 'res-2',
-      diningDate: '2024-08-15T21:00:00Z',
-      partySize: 4,
-      seatIds: ['C1'],
-      status: 'pending',
-      depositAmount: 0,
-      dietaryNotes: 'Celebrating anniversary'
-    }
-  ];
-}
-
 module.exports = {
   initModels,
   getMenuByCourse,
   listLeadership,
   listStaff,
-  listSeats,
-  listReservationsForUser
+  listSeats
 };

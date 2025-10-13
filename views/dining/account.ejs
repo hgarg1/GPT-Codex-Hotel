@@ -1,45 +1,113 @@
-<%- include('../partials/head', { pageTitle: title, hotelName, csrfToken, darkMode }) %>
+<%- include('../partials/head', { pageTitle: title, hotelName, csrfToken, darkMode, metaDescription, canonicalUrl, openGraph, twitter }) %>
 <link rel="stylesheet" href="/css/dining.css">
 <%- include('../partials/nav') %>
 <main class="dining-account" data-theme="dining">
-  <header>
-    <h1>Your dining reservations</h1>
-    <p>Track, modify, or cancel upcoming Supper Club experiences.</p>
-  </header>
-  <section class="reservation-list">
-    <% if(reservations.length === 0) { %>
-      <p>You have no upcoming dining reservations yet.</p>
-      <a class="btn btn-primary" href="/dining/reserve">Plan an evening</a>
+  <header class="account-header">
+    <div>
+      <h1>Your dining reservations</h1>
+      <p>Track upcoming Skyhaven Supper Club evenings, update preferences, or cancel within the policy window.</p>
+    </div>
+    <% if (policy && policy.text) { %>
+      <aside class="account-policy" aria-label="Dining policy">
+        <h2>Cancellation policy</h2>
+        <p><%= policy.text %></p>
+      </aside>
     <% } %>
-    <% reservations.forEach((reservation) => { %>
-      <article class="reservation-card">
-        <header>
-          <h2><time datetime="<%= reservation.diningDate %>"><%= new Date(reservation.diningDate).toLocaleString() %></time></h2>
-          <p class="status status--<%= reservation.status %>"><%= reservation.status %></p>
-        </header>
-        <dl>
-          <div>
-            <dt>Party size</dt>
-            <dd><%= reservation.partySize %></dd>
-          </div>
-          <div>
-            <dt>Seats</dt>
-            <dd><%= reservation.seatIds.join(', ') %></dd>
-          </div>
-          <div>
-            <dt>Deposit</dt>
-            <dd>$<%= reservation.depositAmount.toFixed(2) %></dd>
-          </div>
-        </dl>
-        <% if(reservation.dietaryNotes) { %>
-          <p class="notes">Notes: <%= reservation.dietaryNotes %></p>
-        <% } %>
-        <div class="reservation-card__actions">
-          <button class="btn btn-outline" type="button">Modify</button>
-          <button class="btn btn-outline" type="button">Cancel</button>
-        </div>
-      </article>
-    <% }) %>
-  </section>
+  </header>
+
+  <div class="account-grid">
+    <section class="account-column">
+      <header class="account-column__header">
+        <h2>Upcoming experiences</h2>
+        <a class="btn btn-primary" href="/dining/reserve">Reserve another evening</a>
+      </header>
+      <% if (!reservations.upcoming || reservations.upcoming.length === 0) { %>
+        <p class="account-empty">No upcoming Supper Club evenings yet. <a href="/dining">Return to the dining homepage</a> to plan your first tasting.</p>
+      <% } else { %>
+        <ul class="reservation-stack">
+          <% reservations.upcoming.forEach(function(reservation) { %>
+            <li id="reservation-<%= reservation.id %>" class="reservation-card">
+              <header class="reservation-card__header">
+                <div>
+                  <h3><%= reservation.dateLabel %></h3>
+                  <p class="reservation-card__sub">Table <%= reservation.tables.label %> · <%= reservation.partySize %> guests</p>
+                </div>
+                <span class="status-chip status-<%= reservation.status.toLowerCase() %>"><%= reservation.statusLabel %></span>
+              </header>
+              <dl class="reservation-meta">
+                <div><dt>Contact</dt><dd><%= reservation.contactPhone || 'Not provided' %><% if (reservation.contactEmail) { %><br><%= reservation.contactEmail %><% } %></dd></div>
+                <div><dt>Dietary</dt><dd><%= reservation.dietaryPrefs || 'None noted' %></dd></div>
+                <div><dt>Allergies</dt><dd><%= reservation.allergies || 'None noted' %></dd></div>
+              </dl>
+              <% if (reservation.notes) { %>
+                <p class="reservation-notes">Guest notes: <%= reservation.notes %></p>
+              <% } %>
+              <% if (reservation.tables.list && reservation.tables.list.length > 1) { %>
+                <p class="reservation-tables">Seats: <%= reservation.tables.list.map(function(table) { return table.label + (table.zone ? ' · ' + table.zone : ''); }).join(', ') %></p>
+              <% } %>
+
+              <details class="reservation-manage">
+                <summary>Modify guest details</summary>
+                <form action="/dining/account/reservations/<%= reservation.id %>/update" method="post" class="reservation-form">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <label>
+                    <span>Primary phone</span>
+                    <input type="tel" name="phone" required value="<%= reservation.contactPhone || '' %>" autocomplete="tel">
+                  </label>
+                  <label>
+                    <span>Contact email</span>
+                    <input type="email" name="email" value="<%= reservation.contactEmail || '' %>" autocomplete="email">
+                  </label>
+                  <label>
+                    <span>Dietary preferences</span>
+                    <textarea name="dietary" rows="2"><%= reservation.dietaryPrefs || '' %></textarea>
+                  </label>
+                  <label>
+                    <span>Allergies</span>
+                    <textarea name="allergies" rows="2"><%= reservation.allergies || '' %></textarea>
+                  </label>
+                  <label>
+                    <span>Notes for the team</span>
+                    <textarea name="notes" rows="3"><%= reservation.notes || '' %></textarea>
+                  </label>
+                  <button type="submit" class="btn btn-primary">Save changes</button>
+                </form>
+              </details>
+
+              <form action="/dining/account/reservations/<%= reservation.id %>/cancel" method="post" class="reservation-cancel">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button type="submit" class="btn btn-outline" <%= reservation.cancelable ? '' : 'disabled aria-disabled="true"' %>>Cancel reservation</button>
+                <% if (reservation.cancelWarning) { %>
+                  <p class="reservation-warning"><%= reservation.cancelWarning %></p>
+                <% } else { %>
+                  <p class="reservation-warning">Cancellations accepted up to <%= policyWindow %> hours before your seating.</p>
+                <% } %>
+              </form>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </section>
+
+    <section class="account-column account-column--secondary">
+      <h2>Past evenings</h2>
+      <% if (!reservations.past || reservations.past.length === 0) { %>
+        <p class="account-empty">Past experiences will appear here for easy rebooking and to share feedback with our concierge.</p>
+      <% } else { %>
+        <ul class="reservation-history">
+          <% reservations.past.forEach(function(reservation) { %>
+            <li class="reservation-history__item">
+              <h3><%= reservation.dateLabel %></h3>
+              <p><%= reservation.tables.label %> · <%= reservation.partySize %> guests</p>
+              <p class="reservation-history__status"><span class="status-chip status-<%= reservation.status.toLowerCase() %>"><%= reservation.statusLabel %></span></p>
+              <% if (reservation.dietaryPrefs) { %>
+                <p class="reservation-history__note">Dietary: <%= reservation.dietaryPrefs %></p>
+              <% } %>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </section>
+  </div>
 </main>
 <%- include('../partials/footer') %>

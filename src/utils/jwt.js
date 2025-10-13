@@ -16,6 +16,16 @@ function getSessionToken(req) {
   return cookies.session_token || null;
 }
 
+function getSigningConfig() {
+  if (process.env.HOTEL_JWT_PRIVATE_KEY) {
+    return { key: process.env.HOTEL_JWT_PRIVATE_KEY, algorithm: process.env.HOTEL_JWT_ALGORITHM || 'RS256' };
+  }
+  if (process.env.HOTEL_JWT_SECRET) {
+    return { key: process.env.HOTEL_JWT_SECRET, algorithm: process.env.HOTEL_JWT_ALGORITHM || 'HS256' };
+  }
+  return null;
+}
+
 function verifyHotelToken(token) {
   if (!token) return null;
   const { HOTEL_JWT_PUBLIC_KEY, HOTEL_JWT_ALGORITHMS } = process.env;
@@ -76,8 +86,50 @@ function ensureDiningAuthenticated(req, res, next) {
     res.locals.diningUser = user;
     return next();
   }
+  if (req.session) {
+    req.session.returnTo = req.originalUrl;
+  }
   const redirectTarget = `/login?redirect=${encodeURIComponent(req.originalUrl)}`;
   return res.redirect(redirectTarget);
+}
+
+function issueSessionToken(res, user) {
+  const signing = getSigningConfig();
+  if (!signing || !user || !user.id || !user.email) {
+    return null;
+  }
+  const payload = {
+    sub: user.id,
+    email: user.email,
+    name: user.name || null,
+    role: user.role || 'guest',
+  };
+  const token = jwt.sign(payload, signing.key, {
+    algorithm: signing.algorithm,
+    expiresIn: '12h',
+    audience: 'skyhaven:dining',
+    issuer: 'skyhaven-hotel',
+  });
+  const secureCookie = process.env.SESSION_TOKEN_SECURE === 'false' ? false : true;
+  const cookieDomain = process.env.SESSION_COOKIE_DOMAIN || undefined;
+  res.cookie('session_token', token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: secureCookie,
+    domain: cookieDomain,
+    maxAge: 1000 * 60 * 60 * 12,
+  });
+  return token;
+}
+
+function clearSessionToken(res) {
+  const cookieDomain = process.env.SESSION_COOKIE_DOMAIN || undefined;
+  res.clearCookie('session_token', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.SESSION_TOKEN_SECURE === 'false' ? false : true,
+    domain: cookieDomain,
+  });
 }
 
 module.exports = {
@@ -85,5 +137,7 @@ module.exports = {
   getSessionToken,
   verifyHotelToken,
   getUserFromRequest,
-  ensureDiningAuthenticated
+  ensureDiningAuthenticated,
+  issueSessionToken,
+  clearSessionToken
 };

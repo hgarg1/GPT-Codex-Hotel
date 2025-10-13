@@ -100,6 +100,37 @@
     </section>
 
     <section class="dashboard-panel">
+      <h2>Dining experiences</h2>
+      <% const upcomingDining = (diningReservations && diningReservations.upcoming) ? diningReservations.upcoming.slice(0, 2) : []; %>
+      <% if (!upcomingDining.length) { %>
+        <p>
+          No Supper Club evenings booked yet.
+          <a href="/dining">Explore the dining programme</a> or
+          <a href="/dining/reserve">reserve an evening</a> to begin.
+        </p>
+      <% } else { %>
+        <ul class="reservation-collection">
+          <% upcomingDining.forEach(function(reservation) { %>
+            <li class="reservation-card">
+              <div class="reservation-card__header">
+                <h3><%= reservation.dateLabel %></h3>
+                <span class="status-chip status-<%= reservation.status.toLowerCase() %>"><%= reservation.statusLabel %></span>
+              </div>
+              <p class="reservation-card__window"><%= reservation.tables.label %> · <%= reservation.partySize %> guests</p>
+              <% if (reservation.dietaryPrefs) { %>
+                <p class="reservation-card__meta">Dietary: <%= reservation.dietaryPrefs %></p>
+              <% } %>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+      <div class="dashboard-links">
+        <a class="pill-link" href="/dining/account/reservations">View dining reservations</a>
+        <a class="pill-link primary" href="/dining/reserve">Book Supper Club</a>
+      </div>
+    </section>
+
+    <section class="dashboard-panel">
       <h2>Profile</h2>
       <form action="/me" method="post" class="profile-form">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>" />

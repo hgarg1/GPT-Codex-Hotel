@@ -24,16 +24,39 @@ const app = express();
 // Ensure Express respects proxy headers so rate limiting can accurately
 // identify clients when the app is behind a reverse proxy.
 app.set('trust proxy', true);
+app.disable('x-powered-by');
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'views'));
+
+const connectSrc = new Set(["'self'", 'https:', 'wss:', 'ws:', `ws://localhost:${process.env.PORT || 3000}`, `ws://127.0.0.1:${process.env.PORT || 3000}`]);
+
+function registerOrigin(origin) {
+  if (!origin) return;
+  origin
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .forEach((value) => {
+      try {
+        const url = new URL(value);
+        connectSrc.add(`${url.protocol}//${url.host}`);
+      } catch (error) {
+        connectSrc.add(value);
+      }
+    });
+}
+
+registerOrigin(process.env.SOCKET_ORIGIN);
+registerOrigin(process.env.SOCKET_ORIGINS);
+registerOrigin(process.env.PUBLIC_BASE_URL);
 
 const cspDirectives = {
   defaultSrc: ["'self'"],
   scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com'],
   styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://fonts.googleapis.com'],
-  imgSrc: ["'self'", 'data:'],
-  connectSrc: ["'self'", 'ws:', 'wss:', 'ws://localhost:3000', 'ws://127.0.0.1:3000'],
+  imgSrc: ["'self'", 'data:', 'https:'],
+  connectSrc: Array.from(connectSrc),
   fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:']
 };
 
@@ -42,9 +65,19 @@ app.use(
     contentSecurityPolicy: {
       directives: cspDirectives
     },
+    referrerPolicy: {
+      policy: 'strict-origin-when-cross-origin'
+    },
     crossOriginEmbedderPolicy: false
   })
 );
+
+app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true }));
+app.use(helmet.noSniff());
+app.use((req, res, next) => {
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  next();
+});
 
 // Serve immersive assets and parse request payloads.
 app.use(express.static(path.join(__dirname, '..', 'public')));
