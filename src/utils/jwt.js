@@ -36,20 +36,37 @@ function verifyHotelToken(token) {
   }
 }
 
+function formatUserLike(userLike) {
+  if (!userLike) return null;
+  const { id, email, name, role } = userLike;
+  if (!id) {
+    return null;
+  }
+  return {
+    id,
+    email: email || null,
+    name: name || null,
+    role: role || 'guest'
+  };
+}
+
 function getUserFromRequest(req) {
+  if (req?.user) {
+    const normalized = formatUserLike(req.user);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
   const token = getSessionToken(req);
   const payload = verifyHotelToken(token);
   if (!payload) return null;
   if (payload.user) {
-    return payload.user;
+    const normalized = formatUserLike(payload.user);
+    return normalized;
   }
   const { sub, email, name, role } = payload;
-  return {
-    id: sub,
-    email,
-    name,
-    role: role || 'guest'
-  };
+  return formatUserLike({ id: sub, email, name, role });
 }
 
 function ensureDiningAuthenticated(req, res, next) {
