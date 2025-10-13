@@ -10,6 +10,9 @@ function resetSchema() {
     DROP TABLE IF EXISTS payment_reversals;
     DROP TABLE IF EXISTS chat_reports;
     DROP TABLE IF EXISTS chat_blocks;
+    DROP TABLE IF EXISTS chat_files;
+    DROP TABLE IF EXISTS chat_reactions;
+    DROP TABLE IF EXISTS chat_receipts;
     DROP TABLE IF EXISTS chat_messages;
     DROP TABLE IF EXISTS amenity_reservations;
     DROP TABLE IF EXISTS payments;
@@ -131,6 +134,35 @@ function resetSchema() {
       createdAt TEXT NOT NULL,
       FOREIGN KEY (fromUserId) REFERENCES users(id) ON DELETE CASCADE,
       FOREIGN KEY (toUserId) REFERENCES users(id) ON DELETE SET NULL
+    );
+
+    CREATE TABLE chat_files (
+      id TEXT PRIMARY KEY,
+      messageId TEXT NOT NULL,
+      filename TEXT NOT NULL,
+      mimeType TEXT NOT NULL,
+      size INTEGER NOT NULL,
+      data BLOB NOT NULL,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY (messageId) REFERENCES chat_messages(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE chat_reactions (
+      messageId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      emoji TEXT NOT NULL,
+      createdAt TEXT NOT NULL,
+      PRIMARY KEY (messageId, userId),
+      FOREIGN KEY (messageId) REFERENCES chat_messages(id) ON DELETE CASCADE,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE chat_receipts (
+      userId TEXT NOT NULL,
+      channel TEXT NOT NULL,
+      lastSeenAt TEXT NOT NULL,
+      PRIMARY KEY (userId, channel),
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
     );
 
     CREATE TABLE chat_blocks (
