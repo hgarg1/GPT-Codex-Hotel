@@ -1,0 +1,30 @@
+<%- include('../../partials/head', { pageTitle: title, hotelName, csrfToken, darkMode }) %>
+<link rel="stylesheet" href="/css/dining.css">
+<%- include('../../partials/nav') %>
+<main class="dining-admin" data-theme="dining">
+  <header class="admin-header">
+    <h1>Menu manager</h1>
+    <p>Create, update, and publish Supper Club menu items.</p>
+  </header>
+  <section class="admin-form">
+    <form class="menu-admin-form">
+      <label>Name <input type="text" name="name" required></label>
+      <label>Course
+        <select name="course">
+          <option value="starters">Starters</option>
+          <option value="mains">Mains</option>
+          <option value="desserts">Desserts</option>
+          <option value="drinks">Drinks</option>
+        </select>
+      </label>
+      <label>Price <input type="number" name="price" step="0.01" required></label>
+      <label>Tags <input type="text" name="tags" placeholder="Comma separated"></label>
+      <label>Description <textarea name="description" rows="4"></textarea></label>
+      <div class="cta-group">
+        <button class="btn btn-primary" type="submit">Save</button>
+        <button class="btn btn-outline" type="reset">Reset</button>
+      </div>
+    </form>
+  </section>
+</main>
+<%- include('../../partials/footer') %>

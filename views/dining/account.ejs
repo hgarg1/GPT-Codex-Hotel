@@ -1,0 +1,45 @@
+<%- include('../partials/head', { pageTitle: title, hotelName, csrfToken, darkMode }) %>
+<link rel="stylesheet" href="/css/dining.css">
+<%- include('../partials/nav') %>
+<main class="dining-account" data-theme="dining">
+  <header>
+    <h1>Your dining reservations</h1>
+    <p>Track, modify, or cancel upcoming Supper Club experiences.</p>
+  </header>
+  <section class="reservation-list">
+    <% if(reservations.length === 0) { %>
+      <p>You have no upcoming dining reservations yet.</p>
+      <a class="btn btn-primary" href="/dining/reserve">Plan an evening</a>
+    <% } %>
+    <% reservations.forEach((reservation) => { %>
+      <article class="reservation-card">
+        <header>
+          <h2><time datetime="<%= reservation.diningDate %>"><%= new Date(reservation.diningDate).toLocaleString() %></time></h2>
+          <p class="status status--<%= reservation.status %>"><%= reservation.status %></p>
+        </header>
+        <dl>
+          <div>
+            <dt>Party size</dt>
+            <dd><%= reservation.partySize %></dd>
+          </div>
+          <div>
+            <dt>Seats</dt>
+            <dd><%= reservation.seatIds.join(', ') %></dd>
+          </div>
+          <div>
+            <dt>Deposit</dt>
+            <dd>$<%= reservation.depositAmount.toFixed(2) %></dd>
+          </div>
+        </dl>
+        <% if(reservation.dietaryNotes) { %>
+          <p class="notes">Notes: <%= reservation.dietaryNotes %></p>
+        <% } %>
+        <div class="reservation-card__actions">
+          <button class="btn btn-outline" type="button">Modify</button>
+          <button class="btn btn-outline" type="button">Cancel</button>
+        </div>
+      </article>
+    <% }) %>
+  </section>
+</main>
+<%- include('../partials/footer') %>

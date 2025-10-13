@@ -1,0 +1,25 @@
+<%- include('../partials/head', { pageTitle: title, hotelName, csrfToken, darkMode }) %>
+<link rel="stylesheet" href="/css/dining.css">
+<%- include('../partials/nav') %>
+<main class="dining-leadership" data-theme="dining">
+  <header>
+    <h1>The Culinary Collective</h1>
+    <p>Meet the team orchestrating each sensory movement of your evening.</p>
+  </header>
+  <section class="leadership-grid">
+    <% leaders.forEach((leader) => { %>
+      <article class="leader-card">
+        <div class="leader-card__image" role="presentation">
+          <div class="leader-avatar" aria-hidden="true"></div>
+        </div>
+        <div class="leader-card__content">
+          <h2><%= leader.name %></h2>
+          <p class="title"><%= leader.title %></p>
+          <p class="focus">Signature: <%= leader.focus %></p>
+          <p><%= leader.bio %></p>
+        </div>
+      </article>
+    <% }) %>
+  </section>
+</main>
+<%- include('../partials/footer') %>

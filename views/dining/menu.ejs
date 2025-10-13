@@ -1,0 +1,68 @@
+<%- include('../partials/head', { pageTitle: title, hotelName, csrfToken, darkMode }) %>
+<link rel="stylesheet" href="/css/dining.css">
+<%- include('../partials/nav') %>
+<%- include('../partials/alerts') %>
+<main class="dining-menu" data-theme="dining">
+  <header class="menu-header">
+    <div>
+      <p class="eyebrow">Chef Kenji Nakamoto presents</p>
+      <h1>Seasonal Menu</h1>
+    </div>
+    <form class="menu-filters" method="get">
+      <fieldset>
+        <legend>Dietary</legend>
+        <label><input type="checkbox" name="dietary" value="vegetarian" <% if(Array.isArray(filters.dietary) ? filters.dietary.includes('vegetarian') : filters.dietary === 'vegetarian') { %>checked<% } %>> Vegetarian</label>
+        <label><input type="checkbox" name="dietary" value="vegan" <% if(Array.isArray(filters.dietary) ? filters.dietary.includes('vegan') : filters.dietary === 'vegan') { %>checked<% } %>> Vegan</label>
+        <label><input type="checkbox" name="dietary" value="gluten-free" <% if(Array.isArray(filters.dietary) ? filters.dietary.includes('gluten-free') : filters.dietary === 'gluten-free') { %>checked<% } %>> Gluten-free</label>
+      </fieldset>
+      <fieldset>
+        <legend>Spice</legend>
+        <label><input type="checkbox" name="spice" value="0" <% if(Array.isArray(filters.spice) ? filters.spice.includes('0') : filters.spice === '0') { %>checked<% } %>> Gentle</label>
+        <label><input type="checkbox" name="spice" value="1" <% if(Array.isArray(filters.spice) ? filters.spice.includes('1') : filters.spice === '1') { %>checked<% } %>> Warm</label>
+        <label><input type="checkbox" name="spice" value="2" <% if(Array.isArray(filters.spice) ? filters.spice.includes('2') : filters.spice === '2') { %>checked<% } %>> Ember</label>
+      </fieldset>
+      <fieldset>
+        <legend>Price</legend>
+        <select name="priceRange">
+          <option value="">All</option>
+          <option value="0-25" <% if(filters.priceRange === '0-25') { %>selected<% } %>>Under $25</option>
+          <option value="25-50" <% if(filters.priceRange === '25-50') { %>selected<% } %>>$25-$50</option>
+          <option value="50-100" <% if(filters.priceRange === '50-100') { %>selected<% } %>>$50-$100</option>
+        </select>
+      </fieldset>
+      <button type="submit" class="btn btn-outline">Filter</button>
+    </form>
+  </header>
+  <% const sections = { starters: 'Starters', mains: 'Mains', desserts: 'Desserts', drinks: 'Drinks' }; %>
+  <% Object.keys(sections).forEach((sectionKey) => { %>
+    <section class="menu-section">
+      <div class="menu-section__header">
+        <h2><%= sections[sectionKey] %></h2>
+        <span class="divider"></span>
+      </div>
+      <div class="menu-grid">
+        <% (menu[sectionKey] || []).forEach((item) => { %>
+          <article class="menu-item">
+            <header>
+              <h3><%= item.name %></h3>
+              <span class="price">$<%= item.price %></span>
+            </header>
+            <p><%= item.description %></p>
+            <% if(item.tags && item.tags.length) { %>
+              <ul class="tags">
+                <% item.tags.forEach((tag) => { %>
+                  <li><%= tag %></li>
+                <% }) %>
+              </ul>
+            <% } %>
+            <p class="spice">Heat Level: <%= ['None', 'Warm', 'Ember'][item.spiceLevel] || 'Gentle' %></p>
+          </article>
+        <% }) %>
+        <% if(!(menu[sectionKey] || []).length) { %>
+          <p class="empty">No selections in this category for your filters yet.</p>
+        <% } %>
+      </div>
+    </section>
+  <% }) %>
+</main>
+<%- include('../partials/footer') %>

@@ -6,6 +6,7 @@ const {
   createUser,
   verifyPassword
 } = require('../models/users');
+const { getUserFromRequest } = require('../utils/jwt');
 const { sanitizeString } = require('../utils/sanitize');
 
 const router = express.Router();
@@ -100,6 +101,14 @@ router.post('/logout', (req, res) => {
   req.session.destroy(() => {
     res.redirect('/');
   });
+});
+
+router.get('/auth/session', (req, res) => {
+  const user = getUserFromRequest(req);
+  if (!user) {
+    return res.status(401).json({ authenticated: false });
+  }
+  return res.json({ authenticated: true, user });
 });
 
 module.exports = router;

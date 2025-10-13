@@ -1,0 +1,31 @@
+<%- include('../partials/head', { pageTitle: title, hotelName, csrfToken, darkMode }) %>
+<link rel="stylesheet" href="/css/dining.css">
+<script defer src="/js/dining-staff-search.js"></script>
+<%- include('../partials/nav') %>
+<main class="dining-staff" data-theme="dining">
+  <header>
+    <h1>Staff Roster</h1>
+    <p>Search the Supper Club team, explore specialties, and view upcoming shifts.</p>
+  </header>
+  <section class="staff-search">
+    <label for="staff-search-input" class="sr-only">Search staff</label>
+    <input id="staff-search-input" type="search" placeholder="Search by name or role" data-staff-search>
+  </section>
+  <section class="staff-grid" data-staff-roster>
+    <% staff.forEach((member) => { %>
+      <article class="staff-card" data-name="<%= member.name.toLowerCase() %>" data-role="<%= member.role.toLowerCase() %>">
+        <header>
+          <h2><%= member.name %></h2>
+          <p class="role"><%= member.role %></p>
+        </header>
+        <ul class="badges">
+          <% member.badges.forEach((badge) => { %>
+            <li><%= badge %></li>
+          <% }) %>
+        </ul>
+        <p class="shift">Next shift: <time datetime="<%= member.nextShift %>"><%= new Date(member.nextShift).toLocaleString() %></time></p>
+      </article>
+    <% }) %>
+  </section>
+</main>
+<%- include('../partials/footer') %>

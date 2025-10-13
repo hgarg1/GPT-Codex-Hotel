@@ -2,6 +2,9 @@
 (() => {
   const root = document.documentElement;
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+  if (csrfToken) {
+    window.__CSRF_TOKEN__ = csrfToken;
+  }
   const toggleButton = document.querySelector('[data-theme-toggle]');
   const navContainer = document.querySelector('[data-nav-container]');
   const navToggle = document.querySelector('[data-nav-toggle]');

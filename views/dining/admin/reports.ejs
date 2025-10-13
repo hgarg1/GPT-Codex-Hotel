@@ -1,0 +1,22 @@
+<%- include('../../partials/head', { pageTitle: title, hotelName, csrfToken, darkMode }) %>
+<link rel="stylesheet" href="/css/dining.css">
+<%- include('../../partials/nav') %>
+<main class="dining-admin" data-theme="dining">
+  <header class="admin-header">
+    <h1>Reports</h1>
+    <p>Export high-level metrics and nightly performance snapshots.</p>
+  </header>
+  <section class="admin-grid">
+    <article class="admin-card">
+      <h2>Revenue overview</h2>
+      <p>Projected vs actual covers, average spend per guest, and deposit collection rate.</p>
+      <button class="btn btn-outline" type="button">Download revenue CSV</button>
+    </article>
+    <article class="admin-card">
+      <h2>Guest sentiment</h2>
+      <p>Pull qualitative notes from the guest experience team and sentiment scores.</p>
+      <button class="btn btn-outline" type="button">Download sentiment CSV</button>
+    </article>
+  </section>
+</main>
+<%- include('../../partials/footer') %>
