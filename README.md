@@ -16,12 +16,11 @@ Aurora Nexus Skyhaven is an end-to-end Express.js experience showcasing a futuri
 
 ## Getting Started
 
-1. Install dependencies and seed both the hotel (SQLite) and dining (Prisma/PostgreSQL) stores:
+1. Install dependencies and seed the shared SQLite database used by both the hotel and dining experiences:
 
 ```bash
 npm install
-npm run seed          # seeds the hotel SQLite database
-npm run prisma:seed   # seeds dining tables/menu via Prisma
+npm run seed          # resets and seeds all hotel + dining data
 ```
 
 2. Start the hotel shell and the dining API in separate terminals:
@@ -30,7 +29,7 @@ npm run prisma:seed   # seeds dining tables/menu via Prisma
 # Terminal A – hotel experience (Express + EJS)
 npm run hotel:dev
 
-# Terminal B – dining API (Node/Prisma/Socket.IO)
+# Terminal B – dining API (Node/TypeScript/Socket.IO)
 npm run dev
 ```
 
@@ -50,7 +49,7 @@ Seeded credentials (password `skyhaven123`):
 
 | Variable | Purpose | Notes |
 | --- | --- | --- |
-| `DATABASE_URL` | Connection string for the dining Prisma database | PostgreSQL connection used by `npm run prisma:seed` and the dining API. |
+| `DATABASE_URL` | (Legacy) Connection string for external dining database | No longer required; dining now uses the local SQLite store seeded via `npm run seed`. |
 | `HOTEL_JWT_PRIVATE_KEY` or `HOTEL_JWT_SECRET` | Signing material for the `session_token` JWT shared with the dining API | Use an RSA private key (PEM) for RS256 or a symmetric secret for HS256. |
 | `HOTEL_JWT_PUBLIC_KEY` or `HOTEL_JWT_SECRET` | Verification key exposed to the dining API | Must match the signing material above. |
 | `SESSION_COOKIE_DOMAIN` | (Optional) Shared cookie domain for multi-host deployments | Example: `.skyhaven.test`. |
@@ -62,8 +61,7 @@ Seeded credentials (password `skyhaven123`):
 
 - `npm run hotel:dev` – hotel Express application with hot reload.
 - `npm run dev` – start the dining API with tsx + nodemon.
-- `npm run seed` – reset and seed the hotel SQLite database with demo data.
-- `npm run prisma:seed` – seed dining tables, menu sections, and staff via Prisma.
+- `npm run seed` – reset and seed the SQLite database with hotel, chat, and dining demo data.
 - `npm test` – run Jest tests covering booking creation, payment capture, and chat persistence.
 - `npm run test:e2e` – execute Cypress dining integration tests (requires both servers running).
 - `npm run cy:open` / `npm run cy:run` – open or headlessly run the Cypress test suite.
@@ -83,21 +81,21 @@ sequenceDiagram
     participant Guest
     participant HotelApp
     participant DiningAPI
-    participant PrismaDB
+    participant DiningSQLite
 
     Guest->>HotelApp: Navigate to /dining/reserve
     HotelApp->>Guest: Collect schedule, party, seating, guest details
     Guest->>HotelApp: Submit seating selection
     HotelApp->>DiningAPI: POST /api/dining/hold (tables, time)
-    DiningAPI->>PrismaDB: Validate availability & create hold
+    DiningAPI->>DiningSQLite: Validate availability & create hold
     DiningAPI-->>HotelApp: Hold token & expiry
     Guest->>HotelApp: Confirm reservation
     HotelApp->>DiningAPI: POST /api/dining/reservations (holdId, guest data)
-    DiningAPI->>PrismaDB: Verify hold, upsert guest, create reservation
+    DiningAPI->>DiningSQLite: Verify hold, upsert guest, create reservation
     DiningAPI-->>HotelApp: Confirmation payload + QR code
     HotelApp-->>Guest: Confirmation screen & account listing
 
-    Note over DiningAPI,PrismaDB: Holds auto-expire and collision checks run before commit
+    Note over DiningAPI,DiningSQLite: Holds auto-expire and collision checks run before commit
 ```
 
 ## Real-time Chat Tips

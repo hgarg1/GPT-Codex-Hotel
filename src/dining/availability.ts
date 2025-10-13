@@ -1,5 +1,5 @@
-import { prisma } from './prismaClient.js';
-import type { DiningTable, Reservation } from '@prisma/client';
+import type { DiningTable, DiningReservation } from './types.js';
+import { listReservationsForDate, listTables } from './data.js';
 import { listHoldsForSlot } from './holds.js';
 
 const DWELL_MINUTES = Number(process.env.DINING_DWELL_MINUTES ?? 105);
@@ -33,7 +33,7 @@ export function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date): bo
   return aStart < bEnd && bStart < aEnd;
 }
 
-function getReservationWindow(reservation: Reservation): { start: Date; end: Date } {
+function getReservationWindow(reservation: DiningReservation): { start: Date; end: Date } {
   const start = combineDateTime(reservation.date, reservation.time);
   const end = new Date(start.getTime() + DWELL_MINUTES * 60 * 1000);
   return { start, end };
@@ -136,27 +136,11 @@ export async function getDiningAvailability(
   time: string,
   partySize: number,
 ): Promise<AvailabilityResult> {
-  const tables = await prisma.diningTable.findMany({
-    where: { active: true },
-    orderBy: { label: 'asc' },
-  });
+  const tables = await listTables({ activeOnly: true });
 
   const { start: requestedStart, end: requestedEnd } = getRequestedWindow(date, time);
 
-  const startOfDay = new Date(requestedStart);
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(requestedStart);
-  endOfDay.setHours(23, 59, 59, 999);
-
-  const reservations = await prisma.reservation.findMany({
-    where: {
-      status: { not: 'CANCELLED' },
-      date: {
-        gte: startOfDay,
-        lte: endOfDay,
-      },
-    },
-  });
+  const reservations = await listReservationsForDate(date);
 
   const unavailableTableIds = new Set<string>();
 
