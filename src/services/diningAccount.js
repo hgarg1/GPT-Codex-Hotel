@@ -1,5 +1,12 @@
-const { PrismaClient } = require('@prisma/client');
 const { sanitizeString } = require('../utils/sanitize');
+const {
+  ensureDiningUserRecord,
+  listReservationsForUser: listDiningReservations,
+  getTablesByIds,
+  updateReservation,
+  getReservationById,
+  loadDiningConfig,
+} = require('../dining/data');
 
 const FALLBACK_RESERVATIONS = [
   {
@@ -31,25 +38,6 @@ const FALLBACK_RESERVATIONS = [
 ];
 
 const CANCELLATION_WINDOW_HOURS = Number(process.env.DINING_CANCEL_HOURS ?? 24);
-
-let prismaInstance;
-let prismaUnavailable = false;
-
-function getPrisma() {
-  if (prismaUnavailable) {
-    return null;
-  }
-  if (!prismaInstance) {
-    try {
-      prismaInstance = new PrismaClient();
-    } catch (error) {
-      prismaUnavailable = true;
-      console.warn('Dining integration unavailable – Prisma client failed to initialise.', error);
-      return null;
-    }
-  }
-  return prismaInstance;
-}
 
 function toTitleCase(value) {
   if (!value) return '';
@@ -159,14 +147,11 @@ function mapReservation(record, tableMap) {
   };
 }
 
-async function fetchTableMap(client, tableIds) {
-  if (!client || tableIds.length === 0) {
+async function fetchTableMap(tableIds) {
+  if (!Array.isArray(tableIds) || tableIds.length === 0) {
     return new Map();
   }
-  const unique = [...new Set(tableIds)];
-  const tables = await client.diningTable.findMany({
-    where: { id: { in: unique } },
-  });
+  const tables = await getTablesByIds(tableIds);
   return new Map(tables.map((table) => [table.id, table]));
 }
 
@@ -174,24 +159,19 @@ async function listReservationsForUser(userId) {
   if (!userId) {
     return { upcoming: [], past: [] };
   }
-  const client = getPrisma();
-  if (!client) {
-    const tableMap = new Map();
-    const mapped = FALLBACK_RESERVATIONS.map((reservation) =>
-      mapReservation(reservation, tableMap),
+  try {
+    const reservations = await listDiningReservations(userId);
+    const tableMap = await fetchTableMap(
+      reservations.flatMap((reservation) => reservation.tableIds || []),
     );
+    const mapped = reservations.map((reservation) => mapReservation(reservation, tableMap));
+    return partitionReservations(mapped);
+  } catch (error) {
+    console.warn('Failed to list dining reservations, using fallback data.', error);
+    const tableMap = new Map();
+    const mapped = FALLBACK_RESERVATIONS.map((reservation) => mapReservation(reservation, tableMap));
     return partitionReservations(mapped);
   }
-  const reservations = await client.reservation.findMany({
-    where: { userId },
-    orderBy: [{ date: 'asc' }, { time: 'asc' }],
-  });
-  const tableMap = await fetchTableMap(
-    client,
-    reservations.flatMap((reservation) => reservation.tableIds || []),
-  );
-  const mapped = reservations.map((reservation) => mapReservation(reservation, tableMap));
-  return partitionReservations(mapped);
 }
 
 function partitionReservations(reservations) {
@@ -219,15 +199,12 @@ async function syncDiningProfile(user) {
   if (!user || !user.id || !user.email) {
     return;
   }
-  const client = getPrisma();
-  if (!client) {
-    return;
-  }
   try {
-    await client.user.upsert({
-      where: { id: user.id },
-      update: { email: user.email, name: user.name ?? null, phone: user.phone ?? null },
-      create: { id: user.id, email: user.email, name: user.name ?? null, phone: user.phone ?? null },
+    await ensureDiningUserRecord({
+      id: user.id,
+      email: user.email,
+      name: user.name ?? null,
+      phone: user.phone ?? null,
     });
   } catch (error) {
     console.warn('Failed to sync dining profile', error);
@@ -235,11 +212,10 @@ async function syncDiningProfile(user) {
 }
 
 async function updateReservationDetails(userId, reservationId, payload) {
-  const client = getPrisma();
-  if (!client || !userId || !reservationId) {
+  if (!userId || !reservationId) {
     return { error: 'Dining system unavailable' };
   }
-  const reservation = await client.reservation.findUnique({ where: { id: reservationId } });
+  const reservation = await getReservationById(reservationId);
   if (!reservation || reservation.userId !== userId) {
     return { error: 'Reservation not found' };
   }
@@ -267,20 +243,24 @@ async function updateReservationDetails(userId, reservationId, payload) {
   if (Object.keys(updates).length === 0) {
     return { error: 'No changes supplied' };
   }
-  const updated = await client.reservation.update({
-    where: { id: reservationId },
-    data: updates,
-  });
-  const tableMap = await fetchTableMap(client, updated.tableIds || []);
-  return { reservation: mapReservation(updated, tableMap) };
+  try {
+    const updated = await updateReservation(reservationId, updates);
+    if (!updated) {
+      return { error: 'Reservation not found' };
+    }
+    const tableMap = await fetchTableMap(updated.tableIds || []);
+    return { reservation: mapReservation(updated, tableMap) };
+  } catch (error) {
+    console.error('Failed to update dining reservation', error);
+    return { error: 'Dining system unavailable' };
+  }
 }
 
 async function cancelReservation(userId, reservationId) {
-  const client = getPrisma();
-  if (!client || !userId || !reservationId) {
+  if (!userId || !reservationId) {
     return { error: 'Dining system unavailable' };
   }
-  const reservation = await client.reservation.findUnique({ where: { id: reservationId } });
+  const reservation = await getReservationById(reservationId);
   if (!reservation || reservation.userId !== userId) {
     return { error: 'Reservation not found' };
   }
@@ -297,12 +277,17 @@ async function cancelReservation(userId, reservationId) {
       error: `Cancellations require ${CANCELLATION_WINDOW_HOURS}-hour notice`,
     };
   }
-  const updated = await client.reservation.update({
-    where: { id: reservationId },
-    data: { status: 'CANCELLED' },
-  });
-  const tableMap = await fetchTableMap(client, updated.tableIds || []);
-  return { reservation: mapReservation(updated, tableMap) };
+  try {
+    const updated = await updateReservation(reservationId, { status: 'CANCELLED' });
+    if (!updated) {
+      return { error: 'Reservation not found' };
+    }
+    const tableMap = await fetchTableMap(updated.tableIds || []);
+    return { reservation: mapReservation(updated, tableMap) };
+  } catch (error) {
+    console.error('Failed to cancel dining reservation', error);
+    return { error: 'Dining system unavailable' };
+  }
 }
 
 async function getDiningPolicy() {
@@ -310,22 +295,17 @@ async function getDiningPolicy() {
     text: 'Cancellations require 24 hours notice. Dietary updates can be made until the day of your seating.',
     cancellationWindowHours: CANCELLATION_WINDOW_HOURS,
   };
-  const client = getPrisma();
-  if (!client) {
+  try {
+    const config = await loadDiningConfig();
+    return {
+      text: config?.policyText || defaultPolicy.text,
+      cancellationWindowHours: CANCELLATION_WINDOW_HOURS,
+    };
+  } catch (error) {
+    console.warn('Failed to load dining policy', error);
     return defaultPolicy;
   }
-  const config = await client.diningConfig.findUnique({ where: { id: 'default' } });
-  return {
-    text: config?.policyText || defaultPolicy.text,
-    cancellationWindowHours: CANCELLATION_WINDOW_HOURS,
-  };
 }
-
-process.on('beforeExit', async () => {
-  if (prismaInstance) {
-    await prismaInstance.$disconnect();
-  }
-});
 
 module.exports = {
   listReservationsForUser,
