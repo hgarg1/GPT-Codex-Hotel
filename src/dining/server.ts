@@ -34,6 +34,7 @@ import {
 } from './data.js';
 
 const app = express();
+const isProd = process.env.NODE_ENV === 'production';
 
 function normalizeOrigin(origin: string): string {
   try {
@@ -89,7 +90,7 @@ const corsOptions: CorsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options(/.*/, cors(corsOptions));
+app.options('(.*)', cors(corsOptions));
 
 app.set('trust proxy', true);
 app.disable('x-powered-by');
@@ -128,7 +129,10 @@ const cspDirectives = {
 app.use(
   helmet({
     contentSecurityPolicy: {
-      directives: cspDirectives,
+      directives: {
+        ...cspDirectives,
+        ...(isProd ? { 'upgrade-insecure-requests': [] } : {}),
+      },
     },
     referrerPolicy: {
       policy: 'strict-origin-when-cross-origin',
@@ -136,39 +140,7 @@ app.use(
     crossOriginEmbedderPolicy: false,
   }),
 );
-
-function isLocalHost(hostname: string | undefined | null): boolean {
-  if (!hostname) {
-    return false;
-  }
-  const normalized = hostname.split(':')[0];
-  return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
-}
-
-const shouldEnforceHsts = (() => {
-  if (process.env.ENABLE_HSTS === 'true') {
-    return true;
-  }
-  if (process.env.NODE_ENV === 'production') {
-    return true;
-  }
-  const publicBaseUrl = process.env.PUBLIC_BASE_URL;
-  if (typeof publicBaseUrl === 'string' && publicBaseUrl.startsWith('https://')) {
-    return true;
-  }
-  return false;
-})();
-
-if (shouldEnforceHsts) {
-  const hsts = helmet.hsts({ maxAge: 31536000, includeSubDomains: true });
-  app.use((req, res, next) => {
-    const hostHeader = req.get('host');
-    if (hostHeader && isLocalHost(hostHeader)) {
-      next();
-      return;
-    }
-    hsts(req, res, next);
-  });
+if (isProd) {
   app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true }));
 }
 app.use(helmet.noSniff());
