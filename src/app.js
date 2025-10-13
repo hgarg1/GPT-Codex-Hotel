@@ -19,6 +19,10 @@ const adminRoutes = require('./routes/admin');
 
 const app = express();
 
+// Ensure Express respects proxy headers so rate limiting can accurately
+// identify clients when the app is behind a reverse proxy.
+app.set('trust proxy', true);
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'views'));
 
