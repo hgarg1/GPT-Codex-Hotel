@@ -20,6 +20,7 @@ const diningRoutes = require('./routes/dining');
 const adminDiningRoutes = require('./routes/adminDining');
 
 const app = express();
+const isProd = process.env.NODE_ENV === 'production';
 
 // Ensure Express respects proxy headers so rate limiting can accurately
 // identify clients when the app is behind a reverse proxy.
@@ -63,7 +64,10 @@ const cspDirectives = {
 app.use(
   helmet({
     contentSecurityPolicy: {
-      directives: cspDirectives
+      directives: {
+        ...cspDirectives,
+        ...(isProd ? { 'upgrade-insecure-requests': [] } : {})
+      }
     },
     referrerPolicy: {
       policy: 'strict-origin-when-cross-origin'
@@ -72,29 +76,8 @@ app.use(
   })
 );
 
-const shouldEnforceHsts = (() => {
-  if (process.env.ENABLE_HSTS === 'true') {
-    return true;
-  }
-  if (process.env.NODE_ENV === 'production') {
-    return true;
-  }
-  const publicBaseUrl = process.env.PUBLIC_BASE_URL;
-  if (typeof publicBaseUrl === 'string' && publicBaseUrl.startsWith('https://')) {
-    return true;
-  }
-  return false;
-})();
-
-if (shouldEnforceHsts) {
-  const hsts = helmet.hsts({ maxAge: 31536000, includeSubDomains: true });
-  app.use((req, res, next) => {
-    const hostHeader = req.get('host');
-    if (hostHeader && isLocalHost(hostHeader)) {
-      return next();
-    }
-    return hsts(req, res, next);
-  });
+if (isProd) {
+  app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true }));
 }
 app.use(helmet.noSniff());
 app.use((req, res, next) => {

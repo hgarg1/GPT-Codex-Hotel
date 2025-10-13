@@ -110,12 +110,12 @@ function issueSessionToken(res, user) {
     audience: 'skyhaven:dining',
     issuer: 'skyhaven-hotel',
   });
-  const secureCookie = process.env.SESSION_TOKEN_SECURE === 'false' ? false : true;
   const cookieDomain = process.env.SESSION_COOKIE_DOMAIN || undefined;
+  const isProd = process.env.NODE_ENV === 'production';
   res.cookie('session_token', token, {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: secureCookie,
+    sameSite: isProd ? 'none' : 'lax',
+    secure: isProd,
     domain: cookieDomain,
     maxAge: 1000 * 60 * 60 * 12,
   });
@@ -124,10 +124,11 @@ function issueSessionToken(res, user) {
 
 function clearSessionToken(res) {
   const cookieDomain = process.env.SESSION_COOKIE_DOMAIN || undefined;
+  const isProd = process.env.NODE_ENV === 'production';
   res.clearCookie('session_token', {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.SESSION_TOKEN_SECURE === 'false' ? false : true,
+    sameSite: isProd ? 'none' : 'lax',
+    secure: isProd,
     domain: cookieDomain,
   });
 }
