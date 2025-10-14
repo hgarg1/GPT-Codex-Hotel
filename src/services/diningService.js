@@ -218,18 +218,28 @@ function listLeadership() {
 function listStaff() {
   if (sqliteReady) {
     try {
-      const rows = getDb()
-        .prepare(
-          'SELECT id, name, role, badges, nextShift FROM dining_staff WHERE active = 1 ORDER BY name ASC'
-        )
-        .all();
+      const db = getDb();
+      const hasBadgesColumn = tableHasColumn(db, 'dining_staff', 'badges');
+      const hasNextShiftColumn = tableHasColumn(db, 'dining_staff', 'nextShift');
+      const selectedColumns = ['id', 'name', 'role'];
+      if (hasBadgesColumn) {
+        selectedColumns.push('badges');
+      }
+      if (hasNextShiftColumn) {
+        selectedColumns.push('nextShift');
+      }
+      const query = `SELECT ${selectedColumns.join(', ')} FROM dining_staff WHERE active = 1 ORDER BY name ASC`;
+      const rows = db.prepare(query).all();
       if (rows.length) {
         return rows.map((row) => ({
           id: row.id,
           name: row.name,
           role: row.role,
-          badges: parseJsonArray(row.badges),
-          nextShift: row.nextShift || new Date().toISOString(),
+          badges: hasBadgesColumn ? parseJsonArray(row.badges) : [],
+          nextShift:
+            hasNextShiftColumn && row.nextShift
+              ? row.nextShift
+              : new Date().toISOString(),
         }));
       }
     } catch (error) {
@@ -245,18 +255,21 @@ function listStaff() {
 function listSeats() {
   if (sqliteReady) {
     try {
-      const rows = getDb()
-        .prepare(
-          'SELECT id, label, capacity, zone, status FROM dining_tables WHERE active = 1 ORDER BY label ASC'
-        )
-        .all();
+      const db = getDb();
+      const hasStatusColumn = tableHasColumn(db, 'dining_tables', 'status');
+      const selectedColumns = ['id', 'label', 'capacity', 'zone'];
+      if (hasStatusColumn) {
+        selectedColumns.push('status');
+      }
+      const query = `SELECT ${selectedColumns.join(', ')} FROM dining_tables WHERE active = 1 ORDER BY label ASC`;
+      const rows = db.prepare(query).all();
       if (rows.length) {
         return rows.map((row) => ({
           id: row.id,
           label: row.label,
           capacity: row.capacity,
           zone: row.zone,
-          status: row.status || 'available',
+          status: hasStatusColumn && row.status ? row.status : 'available',
         }));
       }
     } catch (error) {
