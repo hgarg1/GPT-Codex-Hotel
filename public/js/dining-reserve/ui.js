@@ -305,9 +305,13 @@ async function ensureTablesLoaded() {
 }
 function getStepperMarkup(currentStep) {
     const steps = ['schedule', 'party', 'seats', 'guest', 'review'];
+    const activeIndex = Math.max(0, steps.indexOf(currentStep));
+    const stepCount = steps.length;
+    const progress = stepCount > 1 ? activeIndex / (stepCount - 1) : 0;
     return `
-    <ol class="reserve-stepper" aria-label="Reservation progress">
-      ${steps
+    <div class="reserve-stepper-shell" data-step-index="${activeIndex}" data-step-count="${stepCount}" style="--step-index:${activeIndex}; --step-count:${stepCount}; --step-progress:${progress}">
+      <ol class="reserve-stepper" aria-label="Reservation progress">
+        ${steps
         .map((step) => {
         const isActive = currentStep === step;
         const isComplete = steps.indexOf(step) < steps.indexOf(currentStep);
@@ -316,7 +320,8 @@ function getStepperMarkup(currentStep) {
           </li>`;
     })
         .join('')}
-    </ol>
+      </ol>
+    </div>
   `;
 }
 function renderScheduleStep() {

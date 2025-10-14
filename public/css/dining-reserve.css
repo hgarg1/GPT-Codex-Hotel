@@ -62,6 +62,18 @@
   gap: 1.75rem;
 }
 
+.reserve-stepper-shell {
+  position: relative;
+  --step-index: 0;
+  --step-count: 1;
+  --step-progress: 0;
+}
+
+.reserve-stepper-shell > .reserve-stepper {
+  position: relative;
+  z-index: 1;
+}
+
 .reserve-stepper {
   display: flex;
   list-style: none;
@@ -94,6 +106,85 @@
 .reserve-stepper__item.is-complete {
   background: rgba(207, 168, 88, 0.25);
   color: #0b0d19;
+}
+
+@media (max-width: 640px) {
+  .reserve-stepper-shell {
+    padding: 0.5rem 0.75rem;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, rgba(9, 14, 26, 0.85), rgba(5, 7, 15, 0.88));
+    overflow: hidden;
+  }
+
+  .reserve-stepper-shell::before,
+  .reserve-stepper-shell::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    transition: transform 0.6s ease, opacity 0.6s ease;
+  }
+
+  .reserve-stepper-shell::before {
+    background: radial-gradient(circle at top, rgba(68, 112, 238, 0.16), transparent 65%);
+    opacity: 0.75;
+  }
+
+  .reserve-stepper-shell::after {
+    background: linear-gradient(135deg, rgba(207, 168, 88, 0.45), rgba(126, 188, 255, 0.35));
+    transform-origin: left center;
+    transform: scaleX(calc(0.05 + (var(--step-progress) * 0.95)));
+    opacity: 0.95;
+  }
+
+  .reserve-stepper {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .reserve-stepper__item {
+    grid-area: 1 / 1;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    color: rgba(247, 244, 236, 0.7);
+    padding: 1rem 0.75rem;
+    opacity: 0;
+    transform: translateX(-8%);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    backdrop-filter: none;
+  }
+
+  .reserve-stepper__item .reserve-stepper__label {
+    display: block;
+    font-size: 0.9rem;
+    letter-spacing: 0.1em;
+  }
+
+  .reserve-stepper__item.is-active {
+    opacity: 1;
+    transform: translateX(0);
+    color: #f7f4ec;
+  }
+
+  .reserve-stepper__item.is-complete {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 640px) and (prefers-reduced-motion: reduce) {
+  .reserve-stepper-shell::before,
+  .reserve-stepper-shell::after,
+  .reserve-stepper__item {
+    transition: none !important;
+  }
+
+  .reserve-stepper__item {
+    transform: none !important;
+  }
 }
 
 .reserve-card {
