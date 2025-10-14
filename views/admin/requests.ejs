@@ -1,0 +1,104 @@
+<%- include('../partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
+<script defer src="/js/admin-requests.js"></script>
+<%- include('../partials/nav') %>
+<%- include('../partials/alerts') %>
+
+<section class="admin admin-requests" data-animate="fade-up">
+  <header class="requests-header">
+    <h1>Employee requests queue</h1>
+    <p>Review PTO, transfer, resignation, and incident submissions from the crew.</p>
+  </header>
+
+  <div class="requests-toolbar">
+    <label class="sr-only" for="requests-search">Search requests</label>
+    <input id="requests-search" type="search" placeholder="Search by employee or type" data-request-search />
+    <div class="requests-filters">
+      <label class="sr-only" for="requests-status">Filter by status</label>
+      <select id="requests-status" data-request-filter="status">
+        <option value="pending">Pending</option>
+        <option value="approved">Approved</option>
+        <option value="denied">Denied</option>
+      </select>
+      <label class="sr-only" for="requests-type">Filter by type</label>
+      <select id="requests-type" data-request-filter="type">
+        <option value="">All types</option>
+        <option value="pto">PTO</option>
+        <option value="workers-comp">Workers comp</option>
+        <option value="transfer">Transfer</option>
+        <option value="resignation">Resignation</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="requests-table-wrapper">
+    <table class="admin-table requests-table">
+      <thead>
+        <tr>
+          <th scope="col">Employee</th>
+          <th scope="col">Type</th>
+          <th scope="col">Submitted</th>
+          <th scope="col">Status</th>
+          <th scope="col">Latest comment</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody data-request-rows>
+        <tr data-empty>
+          <td colspan="6">Loading requests…</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="request-detail" data-request-detail hidden>
+    <header class="detail-header">
+      <div>
+        <h2 data-detail-title>Request</h2>
+        <p class="muted" data-detail-subtitle></p>
+      </div>
+      <button type="button" class="pill-link" data-close-request>Close</button>
+    </header>
+    <section class="detail-body">
+      <dl class="detail-grid">
+        <div>
+          <dt>Employee</dt>
+          <dd data-detail-employee>—</dd>
+        </div>
+        <div>
+          <dt>Department</dt>
+          <dd data-detail-department>—</dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd data-detail-status>—</dd>
+        </div>
+        <div>
+          <dt>Submitted</dt>
+          <dd data-detail-created>—</dd>
+        </div>
+        <div>
+          <dt>Payload</dt>
+          <dd data-detail-payload>—</dd>
+        </div>
+      </dl>
+      <form class="request-decision" data-request-decision>
+        <label class="sr-only" for="decision-comment">Decision comment</label>
+        <textarea id="decision-comment" rows="3" placeholder="Add a decision note" data-decision-comment></textarea>
+        <div class="decision-actions">
+          <button type="button" class="pill-link" data-decision="deny">Deny</button>
+          <button type="button" class="pill-link primary" data-decision="approve">Approve</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="employee-toast request-toast" data-request-toast hidden></div>
+
+  <div class="requests-pagination" data-request-pagination>
+    <button type="button" class="pill-link secondary" data-page="prev" disabled>Previous</button>
+    <span data-page-status>Page 1 of 1</span>
+    <button type="button" class="pill-link secondary" data-page="next" disabled>Next</button>
+  </div>
+</section>
+
+<%- include('../partials/footer') %>
