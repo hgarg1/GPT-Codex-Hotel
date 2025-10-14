@@ -52,7 +52,19 @@ const ZONE_DETAILS = {
         accent: '#ff9ec7',
         highlights: ['Resident mixologist nearby', 'Lush velvet acoustics for conversation'],
     },
+    'solstice-lounge': {
+        name: 'Solstice Lounge',
+        description: 'Low-slung banquettes with a resident mixologist crafting bespoke pairings.',
+        accent: '#ff9ec7',
+        highlights: ['Resident mixologist nearby', 'Lush velvet acoustics for conversation'],
+    },
     terrace: {
+        name: 'Celestial Terrace',
+        description: 'Climate-controlled terrace edged by floating lanterns and fireglass.',
+        accent: '#7ff0d8',
+        highlights: ['Lantern-lit horizon', 'Best for sunset proposals and celebrations'],
+    },
+    'celestial-terrace': {
         name: 'Celestial Terrace',
         description: 'Climate-controlled terrace edged by floating lanterns and fireglass.',
         accent: '#7ff0d8',
@@ -386,13 +398,31 @@ function renderSeatMap() {
         const maxy = Math.max(acc[3], table.y);
         return [minx, miny, maxx, maxy];
     }, [Infinity, Infinity, -Infinity, -Infinity]);
-    const width = Math.max(360, maxX - minX + 160);
-    const height = Math.max(320, maxY - minY + 160);
+    const paddingX = 100;
+    const paddingY = 100;
+    const rawWidth = maxX - minX + paddingX * 2;
+    const rawHeight = maxY - minY + paddingY * 2;
+    const MIN_DISPLAY_WIDTH = 360;
+    const MIN_DISPLAY_HEIGHT = 320;
+    const MAX_DISPLAY_WIDTH = 520;
+    const MAX_DISPLAY_HEIGHT = 420;
+    let scale = 1;
+    if (rawWidth > MAX_DISPLAY_WIDTH) {
+        scale = Math.min(scale, MAX_DISPLAY_WIDTH / rawWidth);
+    }
+    if (rawHeight * scale > MAX_DISPLAY_HEIGHT) {
+        scale = Math.min(scale, MAX_DISPLAY_HEIGHT / rawHeight);
+    }
+    if (!Number.isFinite(scale) || scale <= 0) {
+        scale = 1;
+    }
+    const displayWidth = Math.max(MIN_DISPLAY_WIDTH, Math.round(rawWidth * scale));
+    const displayHeight = Math.max(MIN_DISPLAY_HEIGHT, Math.round(rawHeight * scale));
     const seatButtons = state.tables
         .map((table) => {
         const status = tableStatus(table);
-        const left = table.x - minX + 80;
-        const top = table.y - minY + 80;
+        const left = table.x - minX + paddingX;
+        const top = table.y - minY + paddingY;
         const zoneDetails = getZoneDetails(table.zone);
         const isSelected = state.selectedTableIds.includes(table.id);
         const title = `Table ${table.label} • ${zoneDetails.name} • seats ${table.capacity}`;
@@ -403,12 +433,21 @@ function renderSeatMap() {
       </button>`;
     })
         .join('');
-    return `<div class="reserve-seatmap" style="width:${width}px;height:${height}px">
-      <div class="reserve-seatmap__ambient reserve-seatmap__ambient--aurora" aria-hidden="true"></div>
-      <div class="reserve-seatmap__ambient reserve-seatmap__ambient--floor" aria-hidden="true"></div>
-      <div class="reserve-seatmap__overlay reserve-seatmap__overlay--kitchen" aria-hidden="true"><span>Chef’s line</span></div>
-      <div class="reserve-seatmap__overlay reserve-seatmap__overlay--bar" aria-hidden="true"><span>Aurora bar</span></div>
-      ${seatButtons}
+    const styleParts = [
+        `width:${displayWidth}px`,
+        `height:${displayHeight}px`,
+        `--stage-width:${rawWidth}px`,
+        `--stage-height:${rawHeight}px`,
+        `--seatmap-scale:${scale.toFixed(3)}`,
+    ];
+    return `<div class="reserve-seatmap" style="${styleParts.join(';')}">
+      <div class="reserve-seatmap__stage">
+        <div class="reserve-seatmap__ambient reserve-seatmap__ambient--aurora" aria-hidden="true"></div>
+        <div class="reserve-seatmap__ambient reserve-seatmap__ambient--floor" aria-hidden="true"></div>
+        <div class="reserve-seatmap__overlay reserve-seatmap__overlay--kitchen" aria-hidden="true"><span>Chef’s line</span></div>
+        <div class="reserve-seatmap__overlay reserve-seatmap__overlay--bar" aria-hidden="true"><span>Aurora bar</span></div>
+        ${seatButtons}
+      </div>
     </div>`;
 }
 function renderSuggestedCombos() {
