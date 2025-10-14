@@ -13,6 +13,7 @@ const { hydrateUser } = require('./middleware/auth');
 const { sessionMiddleware } = require('./middleware/session');
 const { notFoundHandler, errorHandler } = require('./middleware/errors');
 const { HOTEL_NAME } = require('./utils/constants');
+const { normalizeRole, Roles } = require('./utils/rbac');
 
 const publicRoutes = require('./routes/public');
 const authRoutes = require('./routes/auth');
@@ -25,6 +26,9 @@ const adminRoutes = require('./routes/admin');
 const diningRoutes = require('./routes/dining');
 const adminDiningRoutes = require('./routes/adminDining');
 const adminApiRoutes = require('./routes/adminApi');
+const employeeRoutes = require('./routes/employee');
+const employeeApiRoutes = require('./routes/employeeApi');
+const employeeBadgeRoutes = require('./routes/employeeBadge');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
@@ -155,10 +159,29 @@ app.use((req, res, next) => {
   };
   res.locals.hotelName = HOTEL_NAME;
   res.locals.darkMode = req.session.darkMode ?? true;
+  res.locals.extraStyles = [];
   next();
 });
 
 app.use(hydrateUser);
+
+app.use((req, res, next) => {
+  if (!req.user || normalizeRole(req.user.role) !== Roles.EMPLOYEE) {
+    return next();
+  }
+  const originalUrl = req.originalUrl || '';
+  const allowList = [/^\/employee(\/|$)/, /^\/api\/employee(\/|$)/, /^\/auth\//, /^\/logout$/, /^\/socket\.io/];
+  if (allowList.some((pattern) => pattern.test(originalUrl))) {
+    return next();
+  }
+  if (originalUrl.startsWith('/api/')) {
+    return res.status(403).json({ error: 'Employee access limited to crew portal endpoints.' });
+  }
+  if (req.method === 'GET' && req.headers.accept && req.headers.accept.includes('text/html')) {
+    return res.redirect('/employee');
+  }
+  return res.redirect('/employee');
+});
 
 const csrfProtection = csrf();
 app.use(csrfProtection);
@@ -170,6 +193,8 @@ app.use((req, res, next) => {
 });
 
 app.use('/api/admin', adminApiRoutes);
+app.use('/api/employee', employeeApiRoutes);
+app.use('/api/employee/badge', employeeBadgeRoutes);
 
 const buildLimiter = ({ windowMs, max, skipSuccessfulRequests = false, message }) => {
   const retryAfterSeconds = Math.ceil(windowMs / 1000);
@@ -236,6 +261,7 @@ app.use('/', amenityRoutes);
 app.use('/', paymentLimiter, paymentRoutes);
 app.use('/', dashboardRoutes);
 app.use('/', chatLimiter, chatRoutes);
+app.use('/employee', employeeRoutes);
 app.use('/', adminRoutes);
 app.use('/', diningRoutes);
 app.use('/', adminDiningRoutes);

@@ -4,6 +4,7 @@ const { getUserAuthByEmail, getUserByEmail, createUser, verifyPassword } = requi
 const { getUserFromRequest, issueSessionToken, clearSessionToken } = require('../utils/jwt');
 const { sanitizeString } = require('../utils/sanitize');
 const { syncDiningProfile } = require('../services/diningAccount');
+const { Roles, normalizeRole } = require('../utils/rbac');
 
 const router = express.Router();
 
@@ -55,7 +56,8 @@ router.post('/signup', async (req, res, next) => {
     }
     issueSessionToken(res, user);
     req.pushAlert('success', `Welcome aboard, ${user.name}. Your Skyhaven profile is ready.`);
-    const redirectPath = req.session.returnTo || '/dashboard';
+    const role = normalizeRole(user.role);
+    const redirectPath = role === Roles.EMPLOYEE ? '/employee' : req.session.returnTo || '/dashboard';
     delete req.session.returnTo;
     return res.redirect(redirectPath);
   } catch (creationError) {
@@ -100,7 +102,8 @@ router.post('/login', async (req, res) => {
   }
   issueSessionToken(res, user);
   req.pushAlert('success', `Welcome back, ${user.name}.`);
-  const redirectPath = req.session.returnTo || '/dashboard';
+  const role = normalizeRole(user.role);
+  const redirectPath = role === Roles.EMPLOYEE ? '/employee' : req.session.returnTo || '/dashboard';
   delete req.session.returnTo;
   return res.redirect(redirectPath);
 });

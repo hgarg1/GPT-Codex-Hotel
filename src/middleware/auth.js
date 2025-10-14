@@ -75,6 +75,28 @@ function ensureApiAuth(req, res, next) {
   return next();
 }
 
+function ensureEmployeePortal(req, res, next) {
+  if (!req.user) {
+    req.session.returnTo = '/employee';
+    req.pushAlert('warning', 'Please log in with your crew credentials to continue.');
+    return res.redirect('/login');
+  }
+  if (normalizeRole(req.user.role) !== Roles.EMPLOYEE) {
+    return res.redirect('/dashboard');
+  }
+  return next();
+}
+
+function ensureEmployeeApi(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  if (normalizeRole(req.user.role) !== Roles.EMPLOYEE) {
+    return res.status(403).json({ error: 'Employee access required' });
+  }
+  return next();
+}
+
 const ensureAdmin = requireRole(Roles.ADMIN, {
   forbiddenMessage: 'You need Aurora Nexus Skyhaven curator privileges to view that console.'
 });
@@ -83,5 +105,7 @@ module.exports = {
   hydrateUser,
   ensureAuthenticated,
   ensureApiAuth,
-  ensureAdmin
+  ensureAdmin,
+  ensureEmployeePortal,
+  ensureEmployeeApi
 };

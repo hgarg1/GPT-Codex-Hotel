@@ -13,6 +13,9 @@ const { getAllInquiries, getInquiryById, updateInquiryStatus } = require('../mod
 const { sanitizeString } = require('../utils/sanitize');
 const { listStaff: listDiningStaff } = require('../services/diningService');
 const { getCurrentSeats } = require('../services/diningSeatLocks');
+const { listEntries } = require('../models/timeEntries');
+const { listAllRequests } = require('../models/employeeRequests');
+const { getUserById } = require('../models/users');
 
 const router = express.Router();
 
@@ -216,6 +219,47 @@ router.get('/admin', ensureAdmin, (req, res) => {
     diningSeatSummary,
     diningStaff,
     diningCoverage
+  });
+});
+
+router.get('/admin/time', ensureAdmin, (req, res) => {
+  const start = new Date(Date.now() - 7 * DAY_MS).toISOString();
+  const entries = listEntries({ start }).slice(0, 60).map((entry) => {
+    const clockIn = entry.clockInAt ? new Date(entry.clockInAt) : null;
+    const clockOut = entry.clockOutAt ? new Date(entry.clockOutAt) : null;
+    const durationLabel = entry.durationMinutes
+      ? `${Math.floor(entry.durationMinutes / 60)}h ${entry.durationMinutes % 60}m`
+      : entry.clockOutAt
+        ? 'Needs review'
+        : 'Open';
+    return {
+      ...entry,
+      clockInLabel: clockIn ? clockIn.toLocaleString() : '—',
+      clockOutLabel: clockOut ? clockOut.toLocaleString() : '—',
+      durationLabel
+    };
+  });
+  res.render('admin/time', {
+    pageTitle: 'Timekeeping Console',
+    entries
+  });
+});
+
+router.get('/admin/requests', ensureAdmin, (req, res) => {
+  const requests = listAllRequests()
+    .slice(0, 80)
+    .map((request) => {
+      const employee = request.employeeId ? getUserById(request.employeeId) : null;
+      return {
+        ...request,
+        employeeName: employee?.name || '',
+        employeeEmail: employee?.email || '',
+        submittedLabel: request.createdAt ? new Date(request.createdAt).toLocaleString() : '—'
+      };
+    });
+  res.render('admin/requests', {
+    pageTitle: 'Crew Requests',
+    requests
   });
 });
 

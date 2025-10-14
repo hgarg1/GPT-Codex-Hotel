@@ -1,0 +1,79 @@
+<%- include('../partials/head', { pageTitle, hotelName, csrfToken, darkMode, extraStyles: ['/css/admin-console.css'] }) %>
+<%- include('../partials/nav') %>
+<%- include('../partials/alerts') %>
+
+<section class="admin-console" data-animate="fade-up">
+  <header class="admin-console__header">
+    <h1>Crew Requests</h1>
+    <p class="muted">Review PTO, worker safety, and profile update submissions routed from the employee portal.</p>
+  </header>
+
+  <section class="admin-requests">
+    <div class="admin-requests__filters">
+      <label>
+        <span>Status</span>
+        <select id="request-filter-status">
+          <option value="">All</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="denied">Denied</option>
+        </select>
+      </label>
+      <label>
+        <span>Type</span>
+        <select id="request-filter-type">
+          <option value="">All</option>
+          <option value="pto">PTO</option>
+          <option value="workers_comp">Workers' Comp</option>
+          <option value="profile_update">Profile Update</option>
+        </select>
+      </label>
+      <button class="btn" id="request-filter-apply" type="button">Apply</button>
+    </div>
+
+    <table class="admin-table" id="requests-table">
+      <thead>
+        <tr>
+          <th>Submitted</th>
+          <th>Employee</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Details</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (requests && requests.length) { %>
+          <% requests.forEach(function(request) { %>
+            <tr data-request-id="<%= request.id %>" data-request='<%- JSON.stringify(request) %>'>
+              <td><%= request.submittedLabel %></td>
+              <td><strong><%= request.employeeName || request.employeeId %></strong><br /><span class="muted"><%= request.employeeEmail || request.employeeId %></span></td>
+              <td><%= request.type.replace('_', ' ') %></td>
+              <td><span class="status-chip status-<%= request.status %>"><%= request.status %></span></td>
+              <td class="request-payload"><pre><%- JSON.stringify(request.payload, null, 2) %></pre></td>
+              <td>
+                <div class="request-actions">
+                  <select class="request-status">
+                    <option value="pending" <%= request.status === 'pending' ? 'selected' : '' %>>Pending</option>
+                    <option value="approved" <%= request.status === 'approved' ? 'selected' : '' %>>Approved</option>
+                    <option value="denied" <%= request.status === 'denied' ? 'selected' : '' %>>Denied</option>
+                    <option value="cancelled" <%= request.status === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
+                  </select>
+                  <button type="button" class="btn btn-outline request-update">Update</button>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        <% } else { %>
+          <tr><td colspan="6" class="muted">No crew requests yet.</td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </section>
+</section>
+
+<script>
+  window.AdminRequests = { csrfToken: '<%= csrfToken %>' };
+</script>
+<script defer src="/js/admin-requests.js"></script>
+<%- include('../partials/footer') %>
