@@ -7,15 +7,18 @@ db.prepare(`
   CREATE TABLE IF NOT EXISTS employee_requests (
     id TEXT PRIMARY KEY,
     employeeId TEXT NOT NULL,
+    userId TEXT,
     type TEXT NOT NULL,
-    payload TEXT NOT NULL,
+    payload TEXT,
     status TEXT NOT NULL DEFAULT 'pending',
-    note TEXT,
+    comment TEXT,
+    decisionByUserId TEXT,
+    decisionAt TEXT,
     createdAt TEXT NOT NULL,
     updatedAt TEXT NOT NULL,
-    resolvedAt TEXT,
-    resolvedBy TEXT,
-    FOREIGN KEY (employeeId) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (employeeId) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (decisionByUserId) REFERENCES users(id) ON DELETE SET NULL
   )
 `).run();
 
@@ -34,26 +37,19 @@ db.prepare(`
     emergencyContactPhone TEXT,
     emergencyContactRelationship TEXT,
     updatedAt TEXT,
-    FOREIGN KEY (employeeId) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (employeeId) REFERENCES employees(id) ON DELETE CASCADE
   )
 `).run();
 
-function serialiseRequest(row) {
-  if (!row) return null;
-  let payload;
-  try {
-    payload = JSON.parse(row.payload || '{}');
-  } catch (error) {
-    payload = {};
-function parsePayload(value) {
-  if (!value) {
+function parsePayload(raw) {
+  if (!raw) {
     return {};
   }
-  if (typeof value === 'object') {
-    return value;
+  if (typeof raw === 'object') {
+    return raw;
   }
   try {
-    return JSON.parse(value);
+    return JSON.parse(raw);
   } catch (error) {
     return {};
   }
@@ -63,17 +59,34 @@ function serializeRequest(row) {
   if (!row) {
     return null;
   }
+  const payload = parsePayload(row.payload);
+  const employeeDetails = {
+    id: row.employeeId || null,
+    name: row.employeeName || null,
+    email: row.employeeEmail || null,
+    department: row.employeeDepartment || null,
+    status: row.employeeStatus || null
+  };
+  const hasEmployeeDetails = Object.values(employeeDetails).some((value) => value !== null && value !== undefined);
+
   return {
     id: row.id,
     employeeId: row.employeeId,
+    userId: row.userId || null,
     type: row.type,
     payload,
     status: row.status || 'pending',
-    note: row.note || null,
+    comment: row.comment || null,
+    decisionByUserId: row.decisionByUserId || null,
+    decisionAt: row.decisionAt || null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
-    resolvedAt: row.resolvedAt || null,
-    resolvedBy: row.resolvedBy || null
+    employee: hasEmployeeDetails ? employeeDetails : null,
+    employeeName: row.employeeName || null,
+    employeeEmail: row.employeeEmail || null,
+    employeeDepartment: row.employeeDepartment || null,
+    employeeStatus: row.employeeStatus || null,
+    submittedLabel: row.submittedLabel || null
   };
 }
 
@@ -107,9 +120,9 @@ function getProfile(employeeId) {
   };
 }
 
-function upsertProfile(employeeId, updates) {
+function upsertProfile(employeeId, updates = {}) {
   const existing = db.prepare('SELECT employeeId FROM employee_profiles WHERE employeeId = ?').get(employeeId);
-  const payload = {
+  const record = {
     employeeId,
     addressLine1: updates.addressLine1 || null,
     addressLine2: updates.addressLine2 || null,
@@ -121,6 +134,7 @@ function upsertProfile(employeeId, updates) {
     emergencyContactRelationship: updates.emergencyContactRelationship || null,
     updatedAt: new Date().toISOString()
   };
+
   if (existing) {
     db.prepare(
       `UPDATE employee_profiles SET
@@ -134,7 +148,7 @@ function upsertProfile(employeeId, updates) {
         emergencyContactRelationship=@emergencyContactRelationship,
         updatedAt=@updatedAt
       WHERE employeeId=@employeeId`
-    ).run(payload);
+    ).run(record);
   } else {
     db.prepare(
       `INSERT INTO employee_profiles (
@@ -144,31 +158,78 @@ function upsertProfile(employeeId, updates) {
         @employeeId, @addressLine1, @addressLine2, @city, @state, @postalCode,
         @emergencyContactName, @emergencyContactPhone, @emergencyContactRelationship, @updatedAt
       )`
-    ).run(payload);
+    ).run(record);
   }
+
   return getProfile(employeeId);
 }
 
-function createRequest({ employeeId, type, payload }) {
-    userId: row.userId,
-    type: row.type,
-    payload: parsePayload(row.payload),
-    status: row.status,
-    comment: row.comment,
-    decisionByUserId: row.decisionByUserId,
-    decisionAt: row.decisionAt,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-    employee: row.employeeId
-      ? {
-          id: row.employeeId,
-          name: row.employeeName,
-          email: row.employeeEmail,
-          department: row.employeeDepartment,
-          status: row.employeeStatus
-        }
-      : null
+function createRequest({ employeeId, userId, type, payload }) {
+  if (!employeeId) {
+    throw new Error('employeeId is required to create a request');
+  }
+  if (!type) {
+    throw new Error('type is required to create a request');
+  }
+  const now = new Date().toISOString();
+  const record = {
+    id: uuidv4(),
+    employeeId,
+    userId: userId || null,
+    type,
+    payload: JSON.stringify(payload || {}),
+    status: 'pending',
+    comment: null,
+    decisionByUserId: null,
+    decisionAt: null,
+    createdAt: now,
+    updatedAt: now
   };
+  db.prepare(
+    `INSERT INTO employee_requests (
+      id, employeeId, userId, type, payload, status, comment, decisionByUserId, decisionAt, createdAt, updatedAt
+    ) VALUES (
+      @id, @employeeId, @userId, @type, @payload, @status, @comment, @decisionByUserId, @decisionAt, @createdAt, @updatedAt
+    )`
+  ).run(record);
+  return getRequestById(record.id);
+}
+
+function getRequestById(id) {
+  const row = db
+    .prepare(
+      `SELECT er.*, e.name AS employeeName, e.email AS employeeEmail, e.department AS employeeDepartment, e.status AS employeeStatus
+       FROM employee_requests er
+       LEFT JOIN employees e ON e.id = er.employeeId
+       WHERE er.id = ?`
+    )
+    .get(id);
+  return serializeRequest(row);
+}
+
+function listRequestsForEmployee(employeeId) {
+  const rows = db
+    .prepare(
+      `SELECT er.*, e.name AS employeeName, e.email AS employeeEmail, e.department AS employeeDepartment, e.status AS employeeStatus
+       FROM employee_requests er
+       LEFT JOIN employees e ON e.id = er.employeeId
+       WHERE er.employeeId = ?
+       ORDER BY er.createdAt DESC`
+    )
+    .all(employeeId);
+  return rows.map(serializeRequest);
+}
+
+function listAllRequests() {
+  const rows = db
+    .prepare(
+      `SELECT er.*, e.name AS employeeName, e.email AS employeeEmail, e.department AS employeeDepartment, e.status AS employeeStatus
+       FROM employee_requests er
+       LEFT JOIN employees e ON e.id = er.employeeId
+       ORDER BY er.createdAt DESC`
+    )
+    .all();
+  return rows.map(serializeRequest);
 }
 
 function normalisePage(value, fallback) {
@@ -187,104 +248,41 @@ function normalisePageSize(value, fallback) {
   return Math.min(parsed, 100);
 }
 
-function createRequest({ employeeId, userId, type, payload }) {
-  const now = new Date().toISOString();
-  const record = {
-    id: uuidv4(),
-    employeeId,
-    type,
-    payload: JSON.stringify(payload || {}),
-    status: 'pending',
-    note: null,
-    createdAt: now,
-    updatedAt: now,
-    resolvedAt: null,
-    resolvedBy: null
-  };
-  db.prepare(`
-    INSERT INTO employee_requests (
-      id, employeeId, type, payload, status, note, createdAt, updatedAt, resolvedAt, resolvedBy
-    ) VALUES (
-      @id, @employeeId, @type, @payload, @status, @note, @createdAt, @updatedAt, @resolvedAt, @resolvedBy
-    )
-  `).run(record);
-  return serialiseRequest(record);
-}
-
-function listRequestsForEmployee(employeeId) {
-  const rows = db
-    .prepare('SELECT * FROM employee_requests WHERE employeeId = ? ORDER BY createdAt DESC')
-    .all(employeeId);
-  return rows.map(serialiseRequest);
-}
-
-function listAllRequests() {
-  const rows = db.prepare('SELECT * FROM employee_requests ORDER BY createdAt DESC').all();
-  return rows.map(serialiseRequest);
-}
-
-function updateRequestStatus(id, { status, note, resolvedBy }) {
-  const request = getRequestById(id);
-  if (!request) {
-    userId: userId || null,
-    type,
-    payload: JSON.stringify(payload || {}),
-    status: 'pending',
-    comment: null,
-    decisionByUserId: null,
-    decisionAt: null,
-    createdAt: now,
-    updatedAt: now
-  };
-  db.prepare(`
-    INSERT INTO employee_requests (id, employeeId, userId, type, payload, status, comment, decisionByUserId, decisionAt, createdAt, updatedAt)
-    VALUES (@id, @employeeId, @userId, @type, @payload, @status, @comment, @decisionByUserId, @decisionAt, @createdAt, @updatedAt)
-  `).run(record);
-  return getRequestById(record.id);
-}
-
-function getRequestById(id) {
-  const row = db
-    .prepare(
-      `SELECT er.*, e.name as employeeName, e.email as employeeEmail, e.department as employeeDepartment, e.status as employeeStatus
-       FROM employee_requests er
-       LEFT JOIN employees e ON e.id = er.employeeId
-       WHERE er.id = ?`
-    )
-    .get(id);
-  return serializeRequest(row);
-}
-
 function listRequests(options = {}) {
   const page = normalisePage(options.page, 1);
   const pageSize = normalisePageSize(options.pageSize, 20);
   const conditions = [];
   const values = [];
+
   if (options.status) {
     conditions.push('LOWER(er.status) = ?');
     values.push(String(options.status).toLowerCase());
   }
+
   if (options.type) {
     conditions.push('LOWER(er.type) = ?');
     values.push(String(options.type).toLowerCase());
   }
+
   if (options.search) {
-    const like = `%${String(options.search).toLowerCase()}%`;
-    conditions.push('(LOWER(e.name) LIKE ? OR LOWER(e.email) LIKE ? OR LOWER(er.type) LIKE ?)');
-    values.push(like, like, like);
+    const search = `%${String(options.search).toLowerCase()}%`;
+    conditions.push('(LOWER(e.name) LIKE ? OR LOWER(e.email) LIKE ? OR LOWER(er.type) LIKE ? OR LOWER(er.status) LIKE ? OR LOWER(er.comment) LIKE ? )');
+    values.push(search, search, search, search, search);
   }
-  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-  const baseQuery = `FROM employee_requests er LEFT JOIN employees e ON e.id = er.employeeId ${where}`;
-  const total = db.prepare(`SELECT COUNT(*) as count ${baseQuery}`).get(...values).count;
+
+  const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const baseQuery = `FROM employee_requests er LEFT JOIN employees e ON e.id = er.employeeId ${whereClause}`;
+  const total = db.prepare(`SELECT COUNT(*) AS count ${baseQuery}`).get(...values).count;
   const offset = (page - 1) * pageSize;
   const rows = db
     .prepare(
-      `SELECT er.*, e.name as employeeName, e.email as employeeEmail, e.department as employeeDepartment, e.status as employeeStatus
+      `SELECT er.*, e.name AS employeeName, e.email AS employeeEmail, e.department AS employeeDepartment, e.status AS employeeStatus
        ${baseQuery}
        ORDER BY er.createdAt DESC
        LIMIT ? OFFSET ?`
     )
     .all(...values, pageSize, offset);
+
   return {
     requests: rows.map(serializeRequest),
     pagination: {
@@ -299,7 +297,7 @@ function listRequests(options = {}) {
 function listPendingRequestsByEmployee(employeeId, type) {
   const rows = db
     .prepare(
-      `SELECT er.*, e.name as employeeName, e.email as employeeEmail, e.department as employeeDepartment, e.status as employeeStatus
+      `SELECT er.*, e.name AS employeeName, e.email AS employeeEmail, e.department AS employeeDepartment, e.status AS employeeStatus
        FROM employee_requests er
        LEFT JOIN employees e ON e.id = er.employeeId
        WHERE er.employeeId = ? AND er.status = 'pending' AND er.type = ?
@@ -317,24 +315,32 @@ function updateRequestStatus(id, status, comment, decisionByUserId) {
     throw error;
   }
   const now = new Date().toISOString();
-  const payload = {
-    status: status || request.status,
-    note: typeof note === 'string' ? note : request.note,
-    resolvedBy: resolvedBy || request.resolvedBy,
-    resolvedAt: ['approved', 'denied', 'cancelled', 'canceled', 'completed'].includes((status || '').toLowerCase())
-      ? now
-      : request.resolvedAt,
-    id,
-    updatedAt: now
-  };
-  db.prepare(
-    `UPDATE employee_requests SET status = @status, note = @note, resolvedBy = @resolvedBy, resolvedAt = @resolvedAt, updatedAt = @updatedAt WHERE id = @id`
-  ).run(payload);
+  const nextStatus = status || existing.status;
+  const normalizedStatus = String(nextStatus || '').toLowerCase();
+  let decisionAt = existing.decisionAt;
+  if (['approved', 'denied', 'cancelled', 'canceled', 'completed'].includes(normalizedStatus)) {
+    decisionAt = now;
+  } else if (normalizedStatus === 'pending') {
+    decisionAt = null;
+  }
+
   db.prepare(
     `UPDATE employee_requests
-     SET status = ?, comment = ?, decisionByUserId = ?, decisionAt = ?, updatedAt = ?
-     WHERE id = ?`
-  ).run(status, comment || null, decisionByUserId || null, now, now, id);
+     SET status = @status,
+         comment = @comment,
+         decisionByUserId = @decisionByUserId,
+         decisionAt = @decisionAt,
+         updatedAt = @updatedAt
+     WHERE id = @id`
+  ).run({
+    id,
+    status: nextStatus,
+    comment: comment !== undefined ? comment : existing.comment,
+    decisionByUserId: decisionByUserId || null,
+    decisionAt,
+    updatedAt: now
+  });
+
   return getRequestById(id);
 }
 
@@ -345,8 +351,7 @@ module.exports = {
   listAllRequests,
   updateRequestStatus,
   getProfile,
-  upsertProfile
+  upsertProfile,
   listRequests,
-  listPendingRequestsByEmployee,
-  updateRequestStatus
+  listPendingRequestsByEmployee
 };
