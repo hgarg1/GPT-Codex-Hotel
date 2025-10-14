@@ -340,6 +340,14 @@
   justify-content: flex-end;
 }
 
+.reserve-card--success .reserve-actions {
+  justify-content: center;
+}
+
+.reserve-card--success .reserve-actions .reserve-primary {
+  min-width: 14rem;
+}
+
 .reserve-seatmap-wrapper {
   overflow: hidden;
   border-radius: 0.85rem;
@@ -832,6 +840,15 @@
 @media (max-width: 767px) {
   .reserve-seatmap-wrapper {
     overflow: auto;
+  }
+
+  .reserve-card--success .reserve-actions {
+    width: 100%;
+  }
+
+  .reserve-card--success .reserve-actions .reserve-primary {
+    flex: 1 1 auto;
+    min-width: 0;
   }
 }
 
