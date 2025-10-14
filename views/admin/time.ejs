@@ -1,0 +1,91 @@
+<%- include('../partials/head', { pageTitle, hotelName, csrfToken, darkMode, extraStyles: ['/css/admin-console.css'] }) %>
+<%- include('../partials/nav') %>
+<%- include('../partials/alerts') %>
+
+<section class="admin-console" data-animate="fade-up">
+  <header class="admin-console__header">
+    <h1>Timekeeping Console</h1>
+    <p class="muted">Monitor crew punches, identify anomalies, and adjust entries for compliance.</p>
+    <a href="/admin" class="btn btn-outline">Back to control deck</a>
+  </header>
+
+  <div class="admin-time__layout">
+    <section class="admin-time__table">
+      <header>
+        <h2>Recent entries</h2>
+        <p class="muted">Showing the past 7 days. Use the filters below to narrow by crew member or date range.</p>
+      </header>
+      <div class="admin-time__filters">
+        <label>
+          <span>Employee ID</span>
+          <input type="text" id="time-filter-employee" placeholder="Search by id" />
+        </label>
+        <label>
+          <span>Start</span>
+          <input type="date" id="time-filter-start" />
+        </label>
+        <label>
+          <span>End</span>
+          <input type="date" id="time-filter-end" />
+        </label>
+        <button class="btn" id="time-filter-apply" type="button">Apply</button>
+      </div>
+      <table class="admin-table" id="time-entries-table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Clock In</th>
+            <th>Clock Out</th>
+            <th>Duration</th>
+            <th>Location</th>
+            <th>Notes</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (entries && entries.length) { %>
+            <% entries.forEach(function(entry) { %>
+              <tr data-entry-id="<%= entry.id %>" data-entry='<%- JSON.stringify(entry) %>'>
+                <td><strong><%= entry.employeeId %></strong></td>
+                <td><%= entry.clockInLabel %></td>
+                <td><%= entry.clockOutLabel %></td>
+                <td><%= entry.durationLabel %></td>
+                <td><%= entry.location || '—' %></td>
+                <td><%= entry.notes || '—' %></td>
+                <td><button type="button" class="btn btn-outline time-adjust">Adjust</button></td>
+              </tr>
+            <% }) %>
+          <% } else { %>
+            <tr><td colspan="7" class="muted">No entries recorded in the last week.</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </section>
+
+    <aside class="admin-time__detail" id="time-detail" hidden>
+      <h2>Edit entry</h2>
+      <p class="muted">Adjust timestamps or metadata. Changes are logged in the audit trail.</p>
+      <form id="time-adjust-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <input type="hidden" id="time-entry-id" />
+        <label for="time-clock-in">Clock in</label>
+        <input type="datetime-local" id="time-clock-in" name="clockInAt" required />
+        <label for="time-clock-out">Clock out</label>
+        <input type="datetime-local" id="time-clock-out" name="clockOutAt" />
+        <label for="time-department">Department</label>
+        <input type="text" id="time-department" name="department" maxlength="120" />
+        <label for="time-location">Location</label>
+        <input type="text" id="time-location" name="location" maxlength="180" />
+        <label for="time-notes">Notes</label>
+        <textarea id="time-notes" name="notes" maxlength="500"></textarea>
+        <button type="submit" class="btn">Save adjustment</button>
+      </form>
+    </aside>
+  </div>
+</section>
+
+<script>
+  window.AdminTime = { csrfToken: '<%= csrfToken %>' };
+</script>
+<script defer src="/js/admin-time.js"></script>
+<%- include('../partials/footer') %>

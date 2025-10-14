@@ -1,104 +1,79 @@
-<%- include('../partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
-<script defer src="/js/admin-requests.js"></script>
+<%- include('../partials/head', { pageTitle, hotelName, csrfToken, darkMode, extraStyles: ['/css/admin-console.css'] }) %>
 <%- include('../partials/nav') %>
 <%- include('../partials/alerts') %>
 
-<section class="admin admin-requests" data-animate="fade-up">
-  <header class="requests-header">
-    <h1>Employee requests queue</h1>
-    <p>Review PTO, transfer, resignation, and incident submissions from the crew.</p>
+<section class="admin-console" data-animate="fade-up">
+  <header class="admin-console__header">
+    <h1>Crew Requests</h1>
+    <p class="muted">Review PTO, worker safety, and profile update submissions routed from the employee portal.</p>
   </header>
 
-  <div class="requests-toolbar">
-    <label class="sr-only" for="requests-search">Search requests</label>
-    <input id="requests-search" type="search" placeholder="Search by employee or type" data-request-search />
-    <div class="requests-filters">
-      <label class="sr-only" for="requests-status">Filter by status</label>
-      <select id="requests-status" data-request-filter="status">
-        <option value="pending">Pending</option>
-        <option value="approved">Approved</option>
-        <option value="denied">Denied</option>
-      </select>
-      <label class="sr-only" for="requests-type">Filter by type</label>
-      <select id="requests-type" data-request-filter="type">
-        <option value="">All types</option>
-        <option value="pto">PTO</option>
-        <option value="workers-comp">Workers comp</option>
-        <option value="transfer">Transfer</option>
-        <option value="resignation">Resignation</option>
-      </select>
+  <section class="admin-requests">
+    <div class="admin-requests__filters">
+      <label>
+        <span>Status</span>
+        <select id="request-filter-status">
+          <option value="">All</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="denied">Denied</option>
+        </select>
+      </label>
+      <label>
+        <span>Type</span>
+        <select id="request-filter-type">
+          <option value="">All</option>
+          <option value="pto">PTO</option>
+          <option value="workers_comp">Workers' Comp</option>
+          <option value="profile_update">Profile Update</option>
+        </select>
+      </label>
+      <button class="btn" id="request-filter-apply" type="button">Apply</button>
     </div>
-  </div>
 
-  <div class="requests-table-wrapper">
-    <table class="admin-table requests-table">
+    <table class="admin-table" id="requests-table">
       <thead>
         <tr>
-          <th scope="col">Employee</th>
-          <th scope="col">Type</th>
-          <th scope="col">Submitted</th>
-          <th scope="col">Status</th>
-          <th scope="col">Latest comment</th>
-          <th scope="col">Actions</th>
+          <th>Submitted</th>
+          <th>Employee</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Details</th>
+          <th></th>
         </tr>
       </thead>
-      <tbody data-request-rows>
-        <tr data-empty>
-          <td colspan="6">Loading requests…</td>
-        </tr>
+      <tbody>
+        <% if (requests && requests.length) { %>
+          <% requests.forEach(function(request) { %>
+            <tr data-request-id="<%= request.id %>" data-request='<%- JSON.stringify(request) %>'>
+              <td><%= request.submittedLabel %></td>
+              <td><strong><%= request.employeeName || request.employeeId %></strong><br /><span class="muted"><%= request.employeeEmail || request.employeeId %></span></td>
+              <td><%= request.type.replace('_', ' ') %></td>
+              <td><span class="status-chip status-<%= request.status %>"><%= request.status %></span></td>
+              <td class="request-payload"><pre><%- JSON.stringify(request.payload, null, 2) %></pre></td>
+              <td>
+                <div class="request-actions">
+                  <select class="request-status">
+                    <option value="pending" <%= request.status === 'pending' ? 'selected' : '' %>>Pending</option>
+                    <option value="approved" <%= request.status === 'approved' ? 'selected' : '' %>>Approved</option>
+                    <option value="denied" <%= request.status === 'denied' ? 'selected' : '' %>>Denied</option>
+                    <option value="cancelled" <%= request.status === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
+                  </select>
+                  <button type="button" class="btn btn-outline request-update">Update</button>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        <% } else { %>
+          <tr><td colspan="6" class="muted">No crew requests yet.</td></tr>
+        <% } %>
       </tbody>
     </table>
-  </div>
-
-  <div class="request-detail" data-request-detail hidden>
-    <header class="detail-header">
-      <div>
-        <h2 data-detail-title>Request</h2>
-        <p class="muted" data-detail-subtitle></p>
-      </div>
-      <button type="button" class="pill-link" data-close-request>Close</button>
-    </header>
-    <section class="detail-body">
-      <dl class="detail-grid">
-        <div>
-          <dt>Employee</dt>
-          <dd data-detail-employee>—</dd>
-        </div>
-        <div>
-          <dt>Department</dt>
-          <dd data-detail-department>—</dd>
-        </div>
-        <div>
-          <dt>Status</dt>
-          <dd data-detail-status>—</dd>
-        </div>
-        <div>
-          <dt>Submitted</dt>
-          <dd data-detail-created>—</dd>
-        </div>
-        <div>
-          <dt>Payload</dt>
-          <dd data-detail-payload>—</dd>
-        </div>
-      </dl>
-      <form class="request-decision" data-request-decision>
-        <label class="sr-only" for="decision-comment">Decision comment</label>
-        <textarea id="decision-comment" rows="3" placeholder="Add a decision note" data-decision-comment></textarea>
-        <div class="decision-actions">
-          <button type="button" class="pill-link" data-decision="deny">Deny</button>
-          <button type="button" class="pill-link primary" data-decision="approve">Approve</button>
-        </div>
-      </form>
-    </section>
-  </div>
-
-  <div class="employee-toast request-toast" data-request-toast hidden></div>
-
-  <div class="requests-pagination" data-request-pagination>
-    <button type="button" class="pill-link secondary" data-page="prev" disabled>Previous</button>
-    <span data-page-status>Page 1 of 1</span>
-    <button type="button" class="pill-link secondary" data-page="next" disabled>Next</button>
-  </div>
+  </section>
 </section>
 
+<script>
+  window.AdminRequests = { csrfToken: '<%= csrfToken %>' };
+</script>
+<script defer src="/js/admin-requests.js"></script>
 <%- include('../partials/footer') %>

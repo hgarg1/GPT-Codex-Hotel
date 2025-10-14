@@ -1,0 +1,239 @@
+<%- include('../partials/head', { pageTitle, hotelName, csrfToken, darkMode, extraStyles: ['/css/employee-portal.css'] }) %>
+<body class="employee-portal">
+  <header class="employee-portal__masthead">
+    <div>
+      <h1>Skyhaven Crew Portal</h1>
+      <p class="tagline">Shift control, requests, and badges in one streamlined console.</p>
+    </div>
+    <div class="masthead-actions">
+      <span class="crew-name">Signed in as <strong><%= currentUser.name %></strong></span>
+      <form action="/logout" method="post">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <button class="btn btn-outline" type="submit">Log out</button>
+      </form>
+    </div>
+  </header>
+
+  <main class="employee-portal__content" data-animate="fade-up">
+    <div class="tab-controls" role="tablist">
+      <button class="tab-control active" data-target="clock" role="tab" aria-selected="true">Clock In/Out</button>
+      <button class="tab-control" data-target="timesheet" role="tab" aria-selected="false">Timesheet</button>
+      <button class="tab-control" data-target="requests" role="tab" aria-selected="false">Requests</button>
+      <button class="tab-control" data-target="profile" role="tab" aria-selected="false">Profile</button>
+    </div>
+
+    <section class="panel active" id="panel-clock" role="tabpanel">
+      <div class="panel-header">
+        <h2>Clock In &amp; Clock Out</h2>
+        <% if (openShift) { %>
+          <span class="status-chip status-active">Currently clocked in since <%= new Date(openShift.clockInAt).toLocaleTimeString() %></span>
+        <% } else { %>
+          <span class="status-chip">No active shift</span>
+        <% } %>
+      </div>
+      <p class="muted">Capture your start and end of shift with location, assignment, and context notes. The console prevents overlapping shifts and logs device details for auditing.</p>
+      <form id="clock-form" class="clock-form" autocomplete="off">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <div class="form-step">
+          <div class="step-indicator">1</div>
+          <div class="step-body">
+            <label for="clock-department">Department</label>
+            <input id="clock-department" name="department" type="text" maxlength="120" placeholder="Front Desk" value="<%= currentUser.department || '' %>" />
+          </div>
+        </div>
+        <div class="form-step">
+          <div class="step-indicator">2</div>
+          <div class="step-body">
+            <label for="clock-role">Role</label>
+            <input id="clock-role" name="role" type="text" maxlength="120" placeholder="Guest Liaison" value="<%= currentUser.role || 'EMPLOYEE' %>" />
+          </div>
+        </div>
+        <div class="form-step">
+          <div class="step-indicator">3</div>
+          <div class="step-body">
+            <label for="clock-location">Location</label>
+            <input id="clock-location" name="location" type="text" maxlength="180" placeholder="Skydeck A" />
+          </div>
+        </div>
+        <div class="form-step">
+          <div class="step-indicator">4</div>
+          <div class="step-body">
+            <label for="clock-notes">Notes (optional)</label>
+            <textarea id="clock-notes" name="notes" maxlength="500" placeholder="Covering transport arrivals"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn" id="clock-in-btn">Clock In</button>
+          <button type="button" class="btn btn-outline" id="clock-out-btn" <%= openShift ? '' : 'disabled' %>>Clock Out</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel" id="panel-timesheet" role="tabpanel" hidden>
+      <div class="panel-header">
+        <h2>Timesheet Overview</h2>
+        <div class="panel-tools">
+          <select id="timesheet-range" class="range-select" aria-label="Timesheet Range">
+            <option value="current" selected>Current Period (14 days)</option>
+            <option value="history">Last 30 Days</option>
+          </select>
+          <a class="btn btn-outline" id="timesheet-export" href="/api/employee/time/timesheet.csv?range=current">Export CSV</a>
+        </div>
+      </div>
+      <table class="timesheet-table">
+        <thead>
+          <tr>
+            <th scope="col">Date</th>
+            <th scope="col">Clock In</th>
+            <th scope="col">Clock Out</th>
+            <th scope="col">Duration</th>
+            <th scope="col">Status</th>
+            <th scope="col">Location</th>
+            <th scope="col">Notes</th>
+          </tr>
+        </thead>
+        <tbody id="timesheet-body">
+          <% if (recentEntries && recentEntries.length) { %>
+            <% recentEntries.forEach(function(entry) { %>
+              <tr>
+                <% const inDate = entry.clockInAt ? new Date(entry.clockInAt) : null; %>
+                <% const outDate = entry.clockOutAt ? new Date(entry.clockOutAt) : null; %>
+                <td><%= inDate ? inDate.toLocaleDateString() : '—' %></td>
+                <td><%= inDate ? inDate.toLocaleTimeString() : '—' %></td>
+                <td><%= outDate ? outDate.toLocaleTimeString() : '—' %></td>
+                <td><%= entry.durationMinutes ? Math.floor(entry.durationMinutes / 60) + 'h ' + (entry.durationMinutes % 60) + 'm' : (entry.clockOutAt ? 'Needs review' : 'Open') %></td>
+                <td><%= entry.clockOutAt ? (entry.durationMinutes ? 'Complete' : 'Pending') : 'Open' %></td>
+                <td><%= entry.location || '—' %></td>
+                <td><%= entry.notes || '—' %></td>
+              </tr>
+            <% }) %>
+          <% } else { %>
+            <tr>
+              <td colspan="7" class="muted">No recorded shifts in this window yet. Once you clock time, records will appear here.</td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+      <footer class="timesheet-summary" id="timesheet-summary"></footer>
+    </section>
+
+    <section class="panel" id="panel-requests" role="tabpanel" hidden>
+      <div class="panel-grid">
+        <article class="panel-card">
+          <h3>Paid Time Off</h3>
+          <p class="muted">Submit PTO for scheduling. Approved requests can be added directly to your calendar.</p>
+          <form id="pto-form" class="stacked-form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <label for="pto-start">Start Date</label>
+            <input id="pto-start" name="startDate" type="date" required />
+            <label for="pto-end">End Date</label>
+            <input id="pto-end" name="endDate" type="date" required />
+            <label for="pto-reason">Reason (optional)</label>
+            <textarea id="pto-reason" name="reason" maxlength="500"></textarea>
+            <button type="submit" class="btn">Submit PTO Request</button>
+          </form>
+        </article>
+        <article class="panel-card">
+          <h3>Workers' Compensation</h3>
+          <p class="muted">Report workplace incidents for follow up by safety operations.</p>
+          <form id="workers-comp-form" class="stacked-form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <label for="incident-date">Incident Date</label>
+            <input id="incident-date" name="incidentDate" type="datetime-local" required />
+            <label for="incident-location">Location</label>
+            <input id="incident-location" name="location" type="text" maxlength="180" />
+            <label for="incident-description">Description</label>
+            <textarea id="incident-description" name="description" maxlength="1000" required></textarea>
+            <button type="submit" class="btn">Submit Workers' Comp Form</button>
+          </form>
+        </article>
+      </div>
+      <div class="request-history">
+        <h3>Recent Requests</h3>
+        <ul id="request-list" class="request-timeline">
+          <% if (requests && requests.length) { %>
+            <% requests.forEach(function(item) { %>
+              <li class="timeline-item" data-request-id="<%= item.id %>" data-request-type="<%= item.type %>" data-request-status="<%= item.status %>">
+                <div>
+                  <strong><%= item.type.replace('_', ' ') %></strong>
+                  <span class="muted">Submitted <%= new Date(item.createdAt).toLocaleString() %></span>
+                </div>
+                <div class="status-chip status-<%= item.status %>"><%= item.status %></div>
+                <% if (item.type === 'pto' && item.status === 'approved') { %>
+                  <button type="button" class="btn btn-outline add-calendar" data-request='<%- JSON.stringify(item) %>'>Add to Calendar</button>
+                <% } %>
+              </li>
+            <% }) %>
+          <% } else { %>
+            <li class="timeline-item muted">No requests logged yet.</li>
+          <% } %>
+        </ul>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-profile" role="tabpanel" hidden>
+      <div class="profile-layout">
+        <article class="panel-card">
+          <h3>Current Profile</h3>
+          <dl class="profile-summary">
+            <div><dt>Name</dt><dd><%= currentUser.name %></dd></div>
+            <div><dt>Email</dt><dd><%= currentUser.email %></dd></div>
+            <div><dt>Department</dt><dd><%= currentUser.department || '—' %></dd></div>
+            <div><dt>Emergency Contact</dt><dd><%= profile.emergencyContactName ? profile.emergencyContactName + ' (' + (profile.emergencyContactPhone || 'no phone') + ')' : 'Not provided' %></dd></div>
+            <div><dt>Address</dt><dd><%= profile.addressLine1 || '—' %></dd></div>
+          </dl>
+        </article>
+        <article class="panel-card">
+          <h3>Request Profile Update</h3>
+          <p class="muted">Changes route to admin for approval. You will be notified once reviewed.</p>
+          <form id="profile-form" class="stacked-form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <label for="profile-address1">Address line 1</label>
+            <input id="profile-address1" name="addressLine1" type="text" maxlength="200" value="<%= profile.addressLine1 || '' %>" />
+            <label for="profile-address2">Address line 2</label>
+            <input id="profile-address2" name="addressLine2" type="text" maxlength="200" value="<%= profile.addressLine2 || '' %>" />
+            <div class="profile-grid">
+              <div>
+                <label for="profile-city">City</label>
+                <input id="profile-city" name="city" type="text" maxlength="120" value="<%= profile.city || '' %>" />
+              </div>
+              <div>
+                <label for="profile-state">State</label>
+                <input id="profile-state" name="state" type="text" maxlength="120" value="<%= profile.state || '' %>" />
+              </div>
+              <div>
+                <label for="profile-postal">Postal</label>
+                <input id="profile-postal" name="postalCode" type="text" maxlength="40" value="<%= profile.postalCode || '' %>" />
+              </div>
+            </div>
+            <label for="profile-emergency-name">Emergency contact name</label>
+            <input id="profile-emergency-name" name="emergencyContactName" type="text" maxlength="160" value="<%= profile.emergencyContactName || '' %>" />
+            <label for="profile-emergency-phone">Emergency contact phone</label>
+            <input id="profile-emergency-phone" name="emergencyContactPhone" type="tel" maxlength="60" value="<%= profile.emergencyContactPhone || '' %>" />
+            <label for="profile-emergency-relationship">Relationship</label>
+            <input id="profile-emergency-relationship" name="emergencyContactRelationship" type="text" maxlength="120" value="<%= profile.emergencyContactRelationship || '' %>" />
+            <button type="submit" class="btn">Submit update for approval</button>
+          </form>
+        </article>
+      </div>
+      <div class="pending-updates">
+        <h3>Pending profile updates</h3>
+        <ul id="profile-updates" class="request-timeline"></ul>
+      </div>
+    </section>
+  </main>
+
+  <div id="portal-toasts" aria-live="assertive" class="portal-toasts"></div>
+
+  <script>
+    window.EmployeePortal = {
+      csrfToken: '<%= csrfToken %>',
+      openShift: <%- JSON.stringify(openShift || null) %>,
+      timesheet: <%- JSON.stringify(recentEntries || []) %>,
+      requests: <%- JSON.stringify(requests || []) %>,
+      profile: <%- JSON.stringify(profile || {}) %>
+    };
+  </script>
+  <script defer src="/js/employee-portal.js"></script>
+</body>
+</html>

@@ -18,12 +18,21 @@ const {
   getUserByEmail,
   updateUserPassword
 } = require('../models/users');
+const { listEntries, updateEntry } = require('../models/timeEntries');
+const {
+  listAllRequests,
+  updateRequestStatus,
+  getRequestById,
+  upsertProfile
+} = require('../models/employeeRequests');
+const { generateBadge } = require('../services/employeeBadges');
 const {
   getRolePermissions,
   setRolePermission,
   listRoles
 } = require('../models/roles');
 const { recordAuditLog } = require('../models/auditLogs');
+const { sanitizeString } = require('../utils/sanitize');
 const {
   listEmployees,
   getEmployeeById,
@@ -46,6 +55,14 @@ const router = express.Router();
 
 const roleSummaryOrder = [Roles.GLOBAL_ADMIN, Roles.SUPER_ADMIN, Roles.ADMIN, Roles.EMPLOYEE];
 
+function sanitizeOptional(value) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  const clean = sanitizeString(value);
+  return clean.length ? clean : null;
+}
+
 const subAdminSchema = Joi.object({
   name: Joi.string().min(2).max(80).required(),
   email: Joi.string().email({ tlds: { allow: false } }).required(),
@@ -60,6 +77,22 @@ const subAdminSchema = Joi.object({
 const permissionUpdateSchema = Joi.object({
   permission: Joi.string().required(),
   allowed: Joi.boolean().required()
+});
+
+const timeAdjustmentSchema = Joi.object({
+  clockInAt: Joi.string().isoDate().optional(),
+  clockOutAt: Joi.string().isoDate().allow(null, '').optional(),
+  department: Joi.string().max(120).allow('', null),
+  role: Joi.string().max(120).allow('', null),
+  location: Joi.string().max(180).allow('', null),
+  notes: Joi.string().max(500).allow('', null)
+}).min(1);
+
+const requestStatusSchema = Joi.object({
+  status: Joi.string()
+    .valid('pending', 'approved', 'denied', 'cancelled', 'canceled', 'in_review', 'completed')
+    .required(),
+  note: Joi.string().max(500).allow('', null)
 });
 
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
@@ -707,6 +740,154 @@ router.delete('/subadmins/:id', requireRole(Roles.SUPER_ADMIN), (req, res) => {
   const permissions = getRolePermissions(updated.role);
   return res.json({ subAdmin: { ...updated, permissions } });
 });
+
+router.get('/time-entries', (req, res) => {
+  const employeeId = req.query.employeeId ? String(req.query.employeeId).trim() : null;
+  const start = req.query.start ? new Date(req.query.start) : null;
+  const end = req.query.end ? new Date(req.query.end) : null;
+  const limit = Math.min(Number.parseInt(req.query.limit, 10) || 150, 500);
+  const range = {
+    start: start && !Number.isNaN(start.valueOf()) ? start.toISOString() : undefined,
+    end: end && !Number.isNaN(end.valueOf()) ? end.toISOString() : undefined,
+    employeeId: employeeId || undefined
+  };
+  const entries = listEntries(range).slice(0, limit);
+  const enriched = entries.map((entry) => {
+    const employee = getUserById(entry.employeeId);
+    return {
+      ...entry,
+      employee: employee
+        ? {
+            id: employee.id,
+            name: employee.name,
+            email: employee.email,
+            department: employee.department || null
+          }
+        : null
+    };
+  });
+  return res.json({ entries: enriched });
+});
+
+router.post('/time-entries/:id/adjust', (req, res) => {
+  const entryId = String(req.params.id || '').trim();
+  if (!entryId) {
+    return res.status(400).json({ error: 'Time entry id is required' });
+  }
+  const { error, value } = timeAdjustmentSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
+  if (error) {
+    return res.status(400).json({ error: 'Invalid time adjustment payload', details: error.details.map((d) => d.message) });
+  }
+  const updates = {
+    clockInAt: value.clockInAt || undefined,
+    clockOutAt: value.clockOutAt === '' ? null : value.clockOutAt,
+    department: sanitizeOptional(value.department),
+    role: sanitizeOptional(value.role),
+    location: sanitizeOptional(value.location),
+    notes: sanitizeOptional(value.notes)
+  };
+  try {
+    const updated = updateEntry(entryId, updates);
+    recordAuditLog({
+      actorUserId: req.user.id,
+      targetUserId: updated.employeeId,
+      action: 'time_entry_adjusted',
+      details: {
+        entryId,
+        updates
+      }
+    });
+    return res.json({ entry: updated });
+  } catch (adjustError) {
+    const status = adjustError.status || 500;
+    return res.status(status).json({ error: adjustError.message || 'Unable to adjust time entry' });
+  }
+});
+
+router.get('/requests', (req, res) => {
+  const requests = listAllRequests().map((request) => {
+    const employee = getUserById(request.employeeId);
+    return {
+      ...request,
+      employee: employee
+        ? {
+            id: employee.id,
+            name: employee.name,
+            email: employee.email,
+            department: employee.department || null
+          }
+        : null
+    };
+  });
+  return res.json({ requests });
+});
+
+router.post('/requests/:id/status', (req, res) => {
+  const requestId = String(req.params.id || '').trim();
+  if (!requestId) {
+    return res.status(400).json({ error: 'Request id is required' });
+  }
+  const { error, value } = requestStatusSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
+  if (error) {
+    return res.status(400).json({ error: 'Invalid status payload', details: error.details.map((d) => d.message) });
+  }
+  const existing = getRequestById(requestId);
+  if (!existing) {
+    return res.status(404).json({ error: 'Request not found' });
+  }
+  const updated = updateRequestStatus(requestId, {
+    status: value.status,
+    note: sanitizeOptional(value.note),
+    resolvedBy: req.user.id
+  });
+  if (value.status.toLowerCase() === 'approved' && existing.type === 'profile_update') {
+    upsertProfile(existing.employeeId, existing.payload || {});
+  }
+  recordAuditLog({
+    actorUserId: req.user.id,
+    targetUserId: existing.employeeId,
+    action: 'employee_request_updated',
+    details: {
+      requestId,
+      status: updated.status
+    }
+  });
+  return res.json({ request: updated });
+});
+
+async function resolveBadge(req, res, method) {
+  const employeeId = String(req.params.id || '').trim();
+  if (!employeeId) {
+    return res.status(400).json({ error: 'Employee id is required' });
+  }
+  const employee = getUserById(employeeId);
+  if (!employee) {
+    return res.status(404).json({ error: 'Employee not found' });
+  }
+  const baseUrl = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+  try {
+    const badge = await generateBadge(employee, baseUrl);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${employee.name.replace(/[^a-z0-9]/gi, '_')}-badge.pdf"`);
+    if (method === 'POST') {
+      recordAuditLog({
+        actorUserId: req.user.id,
+        targetUserId: employeeId,
+        action: 'employee_badge_generated',
+        details: {
+          badgeId: badge.badgeId
+        }
+      });
+    }
+    return res.send(badge.buffer);
+  } catch (badgeError) {
+    console.error('Badge generation failed', badgeError);
+    return res.status(500).json({ error: 'Unable to generate badge' });
+  }
+}
+
+router.post('/employees/:id/badge', (req, res) => resolveBadge(req, res, 'POST'));
+router.get('/employees/:id/badge', (req, res) => resolveBadge(req, res, 'GET'));
 
 router.get('/roles', requireRole(Roles.SUPER_ADMIN), (_req, res) => {
   const roles = listRoles().map((role) => ({
