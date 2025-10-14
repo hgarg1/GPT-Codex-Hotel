@@ -5,6 +5,8 @@ const alertsRegion = document.getElementById('dining-reserve-alerts');
 let state = loadState();
 let holdCountdownInterval = null;
 let isSubmitting = false;
+let spotlightTableId = null;
+let celebratedConfirmationId = null;
 const STEP_LABELS = {
     schedule: 'Date & time',
     party: 'Party size',
@@ -13,6 +15,57 @@ const STEP_LABELS = {
     review: 'Review & confirm',
     confirmation: 'Confirmed',
 };
+const ZONE_DETAILS = {
+    atrium: {
+        name: 'Atrium',
+        description: 'Sunken lounge ringed with glass panels that shimmer with the aurora display.',
+        accent: '#7ebcff',
+        highlights: ['Aurora canopy overhead', 'Closest to the ambient harpist alcove'],
+    },
+    garden: {
+        name: 'Glass Garden',
+        description: 'Bioluminescent planters and living walls wrap these tables in greenery.',
+        accent: '#74d1a2',
+        highlights: ['Fragrant herb planters', 'Perfect for botanical cocktail pairings'],
+    },
+    'chef-s-counter': {
+        name: "Chef's Counter",
+        description: 'Front-row vantage of the culinary line with stories from the chefs.',
+        accent: '#f9d27d',
+        highlights: ['Live plating and narration', 'Ideal for adventurous tasting add-ons'],
+    },
+    'chefs-counter': {
+        name: "Chef's Counter",
+        description: 'Front-row vantage of the culinary line with stories from the chefs.',
+        accent: '#f9d27d',
+        highlights: ['Live plating and narration', 'Ideal for adventurous tasting add-ons'],
+    },
+    observatory: {
+        name: 'Observatory',
+        description: 'Skyline panorama with projected constellations that slowly drift during service.',
+        accent: '#c79bff',
+        highlights: ['Constellation projection dome', 'Sweeping view across the city lights'],
+    },
+    lounge: {
+        name: 'Solstice Lounge',
+        description: 'Low-slung banquettes with a resident mixologist crafting bespoke pairings.',
+        accent: '#ff9ec7',
+        highlights: ['Resident mixologist nearby', 'Lush velvet acoustics for conversation'],
+    },
+    terrace: {
+        name: 'Celestial Terrace',
+        description: 'Climate-controlled terrace edged by floating lanterns and fireglass.',
+        accent: '#7ff0d8',
+        highlights: ['Lantern-lit horizon', 'Best for sunset proposals and celebrations'],
+    },
+    default: {
+        name: 'Main floor',
+        description: 'Balanced vantage with curated acoustics and attentive service cadence.',
+        accent: '#cfa858',
+        highlights: ['Signature Skyhaven service', 'Balanced acoustics across the room'],
+    },
+};
+const CONFETTI_COLORS = ['#f9d27d', '#7ebcff', '#c79bff', '#74d1a2', '#ff9ec7'];
 function formatDateDisplay(date) {
     if (!date)
         return '—';
@@ -33,6 +86,172 @@ function formatTimeDisplay(time) {
     const date = new Date();
     date.setHours(Number.parseInt(hourStr, 10), Number.parseInt(minuteStr ?? '0', 10));
     return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+function normalizeZoneKey(zone) {
+    if (!zone)
+        return 'default';
+    return zone
+        .toString()
+        .trim()
+        .toLowerCase()
+        .replace(/&/g, 'and')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        || 'default';
+}
+function getZoneDetails(zone) {
+    const key = normalizeZoneKey(zone);
+    const base = ZONE_DETAILS[key] ?? ZONE_DETAILS.default;
+    const providedName = typeof zone === 'string' && zone.trim().length > 0 ? zone.trim() : ZONE_DETAILS.default.name;
+    return {
+        key,
+        name: base.name ?? providedName,
+        description: base.description ?? ZONE_DETAILS.default.description,
+        accent: base.accent ?? ZONE_DETAILS.default.accent,
+        highlights: Array.isArray(base.highlights) && base.highlights.length > 0
+            ? base.highlights
+            : ZONE_DETAILS.default.highlights,
+    };
+}
+function getSpotlightTargetId() {
+    if (spotlightTableId && state.tables.some((table) => table.id === spotlightTableId)) {
+        return spotlightTableId;
+    }
+    if (state.selectedTableIds.length > 0) {
+        const fallbackId = state.selectedTableIds[state.selectedTableIds.length - 1];
+        if (fallbackId && state.tables.some((table) => table.id === fallbackId)) {
+            return fallbackId;
+        }
+    }
+    return null;
+}
+function getSpotlightTable() {
+    const targetId = getSpotlightTargetId();
+    if (!targetId)
+        return null;
+    return state.tables.find((table) => table.id === targetId) ?? null;
+}
+function setSpotlight(tableId, options = {}) {
+    if (tableId && !state.tables.some((table) => table.id === tableId)) {
+        return;
+    }
+    spotlightTableId = tableId;
+    if (options.defer) {
+        return;
+    }
+    updateSeatInsightsPanel();
+    applySpotlightToButtons();
+}
+function getCapacityDescriptor(capacity) {
+    if (capacity <= 2)
+        return 'Intimate duo setting';
+    if (capacity <= 4)
+        return 'Perfect for a quartet of guests';
+    if (capacity <= 6)
+        return 'Celebration-ready table';
+    return 'Private gathering capacity';
+}
+function getStatusDescriptor(table) {
+    const status = tableStatus(table);
+    switch (status) {
+        case 'selected':
+            return 'Reserved just for your party';
+        case 'available':
+            return 'Available this seating';
+        case 'held':
+            return 'Briefly held by another guest';
+        case 'unavailable':
+        default:
+            return 'Not available right now';
+    }
+}
+function renderSeatHighlights(highlights) {
+    if (!Array.isArray(highlights) || highlights.length === 0)
+        return '';
+    return `<ul class="reserve-seatinsights__highlights">${highlights
+        .map((item) => `<li>${item}</li>`)
+        .join('')}</ul>`;
+}
+function renderSeatInsightsContent() {
+    const table = getSpotlightTable();
+    if (!table) {
+        return `
+      <div class="reserve-seatinsights__empty">
+        <h3>Explore the dining room</h3>
+        <p>Select a table in the map to preview its ambience, recommended experiences, and how it fits your party.</p>
+      </div>
+    `;
+    }
+    const zoneDetails = getZoneDetails(table.zone);
+    const fitsParty = state.partySize ? table.capacity >= state.partySize : null;
+    const gaugePercent = state.partySize
+        ? Math.min(100, Math.round((Math.min(table.capacity, state.partySize) / table.capacity) * 100))
+        : 100;
+    const gaugeLabel = state.partySize
+        ? table.capacity >= state.partySize
+            ? `Comfortably seats your ${state.partySize}-guest party`
+            : `Add ${state.partySize - table.capacity} more seats to fit everyone`
+        : `${table.capacity} seats available`;
+    return `
+    <header>
+      <span class="reserve-seatinsights__eyebrow" style="--accent:${zoneDetails.accent}">${zoneDetails.name}</span>
+      <h3>Table ${table.label}</h3>
+    </header>
+    <p>${zoneDetails.description}</p>
+    <div class="reserve-seatinsights__stats">
+      <div>
+        <span class="reserve-seatinsights__stat-label">Capacity</span>
+        <span class="reserve-seatinsights__stat-value">${table.capacity} guests</span>
+        <span class="reserve-seatinsights__stat-note">${getCapacityDescriptor(table.capacity)}</span>
+      </div>
+      <div>
+        <span class="reserve-seatinsights__stat-label">Status</span>
+        <span class="reserve-seatinsights__stat-value">${getStatusDescriptor(table)}</span>
+        <span class="reserve-seatinsights__stat-note">${state.partySize ? `Planning for ${state.partySize}` : 'Select party size to tailor fit'}</span>
+      </div>
+    </div>
+    <div class="reserve-seatinsights__gauge ${fitsParty === false ? 'is-warning' : ''}" role="img" aria-label="${gaugeLabel}">
+      <div class="reserve-seatinsights__gauge-track">
+        <div class="reserve-seatinsights__gauge-fill" style="width:${gaugePercent}%"></div>
+      </div>
+      <span class="reserve-seatinsights__gauge-label">${gaugeLabel}</span>
+    </div>
+    ${renderSeatHighlights(zoneDetails.highlights)}
+  `;
+}
+function renderZoneLegend() {
+    const zoneMap = new Map();
+    state.tables.forEach((table) => {
+        const key = normalizeZoneKey(table.zone);
+        if (!key || key === 'default') {
+            return;
+        }
+        if (!zoneMap.has(key)) {
+            zoneMap.set(key, table.zone);
+        }
+    });
+    if (zoneMap.size === 0) {
+        return '';
+    }
+    return `
+    <section class="reserve-card reserve-card--subtle reserve-zonelegend">
+      <h3>Ambience map</h3>
+      <ul>
+        ${Array.from(zoneMap.entries())
+        .map(([key, label]) => {
+        const details = getZoneDetails(label ?? key);
+        return `<li data-zone-key="${key}">
+              <span class="reserve-zonelegend__swatch" style="--accent:${details.accent}"></span>
+              <div>
+                <span class="reserve-zonelegend__name">${details.name}</span>
+                <p>${details.description}</p>
+              </div>
+            </li>`;
+    })
+        .join('')}
+      </ul>
+    </section>
+  `;
 }
 function formatCountdown(expiresAt) {
     const remainingMs = expiresAt - Date.now();
@@ -60,7 +279,7 @@ function ensurePreviousSteps() {
     if (state.step !== 'schedule' && state.step !== 'party' && !state.partySize) {
         state = updateStep(state, 'party');
     }
-    if (state.step !== 'schedule' && state.step !== 'party' && state.step !== 'seats' && (!state.hold || !state.hold.holdId)) {
+    if ((state.step === 'guest' || state.step === 'review') && (!state.hold || !state.hold.holdId)) {
         state = updateStep(state, 'seats');
     }
     if (state.step === 'review' && !state.guest) {
@@ -162,20 +381,30 @@ function renderSeatMap() {
         const maxy = Math.max(acc[3], table.y);
         return [minx, miny, maxx, maxy];
     }, [Infinity, Infinity, -Infinity, -Infinity]);
-    const width = maxX - minX + 80;
-    const height = maxY - minY + 80;
+    const width = Math.max(360, maxX - minX + 160);
+    const height = Math.max(320, maxY - minY + 160);
     const seatButtons = state.tables
         .map((table) => {
         const status = tableStatus(table);
-        const left = table.x - minX + 40;
-        const top = table.y - minY + 40;
-        return `<button class="seat-button seat-button--${status}" data-table-id="${table.id}" style="left:${left}px;top:${top}px" type="button">
+        const left = table.x - minX + 80;
+        const top = table.y - minY + 80;
+        const zoneDetails = getZoneDetails(table.zone);
+        const isSelected = state.selectedTableIds.includes(table.id);
+        const title = `Table ${table.label} • ${zoneDetails.name} • seats ${table.capacity}`;
+        return `<button class="seat-button seat-button--${status}" data-table-id="${table.id}" data-zone-key="${zoneDetails.key}" data-zone-name="${zoneDetails.name}" aria-pressed="${isSelected}" aria-label="${title}" title="${title}" style="left:${left}px;top:${top}px;--accent:${zoneDetails.accent}" type="button">
+        <span class="seat-button__halo" aria-hidden="true"></span>
         <span class="seat-button__label">${table.label}</span>
         <span class="seat-button__capacity">${table.capacity}</span>
       </button>`;
     })
         .join('');
-    return `<div class="reserve-seatmap" style="width:${width}px;height:${height}px">${seatButtons}</div>`;
+    return `<div class="reserve-seatmap" style="width:${width}px;height:${height}px">
+      <div class="reserve-seatmap__ambient reserve-seatmap__ambient--aurora" aria-hidden="true"></div>
+      <div class="reserve-seatmap__ambient reserve-seatmap__ambient--floor" aria-hidden="true"></div>
+      <div class="reserve-seatmap__overlay reserve-seatmap__overlay--kitchen" aria-hidden="true"><span>Chef’s line</span></div>
+      <div class="reserve-seatmap__overlay reserve-seatmap__overlay--bar" aria-hidden="true"><span>Aurora bar</span></div>
+      ${seatButtons}
+    </div>`;
 }
 function renderSuggestedCombos() {
     if (!state.availability || state.availability.suggestedCombos.length === 0) {
@@ -201,10 +430,15 @@ function renderSeatsStep() {
     const holdInfo = state.hold ? `<p class="reserve-hold">Hold active · <span data-role="hold-countdown">${formatCountdown(state.hold.expiresAt)}</span> remaining</p>` : '';
     return `
     <div class="reserve-grid">
-      <section class="reserve-card">
-        <h2>Select your tables</h2>
-        <p>Tap available tables to match your party size. Selected seats glow gold.</p>
-        <div class="reserve-seatmap-wrapper" data-role="seat-map">${renderSeatMap()}</div>
+      <section class="reserve-card reserve-card--immersive">
+        <div class="reserve-card__intro">
+          <h2>Select your tables</h2>
+          <p>Glide across the floor plan, tap glowing seats, and preview the ambience of each zone in real time.</p>
+        </div>
+        <div class="reserve-seatmap-layout">
+          <div class="reserve-seatmap-wrapper" data-role="seat-map">${renderSeatMap()}</div>
+          <aside class="reserve-seatinsights" data-role="seat-insights">${renderSeatInsightsContent()}</aside>
+        </div>
         <p class="reserve-capacity">Selected capacity: <span data-role="selected-capacity">${getSelectedCapacity()}</span> / ${state.partySize ?? '—'}</p>
         ${holdInfo}
         <div class="reserve-actions">
@@ -212,6 +446,7 @@ function renderSeatsStep() {
           <button type="button" class="reserve-primary" data-action="continue-seats">Continue</button>
         </div>
       </section>
+      ${renderZoneLegend()}
       ${renderSuggestedCombos()}
     </div>
   `;
@@ -296,9 +531,13 @@ function renderConfirmationStep() {
         .map((table) => `<li>${table.label} · seats ${table.capacity}</li>`)
         .join('');
     return `
-    <section class="reserve-card reserve-card--success">
+    <section class="reserve-card reserve-card--success reserve-card--celebration">
       <h2>Reservation secured</h2>
       <p>Your evening is confirmed. Present this QR code to the maître d'.</p>
+      <div class="reserve-celebration__banner" aria-hidden="true">
+        <span>✨</span>
+        <span>Expect a sparkling welcome upon arrival.</span>
+      </div>
       <div class="reserve-confirmation-grid">
         <div>
           <dl class="reserve-summary">
@@ -363,6 +602,8 @@ function renderStep() {
     root.innerHTML = container;
     attachHandlers();
     refreshHoldCountdown();
+    syncSeatExperience();
+    maybeTriggerCelebration();
 }
 function attachHandlers() {
     if (!root)
@@ -459,15 +700,49 @@ function attachHandlers() {
                 else {
                     nextSelection.add(tableId);
                 }
+                setSpotlight(tableId, { defer: true });
                 state = setSelectedTables(state, Array.from(nextSelection));
                 saveState(state);
                 renderStep();
+            });
+            seatMap.addEventListener('pointerover', (event) => {
+                const target = event.target;
+                const button = target.closest('button[data-table-id]');
+                if (!button)
+                    return;
+                const tableId = button.dataset.tableId;
+                if (tableId) {
+                    setSpotlight(tableId);
+                }
+            });
+            seatMap.addEventListener('focusin', (event) => {
+                const target = event.target;
+                const button = target.closest('button[data-table-id]');
+                if (!button)
+                    return;
+                const tableId = button.dataset.tableId;
+                if (tableId) {
+                    setSpotlight(tableId);
+                }
+            });
+            seatMap.addEventListener('pointerleave', () => {
+                if (state.selectedTableIds.length > 0) {
+                    const fallback = state.selectedTableIds[state.selectedTableIds.length - 1];
+                    setSpotlight(fallback);
+                }
+                else {
+                    setSpotlight(null);
+                }
             });
         }
         const comboButtons = root.querySelectorAll('[data-action="apply-combo"]');
         comboButtons.forEach((button) => {
             button.addEventListener('click', () => {
                 const comboIds = (button.dataset.combo || '').split(',').filter(Boolean);
+                const focusId = comboIds[comboIds.length - 1] ?? comboIds[0] ?? null;
+                if (focusId) {
+                    setSpotlight(focusId, { defer: true });
+                }
                 state = setSelectedTables(state, comboIds);
                 saveState(state);
                 renderStep();
@@ -646,6 +921,89 @@ function refreshHoldCountdown() {
     };
     update();
     holdCountdownInterval = window.setInterval(update, 1000);
+}
+function updateSeatInsightsPanel() {
+    if (state.step !== 'seats') {
+        return;
+    }
+    const panel = root?.querySelector('[data-role="seat-insights"]');
+    if (panel) {
+        panel.innerHTML = renderSeatInsightsContent();
+    }
+}
+function applySpotlightToButtons() {
+    if (state.step !== 'seats') {
+        return;
+    }
+    const targetId = getSpotlightTargetId();
+    const buttons = root?.querySelectorAll('.seat-button');
+    if (!buttons)
+        return;
+    buttons.forEach((button) => {
+        if (!(button instanceof HTMLElement)) {
+            return;
+        }
+        if (targetId && button.dataset.tableId === targetId) {
+            button.setAttribute('data-spotlight', 'true');
+        }
+        else {
+            button.removeAttribute('data-spotlight');
+        }
+    });
+}
+function syncSeatExperience() {
+    if (state.step !== 'seats') {
+        return;
+    }
+    if (!getSpotlightTargetId() && state.tables.length > 0) {
+        setSpotlight(state.tables[0].id, { defer: true });
+    }
+    updateSeatInsightsPanel();
+    applySpotlightToButtons();
+}
+function triggerConfettiBurst() {
+    if (typeof document === 'undefined') {
+        return;
+    }
+    const container = document.createElement('div');
+    container.className = 'reserve-confetti';
+    const pieces = 160;
+    for (let index = 0; index < pieces; index += 1) {
+        const piece = document.createElement('span');
+        piece.className = 'reserve-confetti__piece';
+        const color = CONFETTI_COLORS[index % CONFETTI_COLORS.length];
+        piece.style.setProperty('--left', `${Math.random() * 100}%`);
+        piece.style.setProperty('--animation-delay', `${Math.random() * 0.6}s`);
+        piece.style.setProperty('--animation-duration', `${3 + Math.random() * 2}s`);
+        piece.style.setProperty('--size', `${6 + Math.random() * 6}px`);
+        piece.style.setProperty('--drift', `${(Math.random() * 40 - 20).toFixed(2)}vw`);
+        const spinMagnitude = 480 + Math.random() * 360;
+        const spinDirection = Math.random() > 0.5 ? 1 : -1;
+        piece.style.setProperty('--spin', `${(spinMagnitude * spinDirection).toFixed(0)}deg`);
+        piece.style.setProperty('--start-tilt', `${(Math.random() * 120 - 60).toFixed(0)}deg`);
+        piece.style.backgroundColor = color;
+        if (Math.random() > 0.65) {
+            piece.style.borderRadius = '999px';
+        }
+        container.appendChild(piece);
+    }
+    document.body.appendChild(container);
+    window.setTimeout(() => {
+        container.remove();
+    }, 6000);
+}
+function maybeTriggerCelebration() {
+    if (!root)
+        return;
+    root.classList.toggle('reserve-root--celebration', state.step === 'confirmation');
+    if (state.step !== 'confirmation' || !state.confirmation) {
+        return;
+    }
+    if (celebratedConfirmationId === state.confirmation.id) {
+        return;
+    }
+    celebratedConfirmationId = state.confirmation.id;
+    triggerConfettiBurst();
 }
 async function refreshAvailabilityOnFocus() {
     if (!state.date || !state.time || !state.partySize) {
