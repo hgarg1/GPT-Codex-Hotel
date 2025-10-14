@@ -26,6 +26,7 @@ const {
   releaseSeat: socketReleaseSeat
 } = require('./services/diningSeatLocks');
 const { getUserFromRequest } = require('./utils/jwt');
+const { roleAtLeast, Roles } = require('./utils/rbac');
 
 const server = http.createServer(app);
 function normalizeOrigin(origin) {
@@ -216,7 +217,7 @@ io.on('connection', (socket) => {
   emitUnreadUpdate(user.id);
 
   socket.on('admin:subscribe', (channel) => {
-    if (user.role !== 'admin') {
+    if (!roleAtLeast(user.role, Roles.ADMIN)) {
       return;
     }
     if (channel === 'inquiries') {

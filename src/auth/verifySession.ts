@@ -11,12 +11,14 @@ type JwtUserPayload = JwtPayload & {
   email?: string;
   name?: string;
   id?: string;
+  role?: string;
 };
 
 export interface AuthenticatedUser {
   id: string;
   email: string;
   name?: string | null;
+  role?: string | null;
 }
 
 declare module 'express-serve-static-core' {
@@ -83,6 +85,7 @@ export function verifySession(req: Request, res: Response, next: NextFunction): 
       id: userId,
       email: userEmail,
       name: payload.name ?? null,
+      role: typeof payload.role === 'string' ? payload.role : null,
     };
 
     next();

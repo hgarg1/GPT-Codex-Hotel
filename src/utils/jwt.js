@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const cookie = require('cookie');
 const { DEFAULT_JWT_SECRET } = require('./jwtDefaults');
+const { normalizeRole, Roles } = require('./rbac');
 
 function parseCookies(req) {
   const header = req.headers?.cookie || req.request?.headers?.cookie;
@@ -57,7 +58,7 @@ function formatUserLike(userLike) {
     id,
     email: email || null,
     name: name || null,
-    role: role || 'guest'
+    role: normalizeRole(role || Roles.EMPLOYEE)
   };
 }
 
@@ -103,7 +104,7 @@ function issueSessionToken(res, user) {
     sub: user.id,
     email: user.email,
     name: user.name || null,
-    role: user.role || 'guest',
+    role: normalizeRole(user.role || Roles.EMPLOYEE),
   };
   const token = jwt.sign(payload, signing.key, {
     algorithm: signing.algorithm,

@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../db');
+const { Roles, normalizeRole } = require('../utils/rbac');
 
 const db = getDb();
 
@@ -10,9 +11,12 @@ function serialiseUser(row) {
     id: row.id,
     name: row.name,
     email: row.email,
-    role: row.role,
+    role: normalizeRole(row.role),
     phone: row.phone,
     bio: row.bio,
+    department: row.department,
+    status: row.status,
+    createdByUserId: row.createdByUserId,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt
   };
@@ -50,7 +54,7 @@ function getUserAuthByEmail(email) {
   return db.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').get(email);
 }
 
-function createUser({ name, email, password }) {
+function createUser({ name, email, password, role = Roles.EMPLOYEE, department = null, createdByUserId = null }) {
   const existing = getUserAuthByEmail(email);
   if (existing) {
     const error = new Error('An account already exists for this email.');
@@ -63,17 +67,89 @@ function createUser({ name, email, password }) {
     name,
     email: email.toLowerCase(),
     passwordHash: bcrypt.hashSync(password, 10),
-    role: 'guest',
+    role: normalizeRole(role),
     phone: null,
     bio: null,
+    department,
+    status: 'active',
+    createdByUserId,
     createdAt: now,
     updatedAt: now
   };
   db.prepare(`
-    INSERT INTO users (id, name, email, passwordHash, role, phone, bio, createdAt, updatedAt)
-    VALUES (@id, @name, @email, @passwordHash, @role, @phone, @bio, @createdAt, @updatedAt)
+    INSERT INTO users (id, name, email, passwordHash, role, phone, bio, department, status, createdByUserId, createdAt, updatedAt)
+    VALUES (@id, @name, @email, @passwordHash, @role, @phone, @bio, @department, @status, @createdByUserId, @createdAt, @updatedAt)
   `).run(record);
   return serialiseUser(record);
+}
+
+function createSubAdmin({
+  name,
+  email,
+  password,
+  role,
+  department,
+  status = 'active',
+  createdByUserId
+}) {
+  const normalizedRole = normalizeRole(role);
+  if (![Roles.ADMIN, Roles.SUPER_ADMIN].includes(normalizedRole)) {
+    const error = new Error('Sub-admin role must be ADMIN or SUPER_ADMIN.');
+    error.status = 400;
+    throw error;
+  }
+  const existing = getUserAuthByEmail(email);
+  if (existing) {
+    const error = new Error('An account already exists for this email.');
+    error.status = 409;
+    throw error;
+  }
+  const now = new Date().toISOString();
+  const record = {
+    id: uuidv4(),
+    name,
+    email: email.toLowerCase(),
+    passwordHash: bcrypt.hashSync(password, 10),
+    role: normalizedRole,
+    phone: null,
+    bio: null,
+    department: department || null,
+    status,
+    createdByUserId: createdByUserId || null,
+    createdAt: now,
+    updatedAt: now
+  };
+  db.prepare(`
+    INSERT INTO users (id, name, email, passwordHash, role, phone, bio, department, status, createdByUserId, createdAt, updatedAt)
+    VALUES (@id, @name, @email, @passwordHash, @role, @phone, @bio, @department, @status, @createdByUserId, @createdAt, @updatedAt)
+  `).run(record);
+  return serialiseUser(record);
+}
+
+function listSubAdmins() {
+  const rows = db
+    .prepare(
+      `SELECT * FROM users WHERE role IN (@adminRole, @superRole) ORDER BY createdAt DESC`
+    )
+    .all({ adminRole: Roles.ADMIN, superRole: Roles.SUPER_ADMIN });
+  return rows.map(serialiseUser);
+}
+
+function removeSubAdmin(id) {
+  const user = getUserById(id);
+  if (!user) {
+    const error = new Error('Sub-admin not found');
+    error.status = 404;
+    throw error;
+  }
+  const normalizedRole = normalizeRole(user.role);
+  if (![Roles.ADMIN, Roles.SUPER_ADMIN].includes(normalizedRole)) {
+    const error = new Error('Only admin accounts can be removed via this endpoint.');
+    error.status = 400;
+    throw error;
+  }
+  db.prepare('UPDATE users SET status = ?, updatedAt = ? WHERE id = ?').run('terminated', new Date().toISOString(), id);
+  return getUserById(id);
 }
 
 function verifyPassword(user, password) {
@@ -125,6 +201,9 @@ module.exports = {
   getUserById,
   getUserAuthByEmail,
   createUser,
+  createSubAdmin,
+  listSubAdmins,
+  removeSubAdmin,
   verifyPassword,
   updateUserProfile,
   updateUserPassword,

@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../src/db');
 const { encryptText } = require('../src/utils/crypto');
+const { Roles, Permissions, ALL_PERMISSIONS } = require('../src/utils/rbac');
 const {
   diningMenuSections,
   diningMenuItems,
@@ -11,8 +12,58 @@ const {
 
 const db = getDb();
 
+function envOrDefault(key, fallback) {
+  const value = process.env[key];
+  if (!value) {
+    return fallback;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : fallback;
+}
+
+const BOOTSTRAP_ACCOUNTS = {
+  global: {
+    name: envOrDefault('SEED_GLOBAL_ADMIN_NAME', 'Celeste Arin'),
+    email: envOrDefault('SEED_GLOBAL_ADMIN_EMAIL', 'global.admin@skyhaven.dev'),
+    password: envOrDefault('SEED_GLOBAL_ADMIN_PASSWORD', 'SkyhavenGlobal!23'),
+    department: envOrDefault('SEED_GLOBAL_ADMIN_DEPARTMENT', 'Executive Command')
+  },
+  superAdmins: [
+    {
+      name: envOrDefault('SEED_SUPER_ADMIN_ONE_NAME', 'Orion Pax'),
+      email: envOrDefault('SEED_SUPER_ADMIN_ONE_EMAIL', 'super.orion@skyhaven.dev'),
+      password: envOrDefault('SEED_SUPER_ADMIN_ONE_PASSWORD', 'SuperNova!23'),
+      department: envOrDefault('SEED_SUPER_ADMIN_ONE_DEPARTMENT', 'Operations Control')
+    },
+    {
+      name: envOrDefault('SEED_SUPER_ADMIN_TWO_NAME', 'Lyric Hale'),
+      email: envOrDefault('SEED_SUPER_ADMIN_TWO_EMAIL', 'super.lyric@skyhaven.dev'),
+      password: envOrDefault('SEED_SUPER_ADMIN_TWO_PASSWORD', 'SuperAurora!23'),
+      department: envOrDefault('SEED_SUPER_ADMIN_TWO_DEPARTMENT', 'Finance & Compliance')
+    },
+    {
+      name: envOrDefault('SEED_SUPER_ADMIN_THREE_NAME', 'Vela Quinn'),
+      email: envOrDefault('SEED_SUPER_ADMIN_THREE_EMAIL', 'super.vela@skyhaven.dev'),
+      password: envOrDefault('SEED_SUPER_ADMIN_THREE_PASSWORD', 'SuperCosmos!23'),
+      department: envOrDefault('SEED_SUPER_ADMIN_THREE_DEPARTMENT', 'Guest Experience Ops')
+    }
+  ]
+};
+
+const DEFAULT_ROLE_PERMISSIONS = {
+  [Roles.GLOBAL_ADMIN]: new Set(ALL_PERMISSIONS),
+  [Roles.SUPER_ADMIN]: new Set(ALL_PERMISSIONS),
+  [Roles.ADMIN]: new Set([
+    Permissions.MANAGE_EMPLOYEES,
+    Permissions.RESET_PASSWORDS
+  ]),
+  [Roles.EMPLOYEE]: new Set()
+};
+
 function resetSchema() {
   db.exec(`
+    DROP TABLE IF EXISTS audit_logs;
+    DROP TABLE IF EXISTS role_permissions;
     DROP TABLE IF EXISTS dining_reservations;
     DROP TABLE IF EXISTS dining_menu_items;
     DROP TABLE IF EXISTS dining_menu_sections;
@@ -34,19 +85,38 @@ function resetSchema() {
     DROP TABLE IF EXISTS guest_inquiries;
     DROP TABLE IF EXISTS room_types;
     DROP TABLE IF EXISTS users;
+    DROP TABLE IF EXISTS roles;
   `);
 
   db.exec(`
+    CREATE TABLE roles (
+      id TEXT PRIMARY KEY,
+      label TEXT NOT NULL,
+      priority INTEGER NOT NULL UNIQUE
+    );
+
     CREATE TABLE users (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
       passwordHash TEXT NOT NULL,
-      role TEXT NOT NULL CHECK(role IN ('guest','admin')),
+      role TEXT NOT NULL REFERENCES roles(id) ON DELETE RESTRICT,
       phone TEXT,
       bio TEXT,
+      department TEXT,
+      status TEXT NOT NULL CHECK(status IN ('active','suspended','terminated')) DEFAULT 'active',
+      createdByUserId TEXT REFERENCES users(id) ON DELETE SET NULL,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL
+    );
+
+    CREATE TABLE role_permissions (
+      roleId TEXT NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+      permission TEXT NOT NULL,
+      allowed INTEGER NOT NULL DEFAULT 0,
+      updatedAt TEXT NOT NULL,
+      updatedByUserId TEXT REFERENCES users(id) ON DELETE SET NULL,
+      PRIMARY KEY (roleId, permission)
     );
 
     CREATE TABLE room_types (
@@ -200,6 +270,15 @@ function resetSchema() {
       FOREIGN KEY (messageId) REFERENCES chat_messages(id) ON DELETE SET NULL
     );
 
+    CREATE TABLE audit_logs (
+      id TEXT PRIMARY KEY,
+      actorUserId TEXT REFERENCES users(id) ON DELETE SET NULL,
+      targetUserId TEXT REFERENCES users(id) ON DELETE SET NULL,
+      action TEXT NOT NULL,
+      details TEXT,
+      createdAt TEXT NOT NULL
+    );
+
     CREATE TABLE payment_reversals (
       id TEXT PRIMARY KEY,
       paymentId TEXT NOT NULL,
@@ -300,32 +379,140 @@ function resetSchema() {
   `);
 }
 
-function insertUsers() {
-  const users = [
-    { name: 'Astra Vega', email: 'astra@skyhaven.test', role: 'admin' },
-    { name: 'Kael Orion', email: 'kael@skyhaven.test', role: 'admin' },
-    { name: 'Nova Lin', email: 'nova@guest.test', role: 'guest' },
-    { name: 'Juno Aki', email: 'juno@guest.test', role: 'guest' },
-    { name: 'Mira Sol', email: 'mira@guest.test', role: 'guest' }
-  ];
-
+function insertRoles() {
   const stmt = db.prepare(`
-    INSERT INTO users (id, name, email, passwordHash, role, phone, bio, createdAt, updatedAt)
-    VALUES (@id, @name, @email, @passwordHash, @role, @phone, @bio, @createdAt, @updatedAt)
+    INSERT INTO roles (id, label, priority)
+    VALUES (@id, @label, @priority)
+  `);
+  const roles = [
+    { id: Roles.GLOBAL_ADMIN, label: 'Global Administrator', priority: 50 },
+    { id: Roles.SUPER_ADMIN, label: 'Super Administrator', priority: 40 },
+    { id: Roles.ADMIN, label: 'Administrator', priority: 30 },
+    { id: Roles.EMPLOYEE, label: 'Employee', priority: 10 }
+  ];
+  roles.forEach((role) => stmt.run(role));
+}
+
+function insertRolePermissions() {
+  const stmt = db.prepare(`
+    INSERT INTO role_permissions (roleId, permission, allowed, updatedAt, updatedByUserId)
+    VALUES (@roleId, @permission, @allowed, @updatedAt, NULL)
+  `);
+  const now = new Date().toISOString();
+  Object.entries(DEFAULT_ROLE_PERMISSIONS).forEach(([roleId, allowedSet]) => {
+    ALL_PERMISSIONS.forEach((permission) => {
+      stmt.run({
+        roleId,
+        permission,
+        allowed: allowedSet.has(permission) ? 1 : 0,
+        updatedAt: now
+      });
+    });
+  });
+}
+
+function insertUsers() {
+  const stmt = db.prepare(`
+    INSERT INTO users (id, name, email, passwordHash, role, phone, bio, department, status, createdByUserId, createdAt, updatedAt)
+    VALUES (@id, @name, @email, @passwordHash, @role, @phone, @bio, @department, @status, @createdByUserId, @createdAt, @updatedAt)
   `);
 
   const now = new Date().toISOString();
-  users.forEach((user, index) => {
-    const id = uuidv4();
-    const passwordHash = bcrypt.hashSync('skyhaven123', 10);
-    stmt.run({
-      id,
+
+  const globalId = uuidv4();
+  const bootstrapUsers = [
+    {
+      id: globalId,
+      name: BOOTSTRAP_ACCOUNTS.global.name,
+      email: BOOTSTRAP_ACCOUNTS.global.email,
+      passwordHash: bcrypt.hashSync(BOOTSTRAP_ACCOUNTS.global.password, 10),
+      role: Roles.GLOBAL_ADMIN,
+      phone: '+1-555-777-0000',
+      bio: 'Skyhaven executive steward overseeing the entire constellation.',
+      department: BOOTSTRAP_ACCOUNTS.global.department,
+      status: 'active',
+      createdByUserId: null
+    }
+  ];
+
+  BOOTSTRAP_ACCOUNTS.superAdmins.forEach((account, index) => {
+    bootstrapUsers.push({
+      id: uuidv4(),
+      name: account.name,
+      email: account.email,
+      passwordHash: bcrypt.hashSync(account.password, 10),
+      role: Roles.SUPER_ADMIN,
+      phone: `+1-555-880-00${index + 1}`,
+      bio: 'Skyhaven sector lead empowered to coordinate multi-department operations.',
+      department: account.department,
+      status: 'active',
+      createdByUserId: globalId
+    });
+  });
+
+  const firstSuperAdminId = bootstrapUsers.find((user) => user.role === Roles.SUPER_ADMIN)?.id || null;
+
+  const additionalUsers = [
+    {
+      name: 'Astra Vega',
+      email: 'astra@skyhaven.test',
+      role: Roles.ADMIN,
+      department: 'Guest Experience',
+      phone: '+1-555-000000',
+      bio: 'Skyhaven curator overseeing guest journeys.'
+    },
+    {
+      name: 'Kael Orion',
+      email: 'kael@skyhaven.test',
+      role: Roles.ADMIN,
+      department: 'Operations Control',
+      phone: '+1-555-000001',
+      bio: 'Night shift steward harmonising the command deck.'
+    },
+    {
+      name: 'Nova Lin',
+      email: 'nova@guest.test',
+      role: Roles.EMPLOYEE,
+      department: 'Guest Experience',
+      phone: null,
+      bio: null
+    },
+    {
+      name: 'Juno Aki',
+      email: 'juno@guest.test',
+      role: Roles.EMPLOYEE,
+      department: 'Guest Experience',
+      phone: null,
+      bio: null
+    },
+    {
+      name: 'Mira Sol',
+      email: 'mira@guest.test',
+      role: Roles.EMPLOYEE,
+      department: 'Wellness Collective',
+      phone: null,
+      bio: null
+    }
+  ];
+
+  additionalUsers.forEach((user) => {
+    bootstrapUsers.push({
+      id: uuidv4(),
       name: user.name,
       email: user.email,
-      passwordHash,
+      passwordHash: bcrypt.hashSync('skyhaven123', 10),
       role: user.role,
-      phone: index < 2 ? '+1-555-0000' + index : null,
-      bio: index < 2 ? 'Skyhaven curator overseeing guest journeys.' : null,
+      phone: user.phone,
+      bio: user.bio,
+      department: user.department,
+      status: 'active',
+      createdByUserId: firstSuperAdminId
+    });
+  });
+
+  bootstrapUsers.forEach((user) => {
+    stmt.run({
+      ...user,
       createdAt: now,
       updatedAt: now
     });
@@ -1007,6 +1194,8 @@ function insertDiningReservations() {
 
 function main() {
   resetSchema();
+  insertRoles();
+  insertRolePermissions();
   insertUsers();
   syncDiningUsersFromCore();
   insertRoomTypes();
