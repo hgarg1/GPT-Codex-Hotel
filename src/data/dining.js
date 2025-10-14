@@ -335,20 +335,28 @@ const diningStaff = [
 ];
 
 const diningSeats = [
-  { id: 'T1', label: 'T1', capacity: 3, zone: 'Atrium', status: 'available', x: 80, y: 120 },
-  { id: 'T2', label: 'T2', capacity: 2, zone: 'Atrium', status: 'available', x: 170, y: 120 },
-  { id: 'T3', label: 'T3', capacity: 2, zone: 'Atrium', status: 'available', x: 260, y: 120 },
-  { id: 'T4', label: 'T4', capacity: 4, zone: 'Atrium', status: 'available', x: 350, y: 120 },
-  { id: 'T5', label: 'T5', capacity: 4, zone: 'Observatory', status: 'available', x: 90, y: 220 },
-  { id: 'T6', label: 'T6', capacity: 6, zone: 'Observatory', status: 'held', x: 200, y: 220 },
-  { id: 'T7', label: 'T7', capacity: 4, zone: 'Observatory', status: 'available', x: 310, y: 220 },
-  { id: 'T8', label: 'T8', capacity: 2, zone: 'Observatory', status: 'reserved', x: 420, y: 220 },
-  { id: 'T9', label: 'T9', capacity: 2, zone: "Chef's Counter", status: 'available', x: 120, y: 320 },
-  { id: 'T10', label: 'T10', capacity: 2, zone: "Chef's Counter", status: 'available', x: 210, y: 320 },
-  { id: 'T11', label: 'T11', capacity: 5, zone: 'Solstice Lounge', status: 'available', x: 320, y: 320 },
-  { id: 'T12', label: 'T12', capacity: 6, zone: 'Solstice Lounge', status: 'available', x: 430, y: 320 },
-  { id: 'T13', label: 'T13', capacity: 4, zone: 'Celestial Terrace', status: 'available', x: 160, y: 420 },
-  { id: 'T14', label: 'T14', capacity: 4, zone: 'Celestial Terrace', status: 'available', x: 320, y: 420 }
+  { id: 'T1', label: 'T1', capacity: 2, zone: "Chef's Counter", status: 'available', x: 120, y: 80 },
+  { id: 'T2', label: 'T2', capacity: 2, zone: "Chef's Counter", status: 'available', x: 210, y: 80 },
+  { id: 'T3', label: 'T3', capacity: 2, zone: "Chef's Counter", status: 'available', x: 300, y: 80 },
+  { id: 'T4', label: 'T4', capacity: 2, zone: "Chef's Counter", status: 'available', x: 390, y: 80 },
+  { id: 'T5', label: 'T5', capacity: 4, zone: 'Main floor', status: 'available', x: 80, y: 180 },
+  { id: 'T6', label: 'T6', capacity: 4, zone: 'Main floor', status: 'available', x: 200, y: 180 },
+  { id: 'T7', label: 'T7', capacity: 4, zone: 'Main floor', status: 'available', x: 320, y: 180 },
+  { id: 'T8', label: 'T8', capacity: 4, zone: 'Main floor', status: 'available', x: 440, y: 180 },
+  { id: 'T9', label: 'T9', capacity: 2, zone: 'Main floor', status: 'available', x: 80, y: 270 },
+  { id: 'T10', label: 'T10', capacity: 6, zone: 'Main floor', status: 'held', x: 200, y: 270 },
+  { id: 'T11', label: 'T11', capacity: 2, zone: 'Main floor', status: 'available', x: 320, y: 270 },
+  { id: 'T12', label: 'T12', capacity: 6, zone: 'Main floor', status: 'reserved', x: 440, y: 270 },
+  { id: 'T13', label: 'T13', capacity: 4, zone: 'Celestial Terrace', status: 'available', x: 80, y: 360 },
+  { id: 'T14', label: 'T14', capacity: 4, zone: 'Celestial Terrace', status: 'available', x: 200, y: 360 },
+  { id: 'T15', label: 'T15', capacity: 4, zone: 'Celestial Terrace', status: 'available', x: 320, y: 360 },
+  { id: 'T16', label: 'T16', capacity: 4, zone: 'Celestial Terrace', status: 'available', x: 440, y: 360 },
+  { id: 'T17', label: 'T17', capacity: 8, zone: 'Solstice Lounge', status: 'available', x: 560, y: 220 },
+  { id: 'T18', label: 'T18', capacity: 6, zone: 'Solstice Lounge', status: 'available', x: 560, y: 320 },
+  { id: 'T19', label: 'T19', capacity: 8, zone: 'Private Dining', status: 'available', x: 560, y: 120 },
+  { id: 'T20', label: 'T20', capacity: 6, zone: 'Aurora Bar', status: 'available', x: 200, y: 450 },
+  { id: 'T21', label: 'T21', capacity: 4, zone: 'Aurora Bar', status: 'available', x: 320, y: 450 },
+  { id: 'T22', label: 'T22', capacity: 2, zone: 'Aurora Bar', status: 'available', x: 440, y: 450 }
 ];
 
 module.exports = {
