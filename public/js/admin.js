@@ -1,4 +1,11 @@
 (() => {
+  const adminSection = document.querySelector('.admin[data-animate]');
+  if (adminSection && !adminSection.classList.contains('is-visible')) {
+    requestAnimationFrame(() => {
+      adminSection.classList.add('is-visible');
+    });
+  }
+
   const inquiryList = document.querySelector('[data-inquiry-list]');
   if (!inquiryList || typeof window.io !== 'function') {
     return;
