@@ -40,7 +40,7 @@
           </a>
           <a href="/dashboard" class="nav-link">Dashboard</a>
           <a href="/dining/account/reservations" class="nav-link">Dining account</a>
-          <% if (currentUser.role === 'admin') { %>
+          <% if (['ADMIN', 'SUPER_ADMIN', 'GLOBAL_ADMIN'].includes(String(currentUser.role || '').toUpperCase())) { %>
             <a href="/admin" class="nav-link">Admin</a>
           <% } %>
         <% } %>
