@@ -211,11 +211,6 @@ function createRequest({ employeeId, userId, type, payload }) {
   return serialiseRequest(record);
 }
 
-function getRequestById(id) {
-  const row = db.prepare('SELECT * FROM employee_requests WHERE id = ?').get(id);
-  return serialiseRequest(row);
-}
-
 function listRequestsForEmployee(employeeId) {
   const rows = db
     .prepare('SELECT * FROM employee_requests WHERE employeeId = ? ORDER BY createdAt DESC')
