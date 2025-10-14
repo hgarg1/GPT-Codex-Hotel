@@ -1,6 +1,7 @@
 const express = require('express');
 const Joi = require('joi');
 const { ensureAdmin } = require('../middleware/auth');
+const { Roles, normalizeRole } = require('../utils/rbac');
 const { listBookings, updateBookingStatus, getBookingById } = require('../models/bookings');
 const { listRoomTypes, setRoomAvailability } = require('../models/rooms');
 const {
@@ -55,6 +56,14 @@ function formatDuration(start, end) {
 }
 
 router.get('/admin', ensureAdmin, (req, res) => {
+  const actorRole = normalizeRole(req.user?.role);
+  const allowedSubAdminRoles =
+    actorRole === Roles.GLOBAL_ADMIN
+      ? [Roles.SUPER_ADMIN, Roles.ADMIN]
+      : actorRole === Roles.SUPER_ADMIN
+        ? [Roles.ADMIN]
+        : [];
+
   const rooms = listRoomTypes();
   const amenities = listAmenities();
   const inquiriesRaw = getAllInquiries();
@@ -218,7 +227,11 @@ router.get('/admin', ensureAdmin, (req, res) => {
     diningSeats,
     diningSeatSummary,
     diningStaff,
-    diningCoverage
+    diningCoverage,
+    adminAccess: {
+      actorRole,
+      allowedSubAdminRoles
+    }
   });
 });
 
@@ -347,6 +360,12 @@ router.post('/admin/inquiries/:id/status', ensureAdmin, (req, res) => {
   updateInquiryStatus(inquiryId, value.status);
   req.pushAlert('success', `Inquiry from ${inquiry.name} marked as ${value.status}.`);
   return res.redirect('/admin');
+});
+
+router.get('/admin/requests', ensureAdmin, (req, res) => {
+  res.render('admin/requests', {
+    pageTitle: 'Employee Requests Queue'
+  });
 });
 
 module.exports = router;

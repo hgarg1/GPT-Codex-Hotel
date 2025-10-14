@@ -62,6 +62,8 @@ const DEFAULT_ROLE_PERMISSIONS = {
 
 function resetSchema() {
   db.exec(`
+    DROP TABLE IF EXISTS employee_requests;
+    DROP TABLE IF EXISTS employees;
     DROP TABLE IF EXISTS audit_logs;
     DROP TABLE IF EXISTS role_permissions;
     DROP TABLE IF EXISTS dining_reservations;
@@ -277,6 +279,36 @@ function resetSchema() {
       action TEXT NOT NULL,
       details TEXT,
       createdAt TEXT NOT NULL
+    );
+
+    CREATE TABLE employees (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      phone TEXT,
+      department TEXT,
+      title TEXT,
+      employmentType TEXT NOT NULL DEFAULT 'Full-Time',
+      startDate TEXT,
+      status TEXT NOT NULL DEFAULT 'active',
+      emergencyContact TEXT,
+      notes TEXT,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
+
+    CREATE TABLE employee_requests (
+      id TEXT PRIMARY KEY,
+      employeeId TEXT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+      userId TEXT REFERENCES users(id) ON DELETE SET NULL,
+      type TEXT NOT NULL CHECK(type IN ('pto','workers-comp','resignation','transfer')),
+      payload TEXT,
+      status TEXT NOT NULL CHECK(status IN ('pending','approved','denied')) DEFAULT 'pending',
+      comment TEXT,
+      decisionByUserId TEXT REFERENCES users(id) ON DELETE SET NULL,
+      decisionAt TEXT,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
     );
 
     CREATE TABLE payment_reversals (
@@ -516,6 +548,234 @@ function insertUsers() {
       createdAt: now,
       updatedAt: now
     });
+  });
+}
+
+function insertEmployees() {
+  const stmt = db.prepare(`
+    INSERT INTO employees (id, name, email, phone, department, title, employmentType, startDate, status, emergencyContact, notes, createdAt, updatedAt)
+    VALUES (@id, @name, @email, @phone, @department, @title, @employmentType, @startDate, @status, @emergencyContact, @notes, @createdAt, @updatedAt)
+  `);
+  const now = new Date().toISOString();
+  const userIndex = new Map(
+    db
+      .prepare('SELECT id, email, department, role FROM users')
+      .all()
+      .map((row) => [String(row.email || '').toLowerCase(), row])
+  );
+
+  const sampleEmployees = [
+    {
+      name: BOOTSTRAP_ACCOUNTS.global.name,
+      email: BOOTSTRAP_ACCOUNTS.global.email,
+      phone: '+1-555-777-0000',
+      department: BOOTSTRAP_ACCOUNTS.global.department,
+      title: 'Global Administrator',
+      employmentType: 'Full-Time',
+      startDate: '2015-06-01',
+      status: 'active',
+      emergencyContact: 'Rin Arin · +1-555-201-2200',
+      notes: 'Executive steward responsible for total orbital governance.'
+    },
+    {
+      name: BOOTSTRAP_ACCOUNTS.superAdmins[0].name,
+      email: BOOTSTRAP_ACCOUNTS.superAdmins[0].email,
+      phone: '+1-555-880-0001',
+      department: BOOTSTRAP_ACCOUNTS.superAdmins[0].department,
+      title: 'Super Administrator',
+      employmentType: 'Full-Time',
+      startDate: '2017-03-12',
+      status: 'active',
+      emergencyContact: 'Cassio Pax · +1-555-880-1010',
+      notes: 'Coordinates inter-departmental launch windows.'
+    },
+    {
+      name: BOOTSTRAP_ACCOUNTS.superAdmins[1].name,
+      email: BOOTSTRAP_ACCOUNTS.superAdmins[1].email,
+      phone: '+1-555-880-0002',
+      department: BOOTSTRAP_ACCOUNTS.superAdmins[1].department,
+      title: 'Finance Strategist',
+      employmentType: 'Full-Time',
+      startDate: '2018-08-20',
+      status: 'active',
+      emergencyContact: 'Morgan Hale · +1-555-870-9900',
+      notes: 'Leads compliance cadences and capital planning.'
+    },
+    {
+      name: BOOTSTRAP_ACCOUNTS.superAdmins[2].name,
+      email: BOOTSTRAP_ACCOUNTS.superAdmins[2].email,
+      phone: '+1-555-880-0003',
+      department: BOOTSTRAP_ACCOUNTS.superAdmins[2].department,
+      title: 'Experience Director',
+      employmentType: 'Full-Time',
+      startDate: '2019-02-01',
+      status: 'active',
+      emergencyContact: 'Rowan Quinn · +1-555-870-1188',
+      notes: 'Owns guest delight initiatives across all decks.'
+    },
+    {
+      name: 'Astra Vega',
+      email: 'astra@skyhaven.test',
+      phone: '+1-555-000000',
+      department: 'Guest Experience',
+      title: 'Guest Experience Admin',
+      employmentType: 'Full-Time',
+      startDate: '2020-05-10',
+      status: 'active',
+      emergencyContact: 'Zara Vega · +1-555-778-1122',
+      notes: 'Runs concierge briefings and satisfaction loops.'
+    },
+    {
+      name: 'Kael Orion',
+      email: 'kael@skyhaven.test',
+      phone: '+1-555-000001',
+      department: 'Operations Control',
+      title: 'Night Shift Admin',
+      employmentType: 'Full-Time',
+      startDate: '2021-01-15',
+      status: 'on-leave',
+      emergencyContact: 'Jon Orion · +1-555-660-8899',
+      notes: 'Currently on wellness recharge leave.'
+    },
+    {
+      name: 'Nova Lin',
+      email: 'nova@guest.test',
+      phone: null,
+      department: 'Guest Experience',
+      title: 'Concierge Specialist',
+      employmentType: 'Part-Time',
+      startDate: '2022-07-08',
+      status: 'active',
+      emergencyContact: 'Lani Lin · +1-555-221-3344',
+      notes: 'Focuses on VIP welcome orchestration.'
+    },
+    {
+      name: 'Juno Aki',
+      email: 'juno@guest.test',
+      phone: null,
+      department: 'Guest Experience',
+      title: 'Guest Liaison',
+      employmentType: 'Part-Time',
+      startDate: '2023-01-22',
+      status: 'active',
+      emergencyContact: 'Mako Aki · +1-555-554-1212',
+      notes: 'Leads sunrise arrival rituals.'
+    },
+    {
+      name: 'Mira Sol',
+      email: 'mira@guest.test',
+      phone: null,
+      department: 'Wellness Collective',
+      title: 'Wellness Guide',
+      employmentType: 'Contract',
+      startDate: '2021-09-30',
+      status: 'active',
+      emergencyContact: 'Tara Sol · +1-555-998-4455',
+      notes: 'Provides guided meditation sessions for crew and guests.'
+    },
+    {
+      name: 'Nova Ortega',
+      email: 'nova.ortega@auroranexus.com',
+      phone: '+1-555-430-9800',
+      department: 'Executive Operations',
+      title: 'General Manager',
+      employmentType: 'Full-Time',
+      startDate: '2016-04-04',
+      status: 'active',
+      emergencyContact: 'Alicia Ortega · +1-555-221-9898',
+      notes: 'Imported from leadership council during seeding.'
+    },
+    {
+      name: 'Ilya Rosenthal',
+      email: 'ilya.rosenthal@auroranexus.com',
+      phone: '+1-555-210-8877',
+      department: 'Concierge Intelligence',
+      title: 'Director of Concierge Intelligence',
+      employmentType: 'Full-Time',
+      startDate: '2018-11-19',
+      status: 'active',
+      emergencyContact: 'Mari Rosenthal · +1-555-332-9090',
+      notes: 'Oversees predictive support algorithms.'
+    },
+    {
+      name: 'Captain Idris Vale',
+      email: 'idris.vale@auroranexus.com',
+      phone: '+1-555-765-4343',
+      department: 'Orbital Logistics',
+      title: 'Logistics Advisor',
+      employmentType: 'Contract',
+      startDate: '2020-02-10',
+      status: 'suspended',
+      emergencyContact: 'Sera Vale · +1-555-765-9090',
+      notes: 'Restricted from docking ops pending clearance review.'
+    }
+  ];
+
+  const inserted = new Set();
+  sampleEmployees.forEach((employee) => {
+    const key = String(employee.email || '').toLowerCase();
+    if (inserted.has(key)) {
+      return;
+    }
+    inserted.add(key);
+    const record = {
+      id: uuidv4(),
+      ...employee,
+      createdAt: now,
+      updatedAt: now
+    };
+    stmt.run(record);
+  });
+
+  // Backfill requests table with a few pending actions to populate the queue.
+  const employeeLookup = new Map(
+    db
+      .prepare('SELECT id, email FROM employees')
+      .all()
+      .map((row) => [String(row.email || '').toLowerCase(), row.id])
+  );
+  const requestStmt = db.prepare(`
+    INSERT INTO employee_requests (id, employeeId, userId, type, payload, status, comment, decisionByUserId, decisionAt, createdAt, updatedAt)
+    VALUES (@id, @employeeId, @userId, @type, @payload, @status, @comment, @decisionByUserId, @decisionAt, @createdAt, @updatedAt)
+  `);
+  const pendingRequests = [
+    {
+      email: 'kael@skyhaven.test',
+      type: 'pto',
+      payload: { startDate: '2024-09-15', endDate: '2024-09-22', reason: 'Family voyage to the Luma Rings.' }
+    },
+    {
+      email: 'nova@guest.test',
+      type: 'transfer',
+      payload: { targetDepartment: 'Executive Operations', reason: 'Shadowing leadership rotation.' }
+    },
+    {
+      email: 'idris.vale@auroranexus.com',
+      type: 'resignation',
+      payload: { lastDay: '2024-10-31', reason: 'Returning to orbital fleet command.' }
+    }
+  ];
+
+  pendingRequests.forEach((entry) => {
+    const employeeId = employeeLookup.get(String(entry.email || '').toLowerCase());
+    if (!employeeId) {
+      return;
+    }
+    const user = userIndex.get(String(entry.email || '').toLowerCase());
+    const record = {
+      id: uuidv4(),
+      employeeId,
+      userId: user?.id || null,
+      type: entry.type,
+      payload: JSON.stringify(entry.payload),
+      status: 'pending',
+      comment: null,
+      decisionByUserId: null,
+      decisionAt: null,
+      createdAt: now,
+      updatedAt: now
+    };
+    requestStmt.run(record);
   });
 }
 
@@ -1197,6 +1457,7 @@ function main() {
   insertRoles();
   insertRolePermissions();
   insertUsers();
+  insertEmployees();
   syncDiningUsersFromCore();
   insertRoomTypes();
   insertAmenities();
