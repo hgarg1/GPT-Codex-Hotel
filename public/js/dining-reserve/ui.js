@@ -58,6 +58,18 @@ const ZONE_DETAILS = {
         accent: '#ff9ec7',
         highlights: ['Resident mixologist nearby', 'Lush velvet acoustics for conversation'],
     },
+    'aurora-bar': {
+        name: 'Aurora bar',
+        description: 'Glowing bar-top tables with proximity to our signature cocktail program.',
+        accent: '#f7a664',
+        highlights: ['Fast access to mixologists', 'Vibrant energy from the bar team'],
+    },
+    'private-dining': {
+        name: 'Private dining suite',
+        description: 'Secluded alcove with draped entry and dedicated service captain.',
+        accent: '#9fa5ff',
+        highlights: ['Acoustically private', 'Dedicated sommelier pairing service'],
+    },
     terrace: {
         name: 'Celestial Terrace',
         description: 'Climate-controlled terrace edged by floating lanterns and fireglass.',
@@ -398,14 +410,14 @@ function renderSeatMap() {
         const maxy = Math.max(acc[3], table.y);
         return [minx, miny, maxx, maxy];
     }, [Infinity, Infinity, -Infinity, -Infinity]);
-    const paddingX = 100;
-    const paddingY = 100;
+    const paddingX = 120;
+    const paddingY = 120;
     const rawWidth = maxX - minX + paddingX * 2;
     const rawHeight = maxY - minY + paddingY * 2;
-    const MIN_DISPLAY_WIDTH = 360;
-    const MIN_DISPLAY_HEIGHT = 320;
-    const MAX_DISPLAY_WIDTH = 520;
-    const MAX_DISPLAY_HEIGHT = 420;
+    const MIN_DISPLAY_WIDTH = 420;
+    const MIN_DISPLAY_HEIGHT = 380;
+    const MAX_DISPLAY_WIDTH = 760;
+    const MAX_DISPLAY_HEIGHT = 600;
     let scale = 1;
     if (rawWidth > MAX_DISPLAY_WIDTH) {
         scale = Math.min(scale, MAX_DISPLAY_WIDTH / rawWidth);

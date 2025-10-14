@@ -360,6 +360,17 @@
   display: grid;
   gap: 1.25rem;
   align-items: stretch;
+  grid-template-areas:
+    'map'
+    'insights';
+}
+
+.reserve-seatmap-wrapper {
+  grid-area: map;
+}
+
+.reserve-seatinsights {
+  grid-area: insights;
 }
 
 .reserve-seatinsights {
@@ -858,7 +869,7 @@
   }
 
   .reserve-grid {
-    grid-template-columns: minmax(0, 1.6fr) minmax(16rem, 22rem);
+    grid-template-columns: minmax(0, 1.9fr) minmax(13rem, 18rem);
     align-items: stretch;
   }
 
@@ -867,17 +878,26 @@
   }
 
   .reserve-seatmap-layout {
-    grid-template-columns: minmax(0, 1.75fr) minmax(15rem, 20rem);
+    grid-template-columns: minmax(13rem, 16rem) minmax(0, 1fr);
+    grid-template-areas: 'insights map';
     gap: 1.5rem;
+  }
+
+  .reserve-seatmap-wrapper {
+    grid-area: map;
+  }
+
+  .reserve-seatinsights {
+    grid-area: insights;
   }
 }
 
 @media (min-width: 1200px) {
   .reserve-grid {
-    grid-template-columns: minmax(0, 1.85fr) minmax(18rem, 24rem);
+    grid-template-columns: minmax(0, 2.1fr) minmax(14rem, 20rem);
   }
 
   .reserve-seatmap-layout {
-    grid-template-columns: minmax(0, 2fr) minmax(18rem, 24rem);
+    grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
   }
 }
