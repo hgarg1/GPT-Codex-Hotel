@@ -870,15 +870,17 @@ function insertDiningTables() {
   `);
   const now = new Date().toISOString();
   seedDiningSeats.forEach((seat, index) => {
+    const fallbackX = 120 + (index % 4) * 120;
+    const fallbackY = 120 + Math.floor(index / 4) * 120;
     stmt.run({
       id: seat.id,
-      label: seat.label,
+      label: seat.label ?? seat.id,
       capacity: seat.capacity,
-      x: 40 * (index + 1),
-      y: 30 * (index + 1),
-      rotation: (index % 4) * 15,
-      zone: seat.zone,
-      status: seat.status,
+      x: seat.x ?? fallbackX,
+      y: seat.y ?? fallbackY,
+      rotation: seat.rotation ?? 0,
+      zone: seat.zone ?? null,
+      status: seat.status ?? 'available',
       active: 1,
       createdAt: now,
       updatedAt: now,

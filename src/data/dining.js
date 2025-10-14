@@ -335,12 +335,20 @@ const diningStaff = [
 ];
 
 const diningSeats = [
-  { id: 'A1', label: 'A1', capacity: 2, zone: 'Atrium', status: 'available' },
-  { id: 'A2', label: 'A2', capacity: 2, zone: 'Atrium', status: 'available' },
-  { id: 'A3', label: 'A3', capacity: 4, zone: 'Atrium', status: 'held' },
-  { id: 'B1', label: 'B1', capacity: 6, zone: 'Garden', status: 'reserved' },
-  { id: 'B2', label: 'B2', capacity: 4, zone: 'Garden', status: 'available' },
-  { id: 'C1', label: 'C1', capacity: 2, zone: "Chef's Counter", status: 'available' }
+  { id: 'T1', label: 'T1', capacity: 3, zone: 'Atrium', status: 'available', x: 80, y: 120 },
+  { id: 'T2', label: 'T2', capacity: 2, zone: 'Atrium', status: 'available', x: 170, y: 120 },
+  { id: 'T3', label: 'T3', capacity: 2, zone: 'Atrium', status: 'available', x: 260, y: 120 },
+  { id: 'T4', label: 'T4', capacity: 4, zone: 'Atrium', status: 'available', x: 350, y: 120 },
+  { id: 'T5', label: 'T5', capacity: 4, zone: 'Observatory', status: 'available', x: 90, y: 220 },
+  { id: 'T6', label: 'T6', capacity: 6, zone: 'Observatory', status: 'held', x: 200, y: 220 },
+  { id: 'T7', label: 'T7', capacity: 4, zone: 'Observatory', status: 'available', x: 310, y: 220 },
+  { id: 'T8', label: 'T8', capacity: 2, zone: 'Observatory', status: 'reserved', x: 420, y: 220 },
+  { id: 'T9', label: 'T9', capacity: 2, zone: "Chef's Counter", status: 'available', x: 120, y: 320 },
+  { id: 'T10', label: 'T10', capacity: 2, zone: "Chef's Counter", status: 'available', x: 210, y: 320 },
+  { id: 'T11', label: 'T11', capacity: 5, zone: 'Solstice Lounge', status: 'available', x: 320, y: 320 },
+  { id: 'T12', label: 'T12', capacity: 6, zone: 'Solstice Lounge', status: 'available', x: 430, y: 320 },
+  { id: 'T13', label: 'T13', capacity: 4, zone: 'Celestial Terrace', status: 'available', x: 160, y: 420 },
+  { id: 'T14', label: 'T14', capacity: 4, zone: 'Celestial Terrace', status: 'available', x: 320, y: 420 }
 ];
 
 module.exports = {
