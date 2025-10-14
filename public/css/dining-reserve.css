@@ -56,10 +56,10 @@
 }
 
 .reserve-root {
-  max-width: 48rem;
+  max-width: min(72rem, 94vw);
   margin: 0 auto;
   display: grid;
-  gap: 1.5rem;
+  gap: 1.75rem;
 }
 
 .reserve-stepper {
@@ -654,7 +654,7 @@
 
 .reserve-grid {
   display: grid;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .reserve-confirmation-grid {
@@ -729,8 +729,8 @@
   }
 
   .reserve-grid {
-    grid-template-columns: minmax(0, 1fr) 16rem;
-    align-items: start;
+    grid-template-columns: minmax(0, 1.6fr) minmax(16rem, 22rem);
+    align-items: stretch;
   }
 
   .reserve-confirmation-grid {
@@ -738,6 +738,17 @@
   }
 
   .reserve-seatmap-layout {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 16rem);
+    grid-template-columns: minmax(0, 1.75fr) minmax(15rem, 20rem);
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .reserve-grid {
+    grid-template-columns: minmax(0, 1.85fr) minmax(18rem, 24rem);
+  }
+
+  .reserve-seatmap-layout {
+    grid-template-columns: minmax(0, 2fr) minmax(18rem, 24rem);
   }
 }
