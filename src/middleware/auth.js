@@ -1,5 +1,31 @@
 const { getUserById } = require('../models/users');
 const { countUnreadMessages } = require('../models/chat');
+const { getSessionToken, verifyHotelToken, issueSessionToken } = require('../utils/jwt');
+
+function ensureDiningSessionCookie(req, res, user) {
+  if (!user) {
+    return;
+  }
+
+  const existingToken = getSessionToken(req);
+  if (!existingToken) {
+    issueSessionToken(res, user);
+    return;
+  }
+
+  const payload = verifyHotelToken(existingToken);
+  const payloadUser = payload?.user;
+  const payloadId = payloadUser?.id || payload?.sub || payload?.id;
+  const payloadEmail = payloadUser?.email || payload?.email;
+  const emailsMatch =
+    !payloadEmail || !user.email
+      ? true
+      : String(payloadEmail).toLowerCase() === String(user.email).toLowerCase();
+
+  if (!payload || payloadId !== user.id || !emailsMatch) {
+    issueSessionToken(res, user);
+  }
+}
 
 // Ensures a user is attached to the request if their session is active.
 function hydrateUser(req, res, next) {
@@ -15,6 +41,7 @@ function hydrateUser(req, res, next) {
         bio: user.bio,
         phone: user.phone
       };
+      ensureDiningSessionCookie(req, res, user);
       res.locals.chatUnreadCount = countUnreadMessages(user.id);
       return next();
     }
