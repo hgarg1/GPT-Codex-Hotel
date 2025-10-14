@@ -1,5 +1,6 @@
 <%- include('../partials/head', { pageTitle: title, hotelName, csrfToken, darkMode }) %>
 <link rel="stylesheet" href="/css/dining.css">
+<script defer src="/js/dining-roster.js"></script>
 <%- include('../partials/nav') %>
 <%- include('../partials/alerts') %>
 <main class="dining-landing" data-theme="dining">
@@ -53,5 +54,81 @@
       </div>
     </dl>
   </section>
+  <% if (staff && staff.length) { %>
+    <section class="dining-team" data-dining-roster>
+      <header>
+        <h2>Meet the Aurora Brigade</h2>
+        <p>Search the entire dining ensemble, pin your favourite hosts, and choreograph shifts with live cadence tools.</p>
+      </header>
+      <div class="dining-team__controls">
+        <div class="dining-team__search">
+          <label for="dining-roster-search" class="sr-only">Search dining staff</label>
+          <input
+            id="dining-roster-search"
+            type="search"
+            placeholder="Search by name, role, or badge"
+            data-roster-search
+            autocomplete="off"
+          >
+        </div>
+        <div class="dining-team__roles" role="group" aria-label="Filter by role">
+          <button type="button" class="role-chip is-active" data-role-filter="all" aria-pressed="true">All roles</button>
+          <% staffRoles.forEach((role) => { %>
+            <button
+              type="button"
+              class="role-chip"
+              data-role-filter="<%= role.toLowerCase() %>"
+              aria-pressed="false"
+            >
+              <%= role %>
+            </button>
+          <% }) %>
+        </div>
+        <div class="dining-team__toggles">
+          <label class="toggle">
+            <input type="checkbox" data-roster-sort>
+            <span>
+              <strong data-sort-label>Alphabetical order</strong>
+              <small>Toggle for upcoming shift view</small>
+            </span>
+          </label>
+          <button type="button" class="btn btn-outline btn-compact" data-clear-pins>Clear pinned</button>
+        </div>
+      </div>
+      <p class="dining-team__count" data-roster-count><%= staff.length %> culinary artists online</p>
+      <div class="dining-team__grid" data-roster-list>
+        <% staff.forEach((member) => { %>
+          <article
+            class="dining-team__card"
+            data-roster-card
+            data-id="<%= member.id %>"
+            data-name="<%= (member.name || '').toLowerCase() %>"
+            data-role="<%= (member.role || '').toLowerCase() %>"
+            data-badges="<%= Array.isArray(member.badges) ? member.badges.join(' ').toLowerCase() : '' %>"
+            data-shift="<%= member.nextShift %>"
+          >
+            <header>
+              <div>
+                <h3><%= member.name %></h3>
+                <p class="dining-team__role"><%= member.role %></p>
+              </div>
+              <button class="pin-toggle" type="button" data-pin aria-pressed="false" title="Pin <%= member.name %>">☆</button>
+            </header>
+            <% if (Array.isArray(member.badges) && member.badges.length) { %>
+              <ul class="dining-team__badges">
+                <% member.badges.forEach((badge) => { %>
+                  <li><%= badge %></li>
+                <% }) %>
+              </ul>
+            <% } %>
+            <div class="dining-team__meta">
+              <span class="countdown" data-countdown>Shift timing synced</span>
+              <time datetime="<%= member.nextShift %>"><%= new Date(member.nextShift).toLocaleString() %></time>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+    </section>
+  <% } %>
 </main>
 <%- include('../partials/footer') %>

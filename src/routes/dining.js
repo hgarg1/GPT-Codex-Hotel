@@ -76,6 +76,15 @@ router.use(async (req, res, next) => {
 router.get('/dining', (req, res) => {
   const canonicalUrl = buildAbsoluteUrl(req, '/dining');
   const ogImage = buildAbsoluteUrl(req, '/images/nebula.svg');
+  const staff = listStaff();
+  const staffRoles = Array.from(
+    new Set(
+      staff
+        .map((member) => member.role)
+        .filter((role) => typeof role === 'string' && role.trim().length > 0)
+        .map((role) => role.trim())
+    )
+  ).sort((a, b) => a.localeCompare(b));
   const restaurantJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Restaurant',
@@ -131,6 +140,8 @@ router.get('/dining', (req, res) => {
         background: 'linear-gradient(135deg, rgba(212,36,78,0.4), rgba(12,20,40,0.95))',
       },
     ],
+    staff,
+    staffRoles,
   });
 });
 

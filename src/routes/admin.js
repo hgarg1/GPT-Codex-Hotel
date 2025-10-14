@@ -11,6 +11,8 @@ const {
 const { getPaymentByBookingId } = require('../models/payments');
 const { getAllInquiries, getInquiryById, updateInquiryStatus } = require('../models/inquiries');
 const { sanitizeString } = require('../utils/sanitize');
+const { listStaff: listDiningStaff } = require('../services/diningService');
+const { getCurrentSeats } = require('../services/diningSeatLocks');
 
 const router = express.Router();
 
@@ -169,6 +171,30 @@ router.get('/admin', ensureAdmin, (req, res) => {
     };
   });
 
+  const diningSeats = getCurrentSeats();
+  const seatStatusCounts = diningSeats.reduce((acc, seat) => {
+    const status = (seat.status || 'available').toLowerCase();
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {});
+  const baselineStatuses = ['available', 'held', 'reserved'];
+  const diningSeatSummary = Array.from(
+    new Set([...baselineStatuses, ...Object.keys(seatStatusCounts)])
+  )
+    .sort((a, b) => a.localeCompare(b))
+    .map((status) => ({ status, count: seatStatusCounts[status] || 0 }));
+
+  const diningStaff = listDiningStaff();
+  const diningCoverageMap = diningStaff.reduce((map, member) => {
+    const role = (member.role || 'Team').trim();
+    const key = role.toLowerCase();
+    const current = map.get(key) || { role, count: 0 };
+    current.count += 1;
+    map.set(key, current);
+    return map;
+  }, new Map());
+  const diningCoverage = Array.from(diningCoverageMap.values()).sort((a, b) => a.role.localeCompare(b.role));
+
   res.render('admin/index', {
     pageTitle: 'Admin Control Deck',
     rooms,
@@ -185,7 +211,11 @@ router.get('/admin', ensureAdmin, (req, res) => {
     lowInventoryRooms,
     bookingStatuses: ['Reserved', 'PendingPayment', 'Paid', 'Canceled'],
     reservationStatuses: ['reserved', 'waitlist', 'cancelled'],
-    openInquiriesCount: openInquiries
+    openInquiriesCount: openInquiries,
+    diningSeats,
+    diningSeatSummary,
+    diningStaff,
+    diningCoverage
   });
 });
 

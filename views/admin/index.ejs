@@ -1,4 +1,5 @@
 <%- include('../partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
+<script defer src="/js/admin-dining-console.js"></script>
 <%- include('../partials/nav') %>
 <%- include('../partials/alerts') %>
 
@@ -284,6 +285,116 @@
           </li>
         <% }) %>
       </ul>
+    </section>
+
+    <section class="admin-panel admin-panel--dining" data-dining-console>
+      <div class="dining-console__header">
+        <div>
+          <h2>Dining command console</h2>
+          <p>Balance Supper Club seats, orchestrate coverage, and simulate rush moments in one control surface.</p>
+        </div>
+        <div class="dining-console__metrics">
+          <div class="console-metric">
+            <span class="console-label">Tables visible</span>
+            <strong data-seat-count><%= diningSeats.length %> / <%= diningSeats.length %></strong>
+          </div>
+          <ul class="console-status" data-seat-summary>
+            <% diningSeatSummary.forEach(function(item) { %>
+              <% const statusLabel = item.status.charAt(0).toUpperCase() + item.status.slice(1); %>
+              <li class="status-chip status-<%= item.status %>">
+                <span class="status-label"><%= statusLabel %></span>
+                <strong data-status-count="<%= item.status %>"><%= item.count %></strong>
+              </li>
+            <% }) %>
+          </ul>
+        </div>
+      </div>
+      <div class="dining-console__controls">
+        <div class="control-group">
+          <span class="control-label">Seat status</span>
+          <div class="control-actions">
+            <button type="button" class="pill-link secondary is-active" data-seat-filter="all" aria-pressed="true">All</button>
+            <button type="button" class="pill-link secondary" data-seat-filter="available" aria-pressed="false">Available</button>
+            <button type="button" class="pill-link secondary" data-seat-filter="held" aria-pressed="false">Held</button>
+            <button type="button" class="pill-link secondary" data-seat-filter="reserved" aria-pressed="false">Reserved</button>
+          </div>
+        </div>
+        <div class="control-group">
+          <label class="switch">
+            <input type="checkbox" data-seat-cluster>
+            <span>Cluster seats by zone</span>
+          </label>
+        </div>
+        <div class="control-group control-group--actions">
+          <button type="button" class="btn btn-outline" data-seat-refresh>Reset snapshot</button>
+          <button type="button" class="btn btn-outline" data-seat-randomize>Simulate rush</button>
+        </div>
+      </div>
+      <div class="dining-console__grid">
+        <div class="seat-board" data-seat-board>
+          <% diningSeats.forEach(function(seat) { %>
+            <% const seatStatus = (seat.status || 'available').toLowerCase(); %>
+            <button
+              type="button"
+              class="seat-chip status-<%= seatStatus %>"
+              data-seat-id="<%= seat.id %>"
+              data-seat-label="<%= seat.label %>"
+              data-seat-status="<%= seatStatus %>"
+              data-seat-zone="<%= seat.zone %>"
+              data-seat-capacity="<%= seat.capacity %>"
+            >
+              <span class="seat-chip__label"><%= seat.label %></span>
+              <span class="seat-chip__meta"><%= seat.capacity %> guests • <%= seat.zone %></span>
+            </button>
+          <% }) %>
+        </div>
+        <div class="coverage-panel">
+          <header>
+            <h3>Shift coverage</h3>
+            <p>Toggle visibility by role and pulse key hosts before the next seating.</p>
+          </header>
+          <ul class="coverage-summary">
+            <% diningCoverage.forEach(function(item) { %>
+              <li>
+                <span><%= item.role %></span>
+                <span class="count"><%= item.count %></span>
+                <label class="switch">
+                  <input type="checkbox" data-role-toggle value="<%= item.role %>" checked>
+                  <span>Display</span>
+                </label>
+              </li>
+            <% }) %>
+          </ul>
+          <div class="coverage-roster" data-coverage-roster>
+            <% diningStaff.forEach(function(member) { %>
+              <article
+                class="coverage-card"
+                data-coverage-card
+                data-role="<%= (member.role || '').toLowerCase() %>"
+                data-name="<%= (member.name || '').toLowerCase() %>"
+                data-shift="<%= member.nextShift %>"
+              >
+                <header>
+                  <h4><%= member.name %></h4>
+                  <span class="role"><%= member.role %></span>
+                </header>
+                <% if (Array.isArray(member.badges) && member.badges.length) { %>
+                  <ul class="badge-list">
+                    <% member.badges.forEach(function(badge) { %>
+                      <li><%= badge %></li>
+                    <% }) %>
+                  </ul>
+                <% } %>
+                <div class="coverage-card__meta">
+                  <span data-coverage-countdown>Shift syncing…</span>
+                  <time datetime="<%= member.nextShift %>"><%= new Date(member.nextShift).toLocaleString() %></time>
+                </div>
+                <button type="button" class="pill-link" data-toggle-shift>Pulse focus</button>
+              </article>
+            <% }) %>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section class="admin-panel">
