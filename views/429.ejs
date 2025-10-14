@@ -1,0 +1,10 @@
+<%- include('partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
+<%- include('partials/nav') %>
+<%- include('partials/alerts') %>
+<section class="error-page" data-animate="fade-up">
+  <h1>Transmission Overload</h1>
+  <p><%= friendlyMessage %> Please pause for <strong><%= retryAfter %> seconds</strong> before trying again.</p>
+  <p>If you believe this relay activated by mistake, wait a moment and refresh the page to continue your journey.</p>
+  <a class="cta-button primary" href="/">Return Home</a>
+</section>
+<%- include('partials/footer') %>

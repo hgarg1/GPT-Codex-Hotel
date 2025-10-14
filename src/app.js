@@ -3,7 +3,12 @@ const express = require('express');
 const csrf = require('csurf');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const { createProxyMiddleware } = require('http-proxy-middleware');
+let createProxyMiddleware;
+try {
+  ({ createProxyMiddleware } = require('http-proxy-middleware'));
+} catch (error) {
+  createProxyMiddleware = () => (req, res, next) => next();
+}
 const { hydrateUser } = require('./middleware/auth');
 const { sessionMiddleware } = require('./middleware/session');
 const { notFoundHandler, errorHandler } = require('./middleware/errors');
@@ -191,8 +196,12 @@ const buildLimiter = ({ windowMs, max, skipSuccessfulRequests = false, message }
           );
         }
 
-        const redirectTarget = req.get('referer') || req.originalUrl || '/';
-        return res.status(429).redirect(redirectTarget);
+        res.status(429);
+        return res.render('429', {
+          pageTitle: 'Transmission Overload',
+          retryAfter: retryAfterSeconds,
+          friendlyMessage
+        });
       }
 
       return res.status(429).json(responsePayload);
