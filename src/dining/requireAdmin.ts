@@ -1,38 +1,18 @@
 import type { NextFunction, Request, Response } from 'express';
+import { createRequire } from 'node:module';
 
-function parseAllowlist(): Set<string> {
-  const raw = process.env.ADMIN_EMAILS ?? '';
-  return new Set(
-    raw
-      .split(',')
-      .map((value) => value.trim().toLowerCase())
-      .filter((value) => value.length > 0),
-  );
-}
-
-function isEmailAllowed(email: string | null | undefined): boolean {
-  if (!email) {
-    return false;
-  }
-  const allowlist = parseAllowlist();
-  if (allowlist.size === 0) {
-    return false;
-  }
-  return allowlist.has(email.trim().toLowerCase());
-}
+const require = createRequire(import.meta.url);
+const { roleAtLeast, Roles, normalizeRole } = require('../utils/rbac.js') as {
+  roleAtLeast: (current: string, minimum: string) => boolean;
+  Roles: Record<string, string>;
+  normalizeRole: (role: string | null | undefined) => string;
+};
 
 export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
-  if (!req.user) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
-  }
-  if (!isEmailAllowed(req.user.email)) {
-    res.status(403).json({ error: 'Forbidden' });
+  const role = req.user?.role ? normalizeRole(req.user.role) : null;
+  if (!req.user || !role || !roleAtLeast(role, Roles.ADMIN)) {
+    res.status(req.user ? 403 : 401).json({ error: req.user ? 'Forbidden' : 'Unauthorized' });
     return;
   }
   next();
-}
-
-export function isAdminEmail(email: string | null | undefined): boolean {
-  return isEmailAllowed(email);
 }

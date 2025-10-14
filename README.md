@@ -35,7 +35,14 @@ npm run dev
 
 3. Visit `http://localhost:3000` for the hotel site. The dining experience lives at `/dining` and shares the same session token.
 
-Seeded credentials (password `skyhaven123`):
+Seeded administrator credentials (development only):
+
+- Global Admin — Celeste Arin (`global.admin@skyhaven.dev` / `SkyhavenGlobal!23`)
+- Super Admin — Orion Pax (`super.orion@skyhaven.dev` / `SuperNova!23`)
+- Super Admin — Lyric Hale (`super.lyric@skyhaven.dev` / `SuperAurora!23`)
+- Super Admin — Vela Quinn (`super.vela@skyhaven.dev` / `SuperCosmos!23`)
+
+Legacy staff accounts (password `skyhaven123`):
 
 - `astra@skyhaven.test` (admin)
 - `kael@skyhaven.test` (admin)

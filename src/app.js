@@ -24,6 +24,7 @@ const chatRoutes = require('./routes/chat');
 const adminRoutes = require('./routes/admin');
 const diningRoutes = require('./routes/dining');
 const adminDiningRoutes = require('./routes/adminDining');
+const adminApiRoutes = require('./routes/adminApi');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
@@ -167,6 +168,8 @@ app.use((req, res, next) => {
   req.session.alerts = [];
   next();
 });
+
+app.use('/api/admin', adminApiRoutes);
 
 const buildLimiter = ({ windowMs, max, skipSuccessfulRequests = false, message }) => {
   const retryAfterSeconds = Math.ceil(windowMs / 1000);

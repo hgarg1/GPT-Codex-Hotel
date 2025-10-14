@@ -10,12 +10,13 @@ const {
   updatePaymentStatus,
   createReversal
 } = require('../models/payments');
+const { roleAtLeast, Roles } = require('../utils/rbac');
 
 const router = express.Router();
 
 function assertOwnership(req, booking) {
   if (!booking) return false;
-  if (req.user.role === 'admin') return true;
+  if (req.user && roleAtLeast(req.user.role, Roles.ADMIN)) return true;
   return booking.userId === req.user.id;
 }
 

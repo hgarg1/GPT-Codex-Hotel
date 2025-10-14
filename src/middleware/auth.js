@@ -1,6 +1,7 @@
 const { getUserById } = require('../models/users');
 const { countUnreadMessages } = require('../models/chat');
 const { getSessionToken, verifyHotelToken, issueSessionToken } = require('../utils/jwt');
+const { requireRole, Roles, normalizeRole } = require('../utils/rbac');
 
 function ensureDiningSessionCookie(req, res, user) {
   if (!user) {
@@ -32,16 +33,22 @@ function hydrateUser(req, res, next) {
   if (req.session.userId) {
     const user = getUserById(req.session.userId);
     if (user) {
-      req.user = user;
+      const normalizedRole = normalizeRole(user.role);
+      req.user = {
+        ...user,
+        role: normalizedRole
+      };
       res.locals.currentUser = {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: normalizedRole,
+        department: user.department || null,
+        status: user.status || null,
         bio: user.bio,
         phone: user.phone
       };
-      ensureDiningSessionCookie(req, res, user);
+      ensureDiningSessionCookie(req, res, req.user);
       res.locals.chatUnreadCount = countUnreadMessages(user.id);
       return next();
     }
@@ -68,18 +75,9 @@ function ensureApiAuth(req, res, next) {
   return next();
 }
 
-function ensureAdmin(req, res, next) {
-  if (!req.user) {
-    req.session.returnTo = req.originalUrl;
-    req.pushAlert('warning', 'Administrator access requires you to log in first.');
-    return res.redirect('/login');
-  }
-  if (req.user.role !== 'admin') {
-    req.pushAlert('danger', 'You need Aurora Nexus Skyhaven curator privileges to view that console.');
-    return res.redirect('/dashboard');
-  }
-  return next();
-}
+const ensureAdmin = requireRole(Roles.ADMIN, {
+  forbiddenMessage: 'You need Aurora Nexus Skyhaven curator privileges to view that console.'
+});
 
 module.exports = {
   hydrateUser,
