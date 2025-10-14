@@ -7,6 +7,145 @@
   <h1>Control deck</h1>
   <p>Monitor inventory, track bookings, and respond to guest signals across <%= hotelName %>.</p>
 
+  <% const roleLabels = { GLOBAL_ADMIN: 'Global Admin', SUPER_ADMIN: 'Super Admin', ADMIN: 'Admin', EMPLOYEE: 'Employee' }; %>
+  <% const roleDescriptions = {
+    GLOBAL_ADMIN: 'Architects the Skyhaven ecosystem and steers every console.',
+    SUPER_ADMIN: 'Oversees regional consoles and mentors Admin teams.',
+    ADMIN: 'Runs day-to-day guest operations and supports on-site teams.',
+    EMPLOYEE: 'Provides world-class service across the hotel.'
+  }; %>
+  <% const actorRoleLabel = roleLabels[adminAccess.actorRole] || 'Admin'; %>
+  <% const allowedRoleLabels = (adminAccess.allowedSubAdminRoles || []).map(function(role) { return roleLabels[role]; }); %>
+  <% let delegationIntro; %>
+  <% if (adminAccess.actorRole === 'GLOBAL_ADMIN') { %>
+    <% delegationIntro = 'You can elevate trusted leaders into Super Admin or Admin roles and fine-tune their privileges.'; %>
+  <% } else if (adminAccess.actorRole === 'SUPER_ADMIN') { %>
+    <% delegationIntro = 'You can create Admin accounts and tailor their operational privileges. Reach out to the Global Admin for Super Admin promotions.'; %>
+  <% } else { %>
+    <% delegationIntro = 'You can orchestrate bookings, amenities, and inquiries. Coordinate with a Super Admin if your team needs additional admin accounts.'; %>
+  <% } %>
+
+  <section class="admin-panel admin-access-panel">
+    <div class="admin-access-header">
+      <div>
+        <h2>Administrative hierarchy</h2>
+        <p class="admin-access-subtitle">Delegate control of Skyhaven's systems with precision.</p>
+      </div>
+      <span class="role-badge role-badge--<%= String(adminAccess.actorRole || '').toLowerCase() %>">
+        <span class="role-badge__label"><%= actorRoleLabel %></span>
+      </span>
+    </div>
+    <p class="admin-access-copy"><%= delegationIntro %></p>
+    <% if (allowedRoleLabels.length) { %>
+      <p class="admin-access-hint">
+        Delegation options: <strong><%= allowedRoleLabels.join(', ') %></strong>
+      </p>
+      <div
+        class="subadmin-wizard"
+        data-subadmin-wizard
+        data-config='<%- JSON.stringify({ allowedSubAdminRoles: adminAccess.allowedSubAdminRoles, actorRole: adminAccess.actorRole }) %>'
+      >
+        <div class="subadmin-wizard__stage" data-stage="select">
+          <h3>Choose an access tier</h3>
+          <p class="muted">Select the level of control you want to grant.</p>
+          <div class="subadmin-wizard__roles">
+            <% adminAccess.allowedSubAdminRoles.forEach(function(role) { %>
+              <button type="button" class="subadmin-role" data-role-option data-role="<%= role %>">
+                <span class="subadmin-role__label"><%= roleLabels[role] %></span>
+                <span class="subadmin-role__detail"><%= roleDescriptions[role] || 'Provides operational coverage across the hotel.' %></span>
+              </button>
+            <% }) %>
+          </div>
+          <div class="subadmin-wizard__actions">
+            <button type="button" class="pill-link primary" data-action="advance" disabled>Continue</button>
+          </div>
+        </div>
+        <div class="subadmin-wizard__stage" data-stage="details" hidden>
+          <h3>Set up a new <span data-selected-role-label>Admin</span></h3>
+          <form data-subadmin-form novalidate>
+            <input type="hidden" name="role" data-role-input />
+            <div class="subadmin-form-grid">
+              <label class="subadmin-field">
+                <span class="subadmin-field__label">Full name</span>
+                <input type="text" name="name" required autocomplete="name" placeholder="Nova Patel" />
+              </label>
+              <label class="subadmin-field">
+                <span class="subadmin-field__label">Email</span>
+                <input type="email" name="email" required autocomplete="email" placeholder="nova@skyhaven.test" />
+              </label>
+              <label class="subadmin-field">
+                <span class="subadmin-field__label">Temporary password</span>
+                <input type="password" name="password" required autocomplete="new-password" minlength="8" placeholder="Min. 8 characters" />
+                <small class="subadmin-field__hint">Share securely with the new admin and encourage a reset on first login.</small>
+              </label>
+              <label class="subadmin-field">
+                <span class="subadmin-field__label">Department (optional)</span>
+                <input type="text" name="department" autocomplete="organization" placeholder="Front Desk" />
+              </label>
+            </div>
+            <p class="subadmin-feedback" data-subadmin-feedback aria-live="polite"></p>
+            <div class="subadmin-wizard__actions">
+              <button type="button" class="pill-link secondary" data-action="back">Back</button>
+              <button type="submit" class="pill-link primary" data-action="submit">
+                Create <span data-selected-role-label>Admin</span>
+              </button>
+            </div>
+          </form>
+        </div>
+        <div class="subadmin-wizard__stage" data-stage="result" hidden>
+          <div class="subadmin-success">
+            <h3>Delegation complete</h3>
+            <p>
+              <strong data-result-name></strong>
+              now has <span data-result-role></span> privileges.
+            </p>
+          </div>
+          <div class="subadmin-wizard__actions">
+            <button type="button" class="pill-link secondary" data-action="finish-wizard">Close</button>
+            <button type="button" class="pill-link primary" data-action="create-another">Create another</button>
+          </div>
+        </div>
+      </div>
+    <% } else { %>
+      <div class="admin-access-note">
+        <p class="muted">
+          Delegating new admin accounts requires Super Admin privileges. Coordinate with your Super Admin team if you need additional coverage.
+        </p>
+      </div>
+    <% } %>
+  </section>
+
+  <% if (adminAccess.allowedSubAdminRoles && adminAccess.allowedSubAdminRoles.length) { %>
+    <section class="admin-panel subadmin-roster-panel" data-subadmin-roster data-empty-text="No delegated administrators yet.">
+      <div class="subadmin-roster__header">
+        <div>
+          <h2>Delegated administrators</h2>
+          <p class="muted">Keep track of the teammates you've elevated.</p>
+        </div>
+        <button type="button" class="pill-link secondary" data-roster-refresh>Refresh</button>
+      </div>
+      <p class="subadmin-roster__feedback" data-roster-feedback aria-live="polite"></p>
+      <div class="panel-scroll">
+        <table class="admin-table subadmin-table">
+          <thead>
+            <tr>
+              <th>Administrator</th>
+              <th>Role</th>
+              <th>Department</th>
+              <th>Status</th>
+              <th>Privileges</th>
+            </tr>
+          </thead>
+          <tbody data-roster-body>
+            <tr data-roster-loading>
+              <td colspan="5">Loading delegated administrators…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  <% } %>
+
   <div class="admin-metrics">
     <% metrics.forEach(function(metric) { %>
       <article class="metric-card">
