@@ -25,6 +25,7 @@ const adminRoutes = require('./routes/admin');
 const diningRoutes = require('./routes/dining');
 const adminDiningRoutes = require('./routes/adminDining');
 const adminApiRoutes = require('./routes/adminApi');
+const employeeRequestRoutes = require('./routes/employeeRequests');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
@@ -170,6 +171,7 @@ app.use((req, res, next) => {
 });
 
 app.use('/api/admin', adminApiRoutes);
+app.use('/api/employee/requests', employeeRequestRoutes);
 
 const buildLimiter = ({ windowMs, max, skipSuccessfulRequests = false, message }) => {
   const retryAfterSeconds = Math.ceil(windowMs / 1000);

@@ -1,5 +1,6 @@
 <%- include('../partials/head', { pageTitle, hotelName, csrfToken, darkMode }) %>
 <script defer src="/js/admin-dining-console.js"></script>
+<script defer src="/js/admin-employees.js"></script>
 <%- include('../partials/nav') %>
 <%- include('../partials/alerts') %>
 
@@ -7,6 +8,128 @@
   <h1>Control deck</h1>
   <p>Monitor inventory, track bookings, and respond to guest signals across <%= hotelName %>.</p>
 
+  <section class="admin-panel admin-panel--employees" data-employee-console>
+    <header class="employees-header">
+      <div>
+        <h2>Employee management</h2>
+        <p>Maintain workforce records, trigger lifecycle workflows, and respond to employee requests.</p>
+      </div>
+      <div class="employees-actions">
+        <a class="pill-link" href="/admin/requests">Review requests</a>
+        <button type="button" class="pill-link secondary" data-import-leadership>Import from Leadership</button>
+        <button type="button" class="pill-link primary" data-open-create>New employee</button>
+      </div>
+    </header>
+
+    <div class="employees-toolbar">
+      <div class="toolbar-search">
+        <label class="sr-only" for="employee-search">Search employees</label>
+        <input id="employee-search" type="search" placeholder="Search name, email, or department" data-employee-search />
+      </div>
+      <div class="toolbar-filters">
+        <label class="sr-only" for="employee-filter-department">Filter by department</label>
+        <select id="employee-filter-department" data-employee-filter="department">
+          <option value="">All departments</option>
+        </select>
+        <label class="sr-only" for="employee-filter-status">Filter by status</label>
+        <select id="employee-filter-status" data-employee-filter="status">
+          <option value="">All statuses</option>
+        </select>
+        <label class="sr-only" for="employee-filter-type">Filter by employment type</label>
+        <select id="employee-filter-type" data-employee-filter="employmentType">
+          <option value="">All employment types</option>
+        </select>
+      </div>
+    </div>
+
+    <form class="employees-bulk" data-employee-bulk>
+      <div class="bulk-field">
+        <label class="sr-only" for="bulk-department">Bulk department</label>
+        <select id="bulk-department" data-bulk-department>
+          <option value="">Set department…</option>
+        </select>
+      </div>
+      <div class="bulk-field">
+        <label class="sr-only" for="bulk-status">Bulk status</label>
+        <select id="bulk-status" data-bulk-status>
+          <option value="">Set status…</option>
+          <option value="active">Active</option>
+          <option value="on-leave">On leave</option>
+          <option value="suspended">Suspended</option>
+          <option value="terminated">Terminated</option>
+        </select>
+      </div>
+      <button type="submit" class="pill-link secondary" data-bulk-apply disabled>Apply to selected</button>
+    </form>
+
+    <div class="employee-table-wrapper">
+      <table class="admin-table employee-table">
+        <thead>
+          <tr>
+            <th scope="col"><span class="sr-only">Select employee</span></th>
+            <th scope="col">Name &amp; contact</th>
+            <th scope="col">Title</th>
+            <th scope="col">Department</th>
+            <th scope="col">Employment</th>
+            <th scope="col">Status</th>
+            <th scope="col">Start</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody data-employee-rows>
+          <tr data-empty>
+            <td colspan="8">Loading employee roster…</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="employee-pagination" data-employee-pagination>
+      <button type="button" class="pill-link secondary" data-page="prev" disabled>Previous</button>
+      <span data-page-status>Page 1 of 1</span>
+      <button type="button" class="pill-link secondary" data-page="next" disabled>Next</button>
+    </div>
+
+    <aside class="employee-detail" data-employee-detail hidden>
+      <header class="detail-header">
+        <div>
+          <h3 data-detail-name>Employee</h3>
+          <p data-detail-email class="muted"></p>
+        </div>
+        <button type="button" class="pill-link" data-close-detail>Close</button>
+      </header>
+      <dl class="detail-grid">
+        <div>
+          <dt>Department</dt>
+          <dd data-detail-department>—</dd>
+        </div>
+        <div>
+          <dt>Title</dt>
+          <dd data-detail-title>—</dd>
+        </div>
+        <div>
+          <dt>Employment type</dt>
+          <dd data-detail-employment>—</dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd data-detail-status>—</dd>
+        </div>
+        <div>
+          <dt>Start date</dt>
+          <dd data-detail-start>—</dd>
+        </div>
+        <div>
+          <dt>Emergency contact</dt>
+          <dd data-detail-emergency>—</dd>
+        </div>
+      </dl>
+      <section>
+        <h4>Notes</h4>
+        <p data-detail-notes class="muted">No notes captured.</p>
+      </section>
+    </aside>
+  </section>
   <% const roleLabels = { GLOBAL_ADMIN: 'Global Admin', SUPER_ADMIN: 'Super Admin', ADMIN: 'Admin', EMPLOYEE: 'Employee' }; %>
   <% const roleDescriptions = {
     GLOBAL_ADMIN: 'Architects the Skyhaven ecosystem and steers every console.',
@@ -580,6 +703,79 @@
       </ul>
     </section>
   </div>
+
+  <div class="employee-modal" data-employee-modal hidden>
+    <div class="employee-modal__backdrop" data-close-modal></div>
+    <div class="employee-modal__content">
+      <header class="employee-modal__header">
+        <h3 data-modal-title>New employee</h3>
+        <button type="button" class="pill-link" data-close-modal>Close</button>
+      </header>
+      <form data-employee-form>
+        <input type="hidden" name="id" data-field="id" />
+        <div class="employee-form-grid">
+          <label>
+            <span>Full name</span>
+            <input type="text" name="name" data-field="name" required />
+          </label>
+          <label>
+            <span>Email</span>
+            <input type="email" name="email" data-field="email" required />
+          </label>
+          <label>
+            <span>Phone</span>
+            <input type="text" name="phone" data-field="phone" />
+          </label>
+          <label>
+            <span>Department</span>
+            <input type="text" name="department" data-field="department" />
+          </label>
+          <label>
+            <span>Title</span>
+            <input type="text" name="title" data-field="title" />
+          </label>
+          <label>
+            <span>Employment type</span>
+            <select name="employmentType" data-field="employmentType">
+              <option value="Full-Time">Full-Time</option>
+              <option value="Part-Time">Part-Time</option>
+              <option value="Contract">Contract</option>
+              <option value="Seasonal">Seasonal</option>
+              <option value="Temporary">Temporary</option>
+              <option value="Intern">Intern</option>
+            </select>
+          </label>
+          <label>
+            <span>Start date</span>
+            <input type="date" name="startDate" data-field="startDate" />
+          </label>
+          <label>
+            <span>Status</span>
+            <select name="status" data-field="status">
+              <option value="active">Active</option>
+              <option value="on-leave">On leave</option>
+              <option value="suspended">Suspended</option>
+              <option value="terminated">Terminated</option>
+            </select>
+          </label>
+          <label>
+            <span>Emergency contact</span>
+            <input type="text" name="emergencyContact" data-field="emergencyContact" />
+          </label>
+          <label class="notes-field">
+            <span>Notes</span>
+            <textarea name="notes" rows="3" data-field="notes"></textarea>
+          </label>
+        </div>
+        <footer class="employee-modal__footer">
+          <button type="button" class="pill-link" data-close-modal>Cancel</button>
+          <button type="submit" class="pill-link primary" data-submit-label>Save employee</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <div class="employee-toast" data-employee-toast hidden></div>
 </section>
 
 <script defer src="/js/admin.js"></script>

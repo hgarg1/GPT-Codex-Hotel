@@ -318,4 +318,10 @@ router.post('/admin/inquiries/:id/status', ensureAdmin, (req, res) => {
   return res.redirect('/admin');
 });
 
+router.get('/admin/requests', ensureAdmin, (req, res) => {
+  res.render('admin/requests', {
+    pageTitle: 'Employee Requests Queue'
+  });
+});
+
 module.exports = router;
