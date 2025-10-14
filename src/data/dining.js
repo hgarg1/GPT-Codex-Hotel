@@ -322,15 +322,169 @@ const diningStaff = [
     id: 'staff-2',
     name: 'Emilia Hart',
     role: 'Pastry Sous Chef',
-    badges: ['Sugar Artist'],
+    badges: ['Sugar Artist', 'Plating Architect'],
     nextShift: '2024-07-01T15:00:00Z'
   },
   {
     id: 'staff-3',
     name: 'Malik Carter',
     role: 'Sommelier',
-    badges: ['Spirits Curator'],
+    badges: ['Spirits Curator', 'Cellar Whisperer'],
     nextShift: '2024-07-02T17:00:00Z'
+  },
+  {
+    id: 'staff-4',
+    name: 'Aya Nakamoto',
+    role: 'Tea Ceremony Master',
+    badges: ['Sencha Scholar', 'Botanical Infusions'],
+    nextShift: '2024-07-01T18:30:00Z'
+  },
+  {
+    id: 'staff-5',
+    name: 'Dante Morales',
+    role: 'Hearth Chef',
+    badges: ['Live Fire', 'Smoke Dialects'],
+    nextShift: '2024-07-01T16:00:00Z'
+  },
+  {
+    id: 'staff-6',
+    name: 'Celeste Quinn',
+    role: 'Experience Conductor',
+    badges: ['Guest Whisperer', 'Flow Maestro'],
+    nextShift: '2024-07-01T17:30:00Z'
+  },
+  {
+    id: 'staff-7',
+    name: 'Priya Desai',
+    role: 'Flavor Anthropologist',
+    badges: ['Fermentation Lab', 'Spice Cartographer'],
+    nextShift: '2024-07-03T14:30:00Z'
+  },
+  {
+    id: 'staff-8',
+    name: 'Luca Benedetti',
+    role: 'Pasta Virtuoso',
+    badges: ['Lamination Guild', 'Saffron Steward'],
+    nextShift: '2024-07-01T14:00:00Z'
+  },
+  {
+    id: 'staff-9',
+    name: 'Noor al-Salim',
+    role: 'Dessert Cartelier',
+    badges: ['Frozen Atelier', 'Aromatic Sculptor'],
+    nextShift: '2024-07-02T19:00:00Z'
+  },
+  {
+    id: 'staff-10',
+    name: 'Hugo Sterling',
+    role: 'Lighting Dramaturg',
+    badges: ['Atmosphere Designer', 'Projection Pilot'],
+    nextShift: '2024-07-02T17:45:00Z'
+  },
+  {
+    id: 'staff-11',
+    name: 'Mira Solberg',
+    role: 'Sound Curator',
+    badges: ['Acoustic Alchemist'],
+    nextShift: '2024-07-03T16:15:00Z'
+  },
+  {
+    id: 'staff-12',
+    name: 'Tessa Vaughn',
+    role: 'Forager Liaison',
+    badges: ['Alpine Scout', 'Sustainability Lead'],
+    nextShift: '2024-07-02T13:00:00Z'
+  },
+  {
+    id: 'staff-13',
+    name: 'Gabriel Montrose',
+    role: 'Cellar Archivist',
+    badges: ['Rare Vintage', 'Decanting Rituals'],
+    nextShift: '2024-07-03T20:00:00Z'
+  },
+  {
+    id: 'staff-14',
+    name: 'Xiang Li',
+    role: 'Dim Sum Savant',
+    badges: ['Folding Mastery', 'Steam Artisan'],
+    nextShift: '2024-07-01T11:00:00Z'
+  },
+  {
+    id: 'staff-15',
+    name: 'Amara Kinte',
+    role: 'Beverage Cartographer',
+    badges: ['Zero-Proof Innovator', 'Herbarium Keeper'],
+    nextShift: '2024-07-03T18:45:00Z'
+  },
+  {
+    id: 'staff-16',
+    name: 'Jonas Rivera',
+    role: 'Service Choreographer',
+    badges: ['Shift Maestro', 'Training Lead'],
+    nextShift: '2024-07-02T16:30:00Z'
+  },
+  {
+    id: 'staff-17',
+    name: 'Sabine Laurent',
+    role: 'Cheese Fromagère',
+    badges: ['Affinage Cellar', 'Pairing Muse'],
+    nextShift: '2024-07-01T19:30:00Z'
+  },
+  {
+    id: 'staff-18',
+    name: 'Rafael Kim',
+    role: 'Robotics Steward',
+    badges: ['Service Drones', 'Maintenance Virtuoso'],
+    nextShift: '2024-07-03T12:30:00Z'
+  },
+  {
+    id: 'staff-19',
+    name: 'Lila Starborn',
+    role: 'Aromatics Composer',
+    badges: ['Scent Lab', 'Candlewright'],
+    nextShift: '2024-07-02T21:00:00Z'
+  },
+  {
+    id: 'staff-20',
+    name: 'Omar Idrissi',
+    role: 'Night Market Chef',
+    badges: ['Wok Pulse', 'Spice Forge'],
+    nextShift: '2024-07-02T22:15:00Z'
+  },
+  {
+    id: 'staff-21',
+    name: 'Sylvia Petrov',
+    role: 'Ice Sculptor',
+    badges: ['Crystal Forge', 'Rapid Carve'],
+    nextShift: '2024-07-01T20:45:00Z'
+  },
+  {
+    id: 'staff-22',
+    name: 'Mateo Alvarez',
+    role: 'Sustainability Captain',
+    badges: ['Zero Waste', 'Aqua Reclamation'],
+    nextShift: '2024-07-03T10:00:00Z'
+  },
+  {
+    id: 'staff-23',
+    name: 'Hana Ito',
+    role: 'Reservation Maestro',
+    badges: ['Guest Intel', 'Mood Mapping'],
+    nextShift: '2024-07-01T09:00:00Z'
+  },
+  {
+    id: 'staff-24',
+    name: 'Quinn Harper',
+    role: 'Digital Concierge',
+    badges: ['Holographic Briefings', 'Data Pulse'],
+    nextShift: '2024-07-02T11:45:00Z'
+  },
+  {
+    id: 'staff-25',
+    name: 'Farah El-Amin',
+    role: 'Wellness Sommelier',
+    badges: ['Tea Therapy', 'Breathwork Guide'],
+    nextShift: '2024-07-03T15:00:00Z'
   }
 ];
 
