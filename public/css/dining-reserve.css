@@ -117,6 +117,17 @@
   font-size: 0.95rem;
 }
 
+.reserve-card__intro {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.reserve-card--immersive {
+  background: linear-gradient(165deg, rgba(9, 14, 26, 0.92), rgba(15, 24, 44, 0.78));
+  border-color: rgba(126, 188, 255, 0.18);
+  box-shadow: 0 22px 44px rgba(6, 12, 22, 0.6);
+}
+
 .reserve-card--subtle {
   background: rgba(8, 14, 25, 0.65);
   border-color: rgba(207, 168, 88, 0.1);
@@ -125,6 +136,52 @@
 .reserve-card--success {
   border-color: rgba(116, 209, 162, 0.65);
   background: rgba(8, 24, 22, 0.82);
+}
+
+.reserve-card--celebration {
+  position: relative;
+  overflow: hidden;
+}
+
+.reserve-card--celebration::before,
+.reserve-card--celebration::after {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  background: radial-gradient(circle, rgba(199, 155, 255, 0.12), transparent 60%);
+  transform: rotate(12deg);
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  pointer-events: none;
+}
+
+.reserve-card--celebration::after {
+  inset: -50% -35% -30% -35%;
+  background: radial-gradient(circle, rgba(126, 188, 255, 0.16), transparent 65%);
+  transform: rotate(-8deg);
+}
+
+.reserve-root--celebration .reserve-card--celebration::before,
+.reserve-root--celebration .reserve-card--celebration::after {
+  opacity: 1;
+}
+
+.reserve-celebration__banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(12, 24, 26, 0.65);
+  border: 1px solid rgba(116, 209, 162, 0.35);
+  color: rgba(247, 244, 236, 0.8);
+  font-size: 0.85rem;
+  margin: -0.25rem 0 0.5rem;
+  box-shadow: 0 12px 24px rgba(6, 18, 18, 0.45);
+}
+
+.reserve-celebration__banner span:first-child {
+  font-size: 1.1rem;
 }
 
 .reserve-field {
@@ -200,10 +257,222 @@
   padding: 1rem;
 }
 
+.reserve-seatmap-layout {
+  display: grid;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+.reserve-seatinsights {
+  background: rgba(8, 14, 25, 0.85);
+  border: 1px solid rgba(126, 188, 255, 0.18);
+  border-radius: 0.9rem;
+  padding: 1rem 1.1rem;
+  display: grid;
+  gap: 0.85rem;
+  box-shadow: inset 0 0 0 1px rgba(8, 18, 32, 0.7);
+  min-height: 100%;
+}
+
+.reserve-seatinsights header {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.reserve-seatinsights__eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(247, 244, 236, 0.7);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.reserve-seatinsights__eyebrow::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--accent, #cfa858);
+  box-shadow: 0 0 10px rgba(126, 188, 255, 0.25);
+}
+
+.reserve-seatinsights__stats {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.reserve-seatinsights__stats div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.reserve-seatinsights__stat-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(126, 188, 255, 0.75);
+}
+
+.reserve-seatinsights__stat-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #f7f4ec;
+}
+
+.reserve-seatinsights__stat-note {
+  font-size: 0.8rem;
+  color: rgba(247, 244, 236, 0.6);
+}
+
+.reserve-seatinsights__gauge {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.reserve-seatinsights__gauge-track {
+  position: relative;
+  width: 100%;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: rgba(10, 16, 28, 0.95);
+  overflow: hidden;
+}
+
+.reserve-seatinsights__gauge-fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #cfa858, #7ebcff);
+  border-radius: inherit;
+  transition: width 0.3s ease;
+}
+
+.reserve-seatinsights__gauge.is-warning .reserve-seatinsights__gauge-fill {
+  background: linear-gradient(135deg, #ff9e71, #ffcf6b);
+}
+
+.reserve-seatinsights__gauge-label {
+  font-size: 0.85rem;
+  color: rgba(247, 244, 236, 0.7);
+}
+
+.reserve-seatinsights__highlights {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.reserve-seatinsights__highlights li {
+  font-size: 0.85rem;
+  color: rgba(247, 244, 236, 0.7);
+  display: flex;
+  gap: 0.4rem;
+  align-items: flex-start;
+}
+
+.reserve-seatinsights__highlights li::before {
+  content: '✦';
+  color: rgba(207, 168, 88, 0.8);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.reserve-seatinsights__empty {
+  display: grid;
+  gap: 0.4rem;
+  text-align: left;
+}
+
+.reserve-seatinsights__empty h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #f7f4ec;
+}
+
+.reserve-seatinsights__empty p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(247, 244, 236, 0.65);
+}
+
 .reserve-seatmap {
   position: relative;
-  min-width: 16rem;
-  min-height: 16rem;
+  min-width: 18rem;
+  min-height: 18rem;
+  border-radius: 1rem;
+  background: radial-gradient(circle at top, rgba(32, 44, 72, 0.45), rgba(5, 7, 15, 0.85));
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: inset 0 0 0 1px rgba(126, 188, 255, 0.12);
+}
+
+.reserve-seatmap::after {
+  content: '';
+  position: absolute;
+  inset: 12% 10%;
+  border: 1px dashed rgba(126, 188, 255, 0.12);
+  border-radius: 1.35rem;
+  pointer-events: none;
+}
+
+.reserve-seatmap__ambient {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.reserve-seatmap__ambient--aurora {
+  background: radial-gradient(circle at 20% 10%, rgba(126, 188, 255, 0.25), transparent 55%),
+    radial-gradient(circle at 80% 5%, rgba(199, 155, 255, 0.18), transparent 60%);
+}
+
+.reserve-seatmap__ambient--floor {
+  background: repeating-linear-gradient(135deg, rgba(10, 16, 28, 0.45), rgba(10, 16, 28, 0.45) 18px, rgba(5, 8, 16, 0.6) 18px, rgba(5, 8, 16, 0.6) 36px);
+  mix-blend-mode: screen;
+  opacity: 0.4;
+}
+
+.reserve-seatmap__overlay {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(247, 244, 236, 0.55);
+  pointer-events: none;
+}
+
+.reserve-seatmap__overlay span {
+  background: rgba(6, 10, 18, 0.75);
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(126, 188, 255, 0.18);
+}
+
+.reserve-seatmap__overlay--kitchen {
+  top: 6%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  height: 12%;
+  background: linear-gradient(90deg, rgba(68, 112, 238, 0.08), rgba(68, 112, 238, 0.18), rgba(68, 112, 238, 0.08));
+  border-radius: 1rem;
+}
+
+.reserve-seatmap__overlay--bar {
+  bottom: 6%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 10%;
+  background: linear-gradient(90deg, rgba(207, 168, 88, 0.08), rgba(207, 168, 88, 0.18), rgba(207, 168, 88, 0.08));
+  border-radius: 0.9rem;
 }
 
 .seat-button {
@@ -211,15 +480,18 @@
   width: 3.25rem;
   height: 3.25rem;
   border-radius: 0.85rem;
-  border: 1px solid transparent;
-  background: rgba(24, 32, 48, 0.85);
+  border: 1px solid rgba(126, 188, 255, 0.15);
+  background: linear-gradient(160deg, rgba(24, 32, 48, 0.9), rgba(12, 18, 32, 0.82));
   color: rgba(247, 244, 236, 0.85);
   display: grid;
   place-items: center;
   gap: 0.25rem;
   font-size: 0.8rem;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  overflow: hidden;
+  outline: none;
+  --accent: rgba(207, 168, 88, 0.85);
 }
 
 .seat-button__label {
@@ -231,13 +503,25 @@
   opacity: 0.7;
 }
 
+.seat-button__halo {
+  position: absolute;
+  inset: -0.4rem;
+  border-radius: 1.2rem;
+  background: radial-gradient(circle, rgba(207, 168, 88, 0.35), transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 55%, transparent) 0%, transparent 70%);
+  opacity: 0;
+  transform: scale(0.92);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  pointer-events: none;
+}
+
 .seat-button--available:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(126, 188, 255, 0.25);
+  box-shadow: 0 10px 22px rgba(126, 188, 255, 0.28), 0 0 0 1px rgba(126, 188, 255, 0.35);
 }
 
 .seat-button--selected {
-  background: linear-gradient(135deg, rgba(207, 168, 88, 0.9), rgba(68, 112, 238, 0.9));
+  background: linear-gradient(135deg, var(--accent), rgba(68, 112, 238, 0.85));
   color: #05070f;
   box-shadow: 0 12px 30px rgba(207, 168, 88, 0.35);
   border-color: rgba(207, 168, 88, 0.6);
@@ -254,6 +538,24 @@
   border-color: rgba(207, 168, 88, 0.08);
   color: rgba(247, 244, 236, 0.35);
   cursor: not-allowed;
+}
+
+.seat-button[data-spotlight],
+.seat-button:not(.seat-button--unavailable):not(.seat-button--held):hover,
+.seat-button:not(.seat-button--unavailable):focus-visible {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 16px 32px rgba(126, 188, 255, 0.32), 0 0 0 1px rgba(126, 188, 255, 0.25);
+}
+
+.seat-button[data-spotlight] .seat-button__halo,
+.seat-button:not(.seat-button--unavailable):not(.seat-button--held):hover .seat-button__halo,
+.seat-button--selected .seat-button__halo {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.seat-button:not(.seat-button--unavailable):focus-visible {
+  box-shadow: 0 0 0 2px rgba(126, 188, 255, 0.5), 0 0 0 6px rgba(126, 188, 255, 0.2);
 }
 
 .reserve-capacity {
@@ -277,6 +579,41 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+.reserve-zonelegend ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.reserve-zonelegend li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.65rem;
+  align-items: flex-start;
+}
+
+.reserve-zonelegend__swatch {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.6rem;
+  background: var(--accent, #cfa858);
+  box-shadow: 0 0 0 1px rgba(247, 244, 236, 0.08), 0 10px 20px rgba(5, 7, 15, 0.45);
+}
+
+.reserve-zonelegend__name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #f7f4ec;
+}
+
+.reserve-zonelegend p {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  color: rgba(247, 244, 236, 0.65);
 }
 
 .reserve-chip {
@@ -348,6 +685,44 @@
   color: rgba(207, 168, 88, 0.7);
 }
 
+.reserve-confetti {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 999;
+}
+
+.reserve-confetti__piece {
+  position: absolute;
+  top: -10vh;
+  left: var(--left, 50%);
+  width: var(--size, 8px);
+  height: calc(var(--size, 8px) * 2);
+  border-radius: 2px;
+  opacity: 0;
+  animation: reserve-confetti-fall var(--animation-duration, 4s) cubic-bezier(0.33, 0, 0.2, 1) var(--animation-delay, 0s) forwards;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.25));
+  will-change: transform, opacity;
+}
+
+@keyframes reserve-confetti-fall {
+  0% {
+    transform: translate3d(0, -10vh, 0) rotate(var(--start-tilt, 0deg));
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--drift, 0), 110vh, 0) rotate(var(--spin, 540deg));
+    opacity: 0;
+  }
+}
+
 @media (min-width: 768px) {
   .reserve-app {
     padding: 3.5rem 2rem 5rem;
@@ -360,5 +735,9 @@
 
   .reserve-confirmation-grid {
     grid-template-columns: minmax(0, 1fr) minmax(0, 14rem);
+  }
+
+  .reserve-seatmap-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 16rem);
   }
 }
