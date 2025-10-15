@@ -3,11 +3,43 @@ const request = require('supertest');
 const app = require('../src/app');
 const { calculateStaySummary } = require('../src/utils/booking');
 const { getUserByEmail } = require('../src/models/users');
+const { createEmployee } = require('../src/models/employees');
 const { getRoomBySlug } = require('../src/models/rooms');
 const { createBooking, getBookingById } = require('../src/models/bookings');
 const { createPaymentAndCapture, getPaymentByBookingId } = require('../src/models/payments');
 const { saveMessage, listMessagesByRoom } = require('../src/models/chat');
 const { getAllInquiries } = require('../src/models/inquiries');
+
+async function fetchAdminCsrf(agent) {
+  const response = await agent.get('/admin');
+  expect(response.status).toBe(200);
+  const csrfMetaMatch = response.text.match(/name="csrf-token" content="([^"]+)"/);
+  expect(csrfMetaMatch).toBeTruthy();
+  return csrfMetaMatch[1];
+}
+
+async function loginAsGlobalAdmin() {
+  const agent = request.agent(app);
+
+  let response = await agent.get('/login');
+  expect(response.status).toBe(200);
+  const loginTokenMatch = response.text.match(/name="_csrf" value="([^"]+)"/);
+  expect(loginTokenMatch).toBeTruthy();
+  const loginCsrf = loginTokenMatch[1];
+
+  response = await agent
+    .post('/login')
+    .type('form')
+    .send({
+      _csrf: loginCsrf,
+      email: 'global.admin@skyhaven.dev',
+      password: 'SkyhavenGlobal!23'
+    });
+  expect(response.status).toBe(302);
+
+  const csrfToken = await fetchAdminCsrf(agent);
+  return { agent, csrfToken };
+}
 
 describe('Skyhaven core flows', () => {
   beforeEach(() => {
@@ -98,29 +130,8 @@ describe('Skyhaven core flows', () => {
   });
 
   test('admin onboarding captures password and enables reset workflow', async () => {
-    const agent = request.agent(app);
-
-    let response = await agent.get('/login');
-    expect(response.status).toBe(200);
-    const loginTokenMatch = response.text.match(/name="_csrf" value="([^"]+)"/);
-    expect(loginTokenMatch).toBeTruthy();
-    const loginCsrf = loginTokenMatch[1];
-
-    response = await agent
-      .post('/login')
-      .type('form')
-      .send({
-        _csrf: loginCsrf,
-        email: 'global.admin@skyhaven.dev',
-        password: 'SkyhavenGlobal!23'
-      });
-    expect(response.status).toBe(302);
-
-    response = await agent.get('/admin');
-    expect(response.status).toBe(200);
-    const csrfMetaMatch = response.text.match(/name="csrf-token" content="([^"]+)"/);
-    expect(csrfMetaMatch).toBeTruthy();
-    let csrfToken = csrfMetaMatch[1];
+    const { agent, csrfToken: initialToken } = await loginAsGlobalAdmin();
+    let csrfToken = initialToken;
 
     const uniqueEmail = `console.newhire.${Date.now()}@skyhaven.dev`;
     const createRes = await agent
@@ -141,11 +152,7 @@ describe('Skyhaven core flows', () => {
     const userAccount = getUserByEmail(uniqueEmail);
     expect(userAccount).toBeTruthy();
 
-    response = await agent.get('/admin');
-    expect(response.status).toBe(200);
-    const resetTokenMatch = response.text.match(/name="csrf-token" content="([^"]+)"/);
-    expect(resetTokenMatch).toBeTruthy();
-    csrfToken = resetTokenMatch[1];
+    csrfToken = await fetchAdminCsrf(agent);
 
     const resetRes = await agent
       .post(`/api/admin/employees/${createRes.body.employee.id}/reset-password`)
@@ -153,5 +160,32 @@ describe('Skyhaven core flows', () => {
     expect(resetRes.status).toBe(200);
     expect(typeof resetRes.body.temporaryPassword).toBe('string');
     expect(resetRes.body.temporaryPassword.length).toBeGreaterThanOrEqual(8);
+  });
+
+  test('reset password provisions an account when an employee is missing login access', async () => {
+    const { agent, csrfToken } = await loginAsGlobalAdmin();
+
+    const orphanEmail = `orphan.employee.${Date.now()}@skyhaven.dev`;
+    const employee = createEmployee({
+      name: 'Orphaned Employee',
+      email: orphanEmail,
+      department: 'Operations',
+      employmentType: 'Full-Time',
+      status: 'active'
+    });
+    expect(employee).toBeTruthy();
+    expect(getUserByEmail(orphanEmail)).toBeNull();
+
+    const resetRes = await agent
+      .post(`/api/admin/employees/${employee.id}/reset-password`)
+      .set('CSRF-Token', csrfToken);
+    expect(resetRes.status).toBe(200);
+    expect(resetRes.body.createdAccount).toBe(true);
+    expect(typeof resetRes.body.temporaryPassword).toBe('string');
+    expect(resetRes.body.temporaryPassword.length).toBeGreaterThanOrEqual(8);
+
+    const provisionedUser = getUserByEmail(orphanEmail);
+    expect(provisionedUser).toBeTruthy();
+    expect(provisionedUser.mustChangePassword).toBe(true);
   });
 });
