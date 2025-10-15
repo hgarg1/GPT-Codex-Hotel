@@ -46,16 +46,19 @@ function hydrateUser(req, res, next) {
         department: user.department || null,
         status: user.status || null,
         bio: user.bio,
-        phone: user.phone
+        phone: user.phone,
+        mustChangePassword: Boolean(user.mustChangePassword)
       };
       ensureDiningSessionCookie(req, res, req.user);
       res.locals.chatUnreadCount = countUnreadMessages(user.id);
+      res.locals.forcePasswordChange = Boolean(user.mustChangePassword);
       return next();
     }
     delete req.session.userId;
   }
   res.locals.currentUser = null;
   res.locals.chatUnreadCount = 0;
+  res.locals.forcePasswordChange = false;
   return next();
 }
 

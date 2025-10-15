@@ -5,6 +5,22 @@ const { Roles, normalizeRole } = require('../utils/rbac');
 
 const db = getDb();
 
+function ensureMustChangePasswordColumn() {
+  const tableExists = db
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+    .get();
+  if (!tableExists) {
+    return;
+  }
+  const columns = db.prepare('PRAGMA table_info(users)').all();
+  const hasColumn = columns.some((column) => column.name === 'mustChangePassword');
+  if (!hasColumn) {
+    db.prepare('ALTER TABLE users ADD COLUMN mustChangePassword INTEGER NOT NULL DEFAULT 0').run();
+  }
+}
+
+ensureMustChangePasswordColumn();
+
 function serialiseUser(row) {
   if (!row) return null;
   return {
@@ -16,6 +32,7 @@ function serialiseUser(row) {
     bio: row.bio,
     department: row.department,
     status: row.status,
+    mustChangePassword: Boolean(row.mustChangePassword),
     createdByUserId: row.createdByUserId,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt
@@ -74,11 +91,12 @@ function createUser({ name, email, password, role = Roles.EMPLOYEE, department =
     status: 'active',
     createdByUserId,
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
+    mustChangePassword: 0
   };
   db.prepare(`
-    INSERT INTO users (id, name, email, passwordHash, role, phone, bio, department, status, createdByUserId, createdAt, updatedAt)
-    VALUES (@id, @name, @email, @passwordHash, @role, @phone, @bio, @department, @status, @createdByUserId, @createdAt, @updatedAt)
+    INSERT INTO users (id, name, email, passwordHash, role, phone, bio, department, status, createdByUserId, createdAt, updatedAt, mustChangePassword)
+    VALUES (@id, @name, @email, @passwordHash, @role, @phone, @bio, @department, @status, @createdByUserId, @createdAt, @updatedAt, @mustChangePassword)
   `).run(record);
   return serialiseUser(record);
 }
@@ -117,11 +135,12 @@ function createSubAdmin({
     status,
     createdByUserId: createdByUserId || null,
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
+    mustChangePassword: 1
   };
   db.prepare(`
-    INSERT INTO users (id, name, email, passwordHash, role, phone, bio, department, status, createdByUserId, createdAt, updatedAt)
-    VALUES (@id, @name, @email, @passwordHash, @role, @phone, @bio, @department, @status, @createdByUserId, @createdAt, @updatedAt)
+    INSERT INTO users (id, name, email, passwordHash, role, phone, bio, department, status, createdByUserId, createdAt, updatedAt, mustChangePassword)
+    VALUES (@id, @name, @email, @passwordHash, @role, @phone, @bio, @department, @status, @createdByUserId, @createdAt, @updatedAt, @mustChangePassword)
   `).run(record);
   return serialiseUser(record);
 }
@@ -182,7 +201,7 @@ function updateUserProfile(id, updates = {}) {
 
 function updateUserPassword(id, password) {
   const now = new Date().toISOString();
-  db.prepare('UPDATE users SET passwordHash = ?, updatedAt = ? WHERE id = ?').run(
+  db.prepare('UPDATE users SET passwordHash = ?, updatedAt = ?, mustChangePassword = 0 WHERE id = ?').run(
     bcrypt.hashSync(password, 10),
     now,
     id

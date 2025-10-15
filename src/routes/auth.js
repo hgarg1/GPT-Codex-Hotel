@@ -1,10 +1,17 @@
 const express = require('express');
 const Joi = require('joi');
-const { getUserAuthByEmail, getUserByEmail, createUser, verifyPassword } = require('../models/users');
+const {
+  getUserAuthByEmail,
+  getUserByEmail,
+  createUser,
+  verifyPassword,
+  updateUserPassword
+} = require('../models/users');
 const { getUserFromRequest, issueSessionToken, clearSessionToken } = require('../utils/jwt');
 const { sanitizeString } = require('../utils/sanitize');
 const { syncDiningProfile } = require('../services/diningAccount');
 const { Roles, normalizeRole } = require('../utils/rbac');
+const { ensureAuthenticated } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -26,6 +33,14 @@ const signupSchema = Joi.object({
 const loginSchema = Joi.object({
   email: Joi.string().email({ tlds: { allow: false } }).required(),
   password: Joi.string().required()
+});
+
+const forcedPasswordSchema = Joi.object({
+  newPassword: passwordComplexity,
+  confirmPassword: Joi.string()
+    .required()
+    .valid(Joi.ref('newPassword'))
+    .messages({ 'any.only': 'Passwords must match.' })
 });
 
 router.get('/signup', (req, res) => {
@@ -102,6 +117,10 @@ router.post('/login', async (req, res) => {
   }
   issueSessionToken(res, user);
   req.pushAlert('success', `Welcome back, ${user.name}.`);
+  if (user.mustChangePassword) {
+    req.pushAlert('info', 'Please set a new password to activate your admin console access.');
+    return res.redirect('/auth/password-reset-required');
+  }
   const role = normalizeRole(user.role);
   const redirectPath = role === Roles.EMPLOYEE ? '/employee' : req.session.returnTo || '/dashboard';
   delete req.session.returnTo;
@@ -121,6 +140,41 @@ router.get('/auth/session', (req, res) => {
     return res.status(401).json({ authenticated: false });
   }
   return res.json({ authenticated: true, user });
+});
+
+router.get('/auth/password-reset-required', ensureAuthenticated, (req, res) => {
+  if (!req.user?.mustChangePassword) {
+    return res.redirect('/dashboard');
+  }
+  res.render('auth/password-reset-required', {
+    pageTitle: 'Secure your access'
+  });
+});
+
+router.post('/auth/password-reset-required', ensureAuthenticated, (req, res) => {
+  if (!req.user?.mustChangePassword) {
+    return res.redirect('/dashboard');
+  }
+  const payload = {
+    newPassword: sanitizeString(req.body.newPassword),
+    confirmPassword: sanitizeString(req.body.confirmPassword)
+  };
+  const { error, value } = forcedPasswordSchema.validate(payload, { abortEarly: false });
+  if (error) {
+    req.pushAlert('danger', 'Please review the password requirements and try again.');
+    return res.redirect('/auth/password-reset-required');
+  }
+  const updated = updateUserPassword(req.user.id, value.newPassword);
+  if (req.user) {
+    req.user = { ...req.user, ...updated };
+  }
+  if (res.locals.currentUser) {
+    res.locals.currentUser = { ...res.locals.currentUser, mustChangePassword: false };
+  }
+  req.pushAlert('success', 'Password updated. Welcome to the command deck.');
+  const redirectPath = req.session.returnTo || '/dashboard';
+  delete req.session.returnTo;
+  return res.redirect(redirectPath);
 });
 
 module.exports = router;

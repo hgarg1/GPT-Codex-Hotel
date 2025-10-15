@@ -109,7 +109,8 @@ function resetSchema() {
       status TEXT NOT NULL CHECK(status IN ('active','suspended','terminated')) DEFAULT 'active',
       createdByUserId TEXT REFERENCES users(id) ON DELETE SET NULL,
       createdAt TEXT NOT NULL,
-      updatedAt TEXT NOT NULL
+      updatedAt TEXT NOT NULL,
+      mustChangePassword INTEGER NOT NULL DEFAULT 0
     );
 
     CREATE TABLE role_permissions (
@@ -445,8 +446,8 @@ function insertRolePermissions() {
 
 function insertUsers() {
   const stmt = db.prepare(`
-    INSERT INTO users (id, name, email, passwordHash, role, phone, bio, department, status, createdByUserId, createdAt, updatedAt)
-    VALUES (@id, @name, @email, @passwordHash, @role, @phone, @bio, @department, @status, @createdByUserId, @createdAt, @updatedAt)
+    INSERT INTO users (id, name, email, passwordHash, role, phone, bio, department, status, createdByUserId, createdAt, updatedAt, mustChangePassword)
+    VALUES (@id, @name, @email, @passwordHash, @role, @phone, @bio, @department, @status, @createdByUserId, @createdAt, @updatedAt, @mustChangePassword)
   `);
 
   const now = new Date().toISOString();
@@ -463,7 +464,8 @@ function insertUsers() {
       bio: 'Skyhaven executive steward overseeing the entire constellation.',
       department: BOOTSTRAP_ACCOUNTS.global.department,
       status: 'active',
-      createdByUserId: null
+      createdByUserId: null,
+      mustChangePassword: 0
     }
   ];
 
@@ -478,7 +480,8 @@ function insertUsers() {
       bio: 'Skyhaven sector lead empowered to coordinate multi-department operations.',
       department: account.department,
       status: 'active',
-      createdByUserId: globalId
+      createdByUserId: globalId,
+      mustChangePassword: 0
     });
   });
 
@@ -491,7 +494,8 @@ function insertUsers() {
       role: Roles.ADMIN,
       department: 'Guest Experience',
       phone: '+1-555-000000',
-      bio: 'Skyhaven curator overseeing guest journeys.'
+      bio: 'Skyhaven curator overseeing guest journeys.',
+      mustChangePassword: 0
     },
     {
       name: 'Kael Orion',
@@ -499,7 +503,8 @@ function insertUsers() {
       role: Roles.ADMIN,
       department: 'Operations Control',
       phone: '+1-555-000001',
-      bio: 'Night shift steward harmonising the command deck.'
+      bio: 'Night shift steward harmonising the command deck.',
+      mustChangePassword: 0
     },
     {
       name: 'Nova Lin',
@@ -507,7 +512,8 @@ function insertUsers() {
       role: Roles.EMPLOYEE,
       department: 'Guest Experience',
       phone: null,
-      bio: null
+      bio: null,
+      mustChangePassword: 0
     },
     {
       name: 'Juno Aki',
@@ -515,7 +521,8 @@ function insertUsers() {
       role: Roles.EMPLOYEE,
       department: 'Guest Experience',
       phone: null,
-      bio: null
+      bio: null,
+      mustChangePassword: 0
     },
     {
       name: 'Mira Sol',
@@ -523,7 +530,8 @@ function insertUsers() {
       role: Roles.EMPLOYEE,
       department: 'Wellness Collective',
       phone: null,
-      bio: null
+      bio: null,
+      mustChangePassword: 0
     }
   ];
 
@@ -538,7 +546,8 @@ function insertUsers() {
       bio: user.bio,
       department: user.department,
       status: 'active',
-      createdByUserId: firstSuperAdminId
+      createdByUserId: firstSuperAdminId,
+      mustChangePassword: user.mustChangePassword ?? 0
     });
   });
 

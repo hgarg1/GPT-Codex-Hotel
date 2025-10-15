@@ -167,6 +167,30 @@ app.use((req, res, next) => {
 app.use(hydrateUser);
 
 app.use((req, res, next) => {
+  if (!req.user || !req.user.mustChangePassword) {
+    return next();
+  }
+
+  res.locals.forcePasswordChange = true;
+
+  const originalUrl = req.originalUrl || '';
+  const allowList = [/^\/auth\/password-reset-required/, /^\/logout$/];
+  if (allowList.some((pattern) => pattern.test(originalUrl))) {
+    return next();
+  }
+
+  if (originalUrl.startsWith('/api/')) {
+    return res.status(403).json({ error: 'Password reset required before continuing.' });
+  }
+
+  if (typeof req.pushAlert === 'function') {
+    req.pushAlert('warning', 'Please update your password to continue.');
+  }
+
+  return res.redirect('/auth/password-reset-required');
+});
+
+app.use((req, res, next) => {
   if (!req.user || normalizeRole(req.user.role) !== Roles.EMPLOYEE) {
     return next();
   }
