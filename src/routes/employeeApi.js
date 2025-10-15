@@ -5,7 +5,8 @@ const { createClockIn, completeClockOut, getOpenEntryForEmployee, listEntriesFor
 const {
   createRequest,
   listRequestsForEmployee,
-  getProfile
+  getProfile,
+  normaliseRequestType
 } = require('../models/employeeRequests');
 const { sanitizeString } = require('../utils/sanitize');
 
@@ -196,8 +197,15 @@ router.post('/requests/pto', (req, res) => {
     endDate: sanitizeString(value.endDate),
     reason: sanitizeOptional(value.reason)
   };
-  const request = createRequest({ employeeId: req.user.id, type: 'pto', payload });
-  return res.status(201).json({ request });
+  try {
+    const request = createRequest({ employeeId: req.user.id, type: 'pto', payload });
+    return res.status(201).json({ request });
+  } catch (requestError) {
+    if (requestError.code === 'INVALID_REQUEST_TYPE' || requestError.code === 'INVALID_REQUEST_CONSTRAINT') {
+      return res.status(400).json({ error: requestError.message });
+    }
+    throw requestError;
+  }
 });
 
 router.post('/requests/workers-comp', (req, res) => {
@@ -212,8 +220,15 @@ router.post('/requests/workers-comp', (req, res) => {
     location: sanitizeOptional(value.location),
     description: sanitizeString(value.description)
   };
-  const request = createRequest({ employeeId: req.user.id, type: 'workers_comp', payload });
-  return res.status(201).json({ request });
+  try {
+    const request = createRequest({ employeeId: req.user.id, type: 'workers-comp', payload });
+    return res.status(201).json({ request });
+  } catch (requestError) {
+    if (requestError.code === 'INVALID_REQUEST_TYPE' || requestError.code === 'INVALID_REQUEST_CONSTRAINT') {
+      return res.status(400).json({ error: requestError.message });
+    }
+    throw requestError;
+  }
 });
 
 router.get('/requests', (req, res) => {
@@ -230,13 +245,23 @@ router.post('/profile/update', (req, res) => {
     acc[key] = sanitizeOptional(val);
     return acc;
   }, {});
-  const request = createRequest({ employeeId: req.user.id, type: 'profile_update', payload });
-  return res.status(201).json({ request });
+  try {
+    const request = createRequest({ employeeId: req.user.id, type: 'profile-update', payload });
+    return res.status(201).json({ request });
+  } catch (requestError) {
+    if (requestError.code === 'INVALID_REQUEST_TYPE' || requestError.code === 'INVALID_REQUEST_CONSTRAINT') {
+      return res.status(400).json({ error: requestError.message });
+    }
+    throw requestError;
+  }
 });
 
 router.get('/profile', (req, res) => {
   const profile = getProfile(req.user.id);
-  const requests = listRequestsForEmployee(req.user.id).filter((request) => request.type === 'profile_update');
+  const requests = listRequestsForEmployee(req.user.id).filter((request) => {
+    const type = normaliseRequestType(request.type);
+    return type === 'profile-update';
+  });
   return res.json({ profile, updates: requests });
 });
 

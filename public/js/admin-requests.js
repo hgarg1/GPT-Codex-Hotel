@@ -150,7 +150,8 @@ async function readAdminRequestResponse(response) {
   function toTitleCaseFromSlug(value) {
     if (!value) return '—';
     return value
-      .split('_')
+      .split(/[-_]/)
+      .filter((segment) => segment.length)
       .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
       .join(' ');
   }

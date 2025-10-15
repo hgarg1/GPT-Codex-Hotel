@@ -42,7 +42,9 @@ const {
   listRequests: listEmployeeRequests,
   getRequestById,
   listPendingRequestsByEmployee,
-  updateRequestStatus
+  updateRequestStatus,
+  normaliseRequestType,
+  upsertProfile
 } = require('../models/employeeRequests');
 const { boardMembers, executiveTeam, advisoryCouncil } = require('../data/leadership');
 const { getDb } = require('../db');
@@ -194,16 +196,27 @@ function generateTemporaryPassword() {
 }
 
 function resolvePendingRequest(employeeId, type, requestId) {
+  const normalisedType = normaliseRequestType(type);
+  if (!normalisedType) {
+    const error = new Error('Unsupported request type.');
+    error.status = 400;
+    throw error;
+  }
   if (requestId) {
     const request = getRequestById(requestId);
-    if (!request || request.employeeId !== employeeId || request.type !== type || request.status !== 'pending') {
+    if (
+      !request ||
+      request.employeeId !== employeeId ||
+      normaliseRequestType(request.type) !== normalisedType ||
+      request.status !== 'pending'
+    ) {
       const error = new Error('Matching pending request not found for this employee.');
       error.status = 404;
       throw error;
     }
     return request;
   }
-  const [latest] = listPendingRequestsByEmployee(employeeId, type);
+  const [latest] = listPendingRequestsByEmployee(employeeId, normalisedType);
   if (!latest) {
     const error = new Error('No pending request found for this employee.');
     error.status = 404;
@@ -878,7 +891,7 @@ router.post('/requests/:id/status', (req, res) => {
     note: sanitizeOptional(value.note),
     resolvedBy: req.user.id
   });
-  if (value.status.toLowerCase() === 'approved' && existing.type === 'profile_update') {
+  if (value.status.toLowerCase() === 'approved' && normaliseRequestType(existing.type) === 'profile-update') {
     upsertProfile(existing.employeeId, existing.payload || {});
   }
   recordAuditLog({
