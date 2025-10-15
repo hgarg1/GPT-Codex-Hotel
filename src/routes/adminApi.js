@@ -466,24 +466,35 @@ router.post('/employees/:id/reset-password', (req, res) => {
   if (!employee.email) {
     return res.status(400).json({ error: 'Employee record does not include an email address.' });
   }
-  const user = getUserByEmail(employee.email);
-  if (!user) {
-    return res.status(404).json({ error: 'No user account linked to that employee email.' });
-  }
   const temporaryPassword = generateTemporaryPassword();
-  updateUserPassword(user.id, temporaryPassword);
+  let user = getUserByEmail(employee.email);
+  let createdAccount = false;
+  if (!user) {
+    user = createUser({
+      name: employee.name,
+      email: employee.email,
+      password: temporaryPassword,
+      role: Roles.EMPLOYEE,
+      department: employee.department || null,
+      createdByUserId: req.user?.id || null
+    });
+    createdAccount = true;
+  }
+  updateUserPassword(user.id, temporaryPassword, { requireChange: true });
   recordAuditLog({
     actorUserId: req.user.id,
     targetUserId: user.id,
     action: 'employee_password_reset',
     details: {
       employeeId,
-      email: employee.email
+      email: employee.email,
+      createdAccount
     }
   });
   return res.json({
     employee,
-    temporaryPassword
+    temporaryPassword,
+    createdAccount
   });
 });
 

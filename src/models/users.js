@@ -199,11 +199,13 @@ function updateUserProfile(id, updates = {}) {
   return getUserById(id);
 }
 
-function updateUserPassword(id, password) {
+function updateUserPassword(id, password, options = {}) {
   const now = new Date().toISOString();
-  db.prepare('UPDATE users SET passwordHash = ?, updatedAt = ?, mustChangePassword = 0 WHERE id = ?').run(
+  const requireChange = options.requireChange ? 1 : 0;
+  db.prepare('UPDATE users SET passwordHash = ?, updatedAt = ?, mustChangePassword = ? WHERE id = ?').run(
     bcrypt.hashSync(password, 10),
     now,
+    requireChange,
     id
   );
   return getUserById(id);
