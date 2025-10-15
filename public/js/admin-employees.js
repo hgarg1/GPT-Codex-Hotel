@@ -100,6 +100,7 @@
 
   function showToast(message, tone = 'info') {
     if (!toastEl) return;
+    toastEl.hidden = false;
     toastEl.textContent = message;
     toastEl.classList.remove('is-info', 'is-error', 'is-success');
     toastEl.classList.add('is-visible');
@@ -110,17 +111,28 @@
     } else {
       toastEl.classList.add('is-info');
     }
-    window.clearTimeout(toastEl.dataset.timeoutId);
+    if (toastEl.dataset.timeoutId) {
+      window.clearTimeout(Number(toastEl.dataset.timeoutId));
+    }
     const timeoutId = window.setTimeout(() => {
       toastEl.classList.remove('is-visible');
+      toastEl.classList.remove('is-info', 'is-error', 'is-success');
+      toastEl.textContent = '';
+      toastEl.hidden = true;
+      delete toastEl.dataset.timeoutId;
     }, 5000);
     toastEl.dataset.timeoutId = String(timeoutId);
   }
 
   function clearToast() {
     if (!toastEl) return;
+    if (toastEl.dataset.timeoutId) {
+      window.clearTimeout(Number(toastEl.dataset.timeoutId));
+      delete toastEl.dataset.timeoutId;
+    }
     toastEl.classList.remove('is-visible', 'is-info', 'is-error', 'is-success');
     toastEl.textContent = '';
+    toastEl.hidden = true;
   }
 
   function createRequestOptions(method = 'GET', body) {
