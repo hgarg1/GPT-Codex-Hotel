@@ -19,12 +19,6 @@ const {
   updateUserPassword
 } = require('../models/users');
 const { listEntries, updateEntry } = require('../models/timeEntries');
-const {
-  listAllRequests,
-  updateRequestStatus,
-  getRequestById,
-  upsertProfile
-} = require('../models/employeeRequests');
 const { generateBadge } = require('../services/employeeBadges');
 const {
   getRolePermissions,
