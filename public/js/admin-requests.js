@@ -1,3 +1,120 @@
+function adminRequestKeyToLabel(key = '') {
+  const cleaned = key
+    .replace(/[_-]+/g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+  if (!cleaned) {
+    return '—';
+  }
+  return cleaned
+    .split(' ')
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ');
+}
+
+function adminRequestValueToText(value) {
+  if (value === null || value === undefined || value === '') {
+    return '—';
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => adminRequestValueToText(item)).join(', ');
+  }
+  if (value instanceof Date) {
+    return value.toLocaleString();
+  }
+  if (typeof value === 'object') {
+    return Object.entries(value)
+      .map(([key, nested]) => `${adminRequestKeyToLabel(key)}: ${adminRequestValueToText(nested)}`)
+      .join('; ');
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'Yes' : 'No';
+  }
+  return String(value);
+}
+
+function renderAdminRequestPayload(container, payload) {
+  if (!container) {
+    return;
+  }
+  container.innerHTML = '';
+
+  if (!payload || typeof payload !== 'object' || (Array.isArray(payload) && !payload.length)) {
+    const empty = document.createElement('p');
+    empty.className = 'request-payload__empty muted';
+    empty.textContent = 'No payload details provided.';
+    container.appendChild(empty);
+    return;
+  }
+
+  const entries = Object.entries(payload);
+  if (!entries.length) {
+    const empty = document.createElement('p');
+    empty.className = 'request-payload__empty muted';
+    empty.textContent = 'No payload details provided.';
+    container.appendChild(empty);
+    return;
+  }
+
+  const list = document.createElement('dl');
+  list.className = 'request-payload__list';
+
+  entries.forEach(([key, value]) => {
+    const item = document.createElement('div');
+    item.className = 'request-payload__item';
+
+    const term = document.createElement('dt');
+    term.className = 'request-payload__term';
+    term.textContent = adminRequestKeyToLabel(key);
+
+    const description = document.createElement('dd');
+    description.className = 'request-payload__value';
+    description.textContent = adminRequestValueToText(value);
+
+    item.appendChild(term);
+    item.appendChild(description);
+    list.appendChild(item);
+  });
+
+  container.appendChild(list);
+}
+
+async function readAdminRequestResponse(response) {
+  const contentType = response.headers.get('content-type') || '';
+  const text = await response.text();
+  const isJson = contentType.includes('application/json');
+  let data = null;
+
+  if (isJson && text) {
+    try {
+      data = JSON.parse(text);
+    } catch (error) {
+      data = null;
+    }
+  }
+
+  if (!response.ok) {
+    if (response.redirected && response.url && response.url.includes('/login')) {
+      throw new Error('Your session has expired. Please refresh and sign in again.');
+    }
+    const fallback = data && typeof data === 'object' ? data.error || data.message : null;
+    const message = fallback || text || 'Failed to process request.';
+    throw new Error(message);
+  }
+
+  if (data && typeof data === 'object') {
+    return data;
+  }
+
+  if (!text && response.status === 204) {
+    return null;
+  }
+
+  throw new Error('Unexpected response format from server.');
+}
+
 (function () {
   const csrfToken = window.AdminRequests?.csrfToken || document.querySelector('meta[name="csrf-token"]').content;
   const tableBody = document.querySelector('#requests-table tbody');
@@ -65,6 +182,8 @@
           const normalized = normalizeRequest(parsed);
           if (normalized) {
             row.dataset.request = JSON.stringify(normalized);
+            const payloadContainer = row.querySelector('[data-payload-content]');
+            renderAdminRequestPayload(payloadContainer, normalized.payload);
           }
           return normalized;
         } catch (error) {
@@ -106,7 +225,7 @@
         <td class="request-payload">
           <details class="request-payload__details">
             <summary>Inspect payload</summary>
-            <pre></pre>
+            <div class="request-payload__content" data-payload-content></div>
           </details>
         </td>
         <td>
@@ -121,10 +240,8 @@
           </div>
         </td>
       `;
-      const pre = row.querySelector('pre');
-      if (pre) {
-        pre.textContent = JSON.stringify(normalized.payload, null, 2);
-      }
+      const payloadContainer = row.querySelector('[data-payload-content]');
+      renderAdminRequestPayload(payloadContainer, normalized.payload);
       tableBody.appendChild(row);
     });
   }
@@ -150,10 +267,7 @@
         },
         body: JSON.stringify({ status })
       });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to update status');
-      }
+      const data = await readAdminRequestResponse(response);
       const updated = normalizeRequest({ ...request, ...data.request });
       if (!updated) {
         throw new Error('Unexpected response payload');
@@ -172,6 +286,8 @@
         select.value = updated.status;
       }
       row.dataset.request = JSON.stringify(updated);
+      const payloadContainer = row.querySelector('[data-payload-content]');
+      renderAdminRequestPayload(payloadContainer, updated.payload);
       alert('Request status updated.');
     } catch (error) {
       alert(error.message || 'Unable to update request status');
@@ -383,11 +499,11 @@
         },
         body: JSON.stringify({ status })
       });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to update status');
+      const data = await readAdminRequestResponse(response);
+      const updated = data?.request;
+      if (!updated) {
+        throw new Error('Unexpected response payload');
       }
-      const updated = data.request;
       const index = requests.findIndex((item) => item.id === updated.id);
       if (index >= 0) {
         requests[index] = updated;

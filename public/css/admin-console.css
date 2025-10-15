@@ -738,13 +738,47 @@ html[data-theme='light'] .admin-console {
   color: var(--admin-text-strong);
 }
 
-.request-payload pre {
+.request-payload__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.request-payload__list {
   margin: 0;
-  font-family: 'Fira Code', monospace;
-  font-size: 0.75rem;
-  color: var(--admin-status-note);
-  white-space: pre-wrap;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.request-payload__item {
+  border-radius: 0.75rem;
+  padding: 0.55rem 0.65rem;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(125, 211, 252, 0.35);
+}
+
+.request-payload__term {
+  margin: 0;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(186, 230, 253, 0.9);
+}
+
+.request-payload__value {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: var(--admin-text);
+  line-height: 1.4;
   word-break: break-word;
+}
+
+.request-payload__empty {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--admin-text);
 }
 
 .request-actions {
