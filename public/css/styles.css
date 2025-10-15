@@ -1315,7 +1315,13 @@ textarea:focus {
 
 @media (min-width: 640px) {
   .subadmin-form-grid {
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(2, minmax(240px, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .subadmin-form-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -1323,6 +1329,7 @@ textarea:focus {
   display: grid;
   gap: 0.45rem;
   font-size: 0.9rem;
+  min-width: 0;
 }
 
 .subadmin-field__label {
@@ -1343,6 +1350,7 @@ textarea:focus {
   border-radius: 12px;
   padding: 0.65rem 0.75rem;
   color: inherit;
+  width: 100%;
 }
 
 .subadmin-field input:focus {
