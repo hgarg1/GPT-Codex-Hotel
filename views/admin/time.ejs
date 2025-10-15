@@ -104,69 +104,71 @@
         </div>
       </div>
 
-      <table class="admin-table" id="time-entries-table">
-        <thead>
-          <tr>
-            <th>Employee</th>
-            <th>Role / Dept</th>
-            <th>Clock In</th>
-            <th>Clock Out</th>
-            <th>Duration</th>
-            <th>Location</th>
-            <th>Status</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <% if (entries && entries.length) { %>
-            <% entries.forEach(function(entry) { %>
-              <% const openShift = !entry.clockOutAt; %>
-              <% const overtimeShift = entry.durationMinutes && entry.durationMinutes >= (10 * 60); %>
-              <% const extendedOpen = !entry.clockOutAt && entry.displayMinutes && entry.displayMinutes >= (8 * 60); %>
-              <% const needsReview = overtimeShift || extendedOpen || (entry.clockOutAt && !entry.durationMinutes); %>
-              <% const status = openShift ? 'open' : (overtimeShift ? 'overtime' : (needsReview ? 'needs-review' : 'completed')); %>
-              <% const statusLabel = openShift ? 'Open' : (overtimeShift ? 'Overtime' : (needsReview ? 'Needs review' : 'Complete')); %>
-              <% const statusClass = openShift ? 'status-chip--open' : (overtimeShift ? 'status-chip--alert' : (needsReview ? 'status-chip--review' : 'status-chip--ok')); %>
-              <tr
-                data-entry-id="<%= entry.id %>"
-                data-entry='<%- JSON.stringify(entry) %>'
-                data-status="<%= status %>"
-                data-location="<%= (entry.location || '').toLowerCase() %>"
-                data-employee-name="<%= (entry.employee?.name || '').toLowerCase() %>"
-                data-employee-email="<%= (entry.employee?.email || '').toLowerCase() %>"
-                data-employee-id="<%= entry.employeeId.toLowerCase() %>"
-              >
-                <td>
-                  <strong><%= entry.employee?.name || entry.employeeId %></strong>
-                  <div class="muted">ID: <%= entry.employeeId %></div>
-                  <% if (entry.employee?.email) { %>
-                    <div class="muted"><%= entry.employee.email %></div>
-                  <% } %>
-                </td>
-                <td>
-                  <span><%= entry.role || entry.department || entry.employee?.department || '—' %></span>
-                  <% if (entry.department || entry.employee?.department) { %>
-                    <div class="muted">Dept: <%= entry.department || entry.employee?.department %></div>
-                  <% } %>
-                </td>
-                <td><%= entry.clockInLabel %></td>
-                <td><%= entry.clockOutLabel %></td>
-                <td><%= entry.durationLabel %></td>
-                <td><%= entry.location || '—' %></td>
-                <td>
-                  <span class="status-chip <%= statusClass %>"><%= statusLabel %></span>
-                  <% if (entry.notes) { %>
-                    <div class="muted status-note"><%= entry.notes %></div>
-                  <% } %>
-                </td>
-                <td><button type="button" class="btn btn-outline time-adjust">Adjust</button></td>
-              </tr>
-            <% }) %>
-          <% } else { %>
-            <tr><td colspan="8" class="muted">No entries recorded in the selected window.</td></tr>
-          <% } %>
-        </tbody>
-      </table>
+      <div class="admin-time__table-scroll">
+        <table class="admin-table" id="time-entries-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Role / Dept</th>
+              <th>Clock In</th>
+              <th>Clock Out</th>
+              <th>Duration</th>
+              <th>Location</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (entries && entries.length) { %>
+              <% entries.forEach(function(entry) { %>
+                <% const openShift = !entry.clockOutAt; %>
+                <% const overtimeShift = entry.durationMinutes && entry.durationMinutes >= (10 * 60); %>
+                <% const extendedOpen = !entry.clockOutAt && entry.displayMinutes && entry.displayMinutes >= (8 * 60); %>
+                <% const needsReview = overtimeShift || extendedOpen || (entry.clockOutAt && !entry.durationMinutes); %>
+                <% const status = openShift ? 'open' : (overtimeShift ? 'overtime' : (needsReview ? 'needs-review' : 'completed')); %>
+                <% const statusLabel = openShift ? 'Open' : (overtimeShift ? 'Overtime' : (needsReview ? 'Needs review' : 'Complete')); %>
+                <% const statusClass = openShift ? 'status-chip--open' : (overtimeShift ? 'status-chip--alert' : (needsReview ? 'status-chip--review' : 'status-chip--ok')); %>
+                <tr
+                  data-entry-id="<%= entry.id %>"
+                  data-entry='<%- JSON.stringify(entry) %>'
+                  data-status="<%= status %>"
+                  data-location="<%= (entry.location || '').toLowerCase() %>"
+                  data-employee-name="<%= (entry.employee?.name || '').toLowerCase() %>"
+                  data-employee-email="<%= (entry.employee?.email || '').toLowerCase() %>"
+                  data-employee-id="<%= entry.employeeId.toLowerCase() %>"
+                >
+                  <td>
+                    <strong><%= entry.employee?.name || entry.employeeId %></strong>
+                    <div class="muted">ID: <%= entry.employeeId %></div>
+                    <% if (entry.employee?.email) { %>
+                      <div class="muted"><%= entry.employee.email %></div>
+                    <% } %>
+                  </td>
+                  <td>
+                    <span><%= entry.role || entry.department || entry.employee?.department || '—' %></span>
+                    <% if (entry.department || entry.employee?.department) { %>
+                      <div class="muted">Dept: <%= entry.department || entry.employee?.department %></div>
+                    <% } %>
+                  </td>
+                  <td><%= entry.clockInLabel %></td>
+                  <td><%= entry.clockOutLabel %></td>
+                  <td><%= entry.durationLabel %></td>
+                  <td><%= entry.location || '—' %></td>
+                  <td>
+                    <span class="status-chip <%= statusClass %>"><%= statusLabel %></span>
+                    <% if (entry.notes) { %>
+                      <div class="muted status-note"><%= entry.notes %></div>
+                    <% } %>
+                  </td>
+                  <td><button type="button" class="btn btn-outline time-adjust">Adjust</button></td>
+                </tr>
+              <% }) %>
+            <% } else { %>
+              <tr><td colspan="8" class="muted">No entries recorded in the selected window.</td></tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <aside class="admin-time__detail" id="time-detail" hidden>

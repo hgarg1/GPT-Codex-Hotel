@@ -288,11 +288,21 @@ html[data-theme='light'] .admin-console {
   align-items: start;
 }
 
-.admin-time__table {
+.admin-time__table { 
   background: var(--admin-surface);
   border-radius: 1.5rem;
   padding: 1.8rem;
   box-shadow: var(--admin-shadow);
+}
+
+.admin-time__table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+.admin-time__table-scroll table {
+  min-width: 720px;
 }
 
 .admin-time__table-header {
