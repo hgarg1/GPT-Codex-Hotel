@@ -303,7 +303,7 @@ function resetSchema() {
       id TEXT PRIMARY KEY,
       employeeId TEXT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
       userId TEXT REFERENCES users(id) ON DELETE SET NULL,
-      type TEXT NOT NULL CHECK(type IN ('pto','workers-comp','resignation','transfer')),
+      type TEXT NOT NULL CHECK(type IN ('pto','workers-comp','resignation','transfer','profile-update')),
       payload TEXT,
       status TEXT NOT NULL CHECK(status IN ('pending','approved','denied')) DEFAULT 'pending',
       comment TEXT,

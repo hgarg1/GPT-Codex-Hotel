@@ -385,7 +385,8 @@ router.get('/admin/requests', ensureAdmin, (req, res) => {
       const submittedAt = request.createdAt ? new Date(request.createdAt) : null;
       const typeLabel = request.type
         ? request.type
-            .split('_')
+            .split(/[-_]/)
+            .filter((segment) => segment.length)
             .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
             .join(' ')
         : '—';

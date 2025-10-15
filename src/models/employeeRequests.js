@@ -3,27 +3,100 @@ const { getDb } = require('../db');
 
 const db = getDb();
 
-db.prepare(`
-  CREATE TABLE IF NOT EXISTS employee_requests (
-    id TEXT PRIMARY KEY,
-    employeeId TEXT NOT NULL,
-    userId TEXT,
-    type TEXT NOT NULL,
-    payload TEXT,
-    status TEXT NOT NULL DEFAULT 'pending',
-    comment TEXT,
-    decisionByUserId TEXT,
-    decisionAt TEXT,
-    createdAt TEXT NOT NULL,
-    updatedAt TEXT NOT NULL,
-    FOREIGN KEY (employeeId) REFERENCES employees(id) ON DELETE CASCADE,
-    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL,
-    FOREIGN KEY (decisionByUserId) REFERENCES users(id) ON DELETE SET NULL
-  )
-`).run();
+const REQUEST_TYPE_VALUES = ['pto', 'workers-comp', 'resignation', 'transfer', 'profile-update'];
 
-db.prepare('CREATE INDEX IF NOT EXISTS idx_employee_requests_employee ON employee_requests(employeeId)').run();
-db.prepare('CREATE INDEX IF NOT EXISTS idx_employee_requests_status ON employee_requests(status)').run();
+const REQUEST_TYPE_ALIASES = {
+  pto: 'pto',
+  'paid-time-off': 'pto',
+  'workers-comp': 'workers-comp',
+  'workers_comp': 'workers-comp',
+  'workerscomp': 'workers-comp',
+  resignation: 'resignation',
+  transfer: 'transfer',
+  'profile-update': 'profile-update',
+  'profile_update': 'profile-update',
+  'profileupdate': 'profile-update'
+};
+
+function normaliseRequestType(type) {
+  if (type === undefined || type === null) {
+    return null;
+  }
+  const raw = String(type).trim().toLowerCase();
+  if (!raw) {
+    return null;
+  }
+  if (Object.prototype.hasOwnProperty.call(REQUEST_TYPE_ALIASES, raw)) {
+    return REQUEST_TYPE_ALIASES[raw];
+  }
+  const collapsed = raw.replace(/[\s_]+/g, '-');
+  if (Object.prototype.hasOwnProperty.call(REQUEST_TYPE_ALIASES, collapsed)) {
+    return REQUEST_TYPE_ALIASES[collapsed];
+  }
+  return null;
+}
+
+function buildEmployeeRequestsTableSql() {
+  const allowed = REQUEST_TYPE_VALUES.map((value) => `'${value}'`).join(',');
+  return `
+    CREATE TABLE employee_requests (
+      id TEXT PRIMARY KEY,
+      employeeId TEXT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+      userId TEXT REFERENCES users(id) ON DELETE SET NULL,
+      type TEXT NOT NULL CHECK(type IN (${allowed})),
+      payload TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      comment TEXT,
+      decisionByUserId TEXT REFERENCES users(id) ON DELETE SET NULL,
+      decisionAt TEXT,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    )
+  `;
+}
+
+function ensureEmployeeRequestsTable() {
+  const table = db
+    .prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'employee_requests'")
+    .get();
+  if (!table) {
+    db.prepare(buildEmployeeRequestsTableSql()).run();
+  } else {
+    const sql = table.sql || '';
+    const hasAllTypes = REQUEST_TYPE_VALUES.every((value) => sql.includes(`'${value}'`));
+    if (!hasAllTypes) {
+      const existingRows = db.prepare('SELECT * FROM employee_requests').all();
+      db.exec('BEGIN TRANSACTION');
+      try {
+        db.exec('ALTER TABLE employee_requests RENAME TO employee_requests_legacy');
+        db.exec(buildEmployeeRequestsTableSql());
+        const insert = db.prepare(`
+          INSERT INTO employee_requests (
+            id, employeeId, userId, type, payload, status, comment, decisionByUserId, decisionAt, createdAt, updatedAt
+          ) VALUES (
+            @id, @employeeId, @userId, @type, @payload, @status, @comment, @decisionByUserId, @decisionAt, @createdAt, @updatedAt
+          )
+        `);
+        existingRows.forEach((row) => {
+          const normalisedType = normaliseRequestType(row.type) || row.type;
+          insert.run({
+            ...row,
+            type: normalisedType
+          });
+        });
+        db.exec('DROP TABLE employee_requests_legacy');
+        db.exec('COMMIT');
+      } catch (error) {
+        db.exec('ROLLBACK');
+        throw error;
+      }
+    }
+  }
+  db.prepare('CREATE INDEX IF NOT EXISTS idx_employee_requests_employee ON employee_requests(employeeId)').run();
+  db.prepare('CREATE INDEX IF NOT EXISTS idx_employee_requests_status ON employee_requests(status)').run();
+}
+
+ensureEmployeeRequestsTable();
 
 db.prepare(`
   CREATE TABLE IF NOT EXISTS employee_profiles (
@@ -73,7 +146,7 @@ function serializeRequest(row) {
     id: row.id,
     employeeId: row.employeeId,
     userId: row.userId || null,
-    type: row.type,
+    type: normaliseRequestType(row.type) || row.type,
     payload,
     status: row.status || 'pending',
     comment: row.comment || null,
@@ -168,15 +241,18 @@ function createRequest({ employeeId, userId, type, payload }) {
   if (!employeeId) {
     throw new Error('employeeId is required to create a request');
   }
-  if (!type) {
-    throw new Error('type is required to create a request');
+  const normalisedType = normaliseRequestType(type);
+  if (!normalisedType) {
+    const error = new Error('A supported request type is required to create a request');
+    error.code = 'INVALID_REQUEST_TYPE';
+    throw error;
   }
   const now = new Date().toISOString();
   const record = {
     id: uuidv4(),
     employeeId,
     userId: userId || null,
-    type,
+    type: normalisedType,
     payload: JSON.stringify(payload || {}),
     status: 'pending',
     comment: null,
@@ -185,13 +261,22 @@ function createRequest({ employeeId, userId, type, payload }) {
     createdAt: now,
     updatedAt: now
   };
-  db.prepare(
-    `INSERT INTO employee_requests (
-      id, employeeId, userId, type, payload, status, comment, decisionByUserId, decisionAt, createdAt, updatedAt
-    ) VALUES (
-      @id, @employeeId, @userId, @type, @payload, @status, @comment, @decisionByUserId, @decisionAt, @createdAt, @updatedAt
-    )`
-  ).run(record);
+  try {
+    db.prepare(
+      `INSERT INTO employee_requests (
+        id, employeeId, userId, type, payload, status, comment, decisionByUserId, decisionAt, createdAt, updatedAt
+      ) VALUES (
+        @id, @employeeId, @userId, @type, @payload, @status, @comment, @decisionByUserId, @decisionAt, @createdAt, @updatedAt
+      )`
+    ).run(record);
+  } catch (error) {
+    if (error && error.code === 'SQLITE_CONSTRAINT_CHECK') {
+      const constraintError = new Error('Unable to create the employee request due to invalid data.');
+      constraintError.code = 'INVALID_REQUEST_CONSTRAINT';
+      throw constraintError;
+    }
+    throw error;
+  }
   return getRequestById(record.id);
 }
 
@@ -260,8 +345,20 @@ function listRequests(options = {}) {
   }
 
   if (options.type) {
+    const filterType = normaliseRequestType(options.type);
+    if (!filterType) {
+      return {
+        requests: [],
+        pagination: {
+          page,
+          pageSize,
+          total: 0,
+          totalPages: 0
+        }
+      };
+    }
     conditions.push('LOWER(er.type) = ?');
-    values.push(String(options.type).toLowerCase());
+    values.push(filterType.toLowerCase());
   }
 
   if (options.search) {
@@ -295,6 +392,7 @@ function listRequests(options = {}) {
 }
 
 function listPendingRequestsByEmployee(employeeId, type) {
+  const normalisedType = normaliseRequestType(type);
   const rows = db
     .prepare(
       `SELECT er.*, e.name AS employeeName, e.email AS employeeEmail, e.department AS employeeDepartment, e.status AS employeeStatus
@@ -303,7 +401,7 @@ function listPendingRequestsByEmployee(employeeId, type) {
        WHERE er.employeeId = ? AND er.status = 'pending' AND er.type = ?
        ORDER BY er.createdAt DESC`
     )
-    .all(employeeId, type);
+    .all(employeeId, normalisedType || type);
   return rows.map(serializeRequest);
 }
 
@@ -385,5 +483,6 @@ module.exports = {
   getProfile,
   upsertProfile,
   listRequests,
-  listPendingRequestsByEmployee
+  listPendingRequestsByEmployee,
+  normaliseRequestType
 };
