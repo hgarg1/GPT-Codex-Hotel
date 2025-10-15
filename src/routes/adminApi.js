@@ -11,6 +11,7 @@ const {
 } = require('../utils/rbac');
 const {
   getAllUsers,
+  createUser,
   createSubAdmin,
   listSubAdmins,
   getUserById,
@@ -44,8 +45,10 @@ const {
   updateRequestStatus
 } = require('../models/employeeRequests');
 const { boardMembers, executiveTeam, advisoryCouncil } = require('../data/leadership');
+const { getDb } = require('../db');
 
 const router = express.Router();
+const db = getDb();
 
 const roleSummaryOrder = [Roles.GLOBAL_ADMIN, Roles.SUPER_ADMIN, Roles.ADMIN, Roles.EMPLOYEE];
 
@@ -91,20 +94,24 @@ const requestStatusSchema = Joi.object({
 
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 
-const employeeCreateSchema = Joi.object({
-  name: Joi.string().min(2).max(120).required(),
-  email: Joi.string().email({ tlds: { allow: false } }).required(),
-  phone: Joi.string().max(40).allow(null, '').empty(''),
-  department: Joi.string().max(120).allow(null, '').empty(''),
-  title: Joi.string().max(120).allow(null, '').empty(''),
-  employmentType: Joi.string().max(80).allow(null, '').default('Full-Time'),
+const employeeBaseSchema = Joi.object({
+  name: Joi.string().trim().min(2).max(120).required(),
+  email: Joi.string().trim().email({ tlds: { allow: false } }).required(),
+  phone: Joi.string().trim().max(40).allow(null, '').empty(''),
+  department: Joi.string().trim().max(120).allow(null, '').empty(''),
+  title: Joi.string().trim().max(120).allow(null, '').empty(''),
+  employmentType: Joi.string().trim().max(80).allow(null, '').default('Full-Time'),
   startDate: Joi.string().pattern(datePattern).allow(null, '').empty(''),
-  status: Joi.string().max(40).allow(null, '').empty('').default('active'),
-  emergencyContact: Joi.string().max(160).allow(null, '').empty(''),
-  notes: Joi.string().max(1000).allow(null, '').empty('')
+  status: Joi.string().trim().max(40).allow(null, '').empty('').default('active'),
+  emergencyContact: Joi.string().trim().max(160).allow(null, '').empty(''),
+  notes: Joi.string().trim().max(1000).allow(null, '').empty('')
 });
 
-const employeeUpdateSchema = employeeCreateSchema.fork(['name', 'email'], (schema) => schema.optional());
+const employeeCreateSchema = employeeBaseSchema.keys({
+  password: Joi.string().trim().min(8).max(128).required()
+});
+
+const employeeUpdateSchema = employeeBaseSchema.fork(['name', 'email'], (schema) => schema.optional());
 
 const employeeBulkSchema = Joi.object({
   ids: Joi.array().items(Joi.string().guid({ version: 'uuidv4' })).min(1).required(),
@@ -309,8 +316,34 @@ router.post('/employees', (req, res) => {
       details: error.details.map((detail) => detail.message)
     });
   }
+  const { password, ...employeePayload } = value;
+  const runCreation = db.transaction((payload) => {
+    const employeeRecord = createEmployee(payload.employeeData);
+    const userRecord = createUser({
+      name: employeeRecord.name,
+      email: employeeRecord.email,
+      password: payload.password,
+      role: Roles.EMPLOYEE,
+      department: employeeRecord.department || null,
+      createdByUserId: payload.createdByUserId || null
+    });
+    return { employee: employeeRecord, user: userRecord };
+  });
   try {
-    const employee = createEmployee(value);
+    const { employee, user } = runCreation({
+      employeeData: employeePayload,
+      password,
+      createdByUserId: req.user?.id || null
+    });
+    recordAuditLog({
+      actorUserId: req.user?.id || null,
+      targetUserId: user.id,
+      action: 'employee_created',
+      details: {
+        employeeId: employee.id,
+        department: employee.department || null
+      }
+    });
     return res.status(201).json({ employee });
   } catch (creationError) {
     const status = creationError.status || 500;

@@ -4392,6 +4392,30 @@ html[data-animations='enabled'] [data-animate].is-visible {
   gap: var(--space-2);
 }
 
+.employee-modal__footer-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.employee-modal__footer-actions:first-child {
+  margin-right: auto;
+}
+
+.employee-credentials {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.employee-credentials h4 {
+  margin: 0;
+}
+
+.employee-credentials p {
+  margin: 0;
+  line-height: 1.5;
+}
+
 .employee-toast,
 .request-toast {
   position: fixed;

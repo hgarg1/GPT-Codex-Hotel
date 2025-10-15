@@ -21,6 +21,11 @@
   const modalTitle = modal?.querySelector('[data-modal-title]');
   const modalForm = modal?.querySelector('[data-employee-form]');
   const submitLabel = modal?.querySelector('[data-submit-label]');
+  const nextButton = modal?.querySelector('[data-next-step]');
+  const backButton = modal?.querySelector('[data-prev-step]');
+  const stepSections = modal ? Array.from(modal.querySelectorAll('[data-step]')) : [];
+  const passwordField = modal?.querySelector('[data-field="password"]');
+  const passwordConfirmField = modal?.querySelector('[data-field="passwordConfirm"]');
 
   const csrfToken = window.__CSRF_TOKEN__ || document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
@@ -32,6 +37,11 @@
     selected: new Set(),
     loading: false,
     detailId: null
+  };
+
+  const modalState = {
+    mode: 'create',
+    step: 'profile'
   };
 
   const statusFallback = ['active', 'on-leave', 'suspended', 'terminated'];
@@ -198,6 +208,78 @@
     if (saveButton) {
       saveButton.disabled = false;
     }
+  }
+
+  function setModalStep(step) {
+    if (!modalForm) return;
+    modalState.step = step;
+    const mode = modalState.mode;
+    stepSections.forEach((section) => {
+      if (!section.dataset.step) return;
+      if (mode === 'create') {
+        section.hidden = section.dataset.step !== step;
+      } else if (section.dataset.step === 'credentials') {
+        section.hidden = true;
+      } else {
+        section.hidden = false;
+      }
+    });
+    if (mode === 'create') {
+      if (step === 'profile') {
+        if (backButton) backButton.setAttribute('hidden', '');
+        if (nextButton) nextButton.removeAttribute('hidden');
+        if (submitLabel) submitLabel.setAttribute('hidden', '');
+      } else {
+        if (backButton) backButton.removeAttribute('hidden');
+        if (nextButton) nextButton.setAttribute('hidden', '');
+        if (submitLabel) submitLabel.removeAttribute('hidden');
+      }
+    } else {
+      if (backButton) backButton.setAttribute('hidden', '');
+      if (nextButton) nextButton.setAttribute('hidden', '');
+      if (submitLabel) submitLabel.removeAttribute('hidden');
+    }
+  }
+
+  function configureModalMode(mode) {
+    if (!modalForm) return;
+    modalState.mode = mode;
+    modalForm.dataset.mode = mode;
+    if (passwordField) {
+      passwordField.required = mode === 'create';
+      passwordField.value = '';
+    }
+    if (passwordConfirmField) {
+      passwordConfirmField.required = mode === 'create';
+      passwordConfirmField.value = '';
+    }
+    if (mode !== 'create') {
+      stepSections.forEach((section) => {
+        if (section.dataset.step === 'credentials') {
+          section.hidden = true;
+        }
+      });
+    }
+    setModalStep('profile');
+  }
+
+  function validateStep(step) {
+    if (!modalForm) return true;
+    const target = stepSections.find((section) => section.dataset.step === step);
+    if (!target) return true;
+    const fields = target.querySelectorAll('input, select, textarea');
+    for (const field of fields) {
+      if (field.type === 'hidden' || field.disabled) {
+        continue;
+      }
+      if (field.closest('[hidden]')) {
+        continue;
+      }
+      if (typeof field.reportValidity === 'function' && !field.reportValidity()) {
+        return false;
+      }
+    }
+    return true;
   }
 
   function renderEmployees() {
@@ -483,6 +565,7 @@
     if (!modal || !modalForm) return;
     modal.hidden = false;
     modal.classList.add('is-visible');
+    configureModalMode(employee ? 'edit' : 'create');
     if (employee) {
       modalTitle.textContent = 'Edit employee';
       submitLabel.textContent = 'Save changes';
@@ -504,6 +587,9 @@
     } else {
       modalTitle.textContent = 'New employee';
       submitLabel.textContent = 'Create employee';
+      if (nextButton) {
+        nextButton.textContent = 'Continue to password';
+      }
       modalForm.querySelector('[data-field="id"]').value = '';
       modalForm.querySelector('[data-field="name"]').value = '';
       modalForm.querySelector('[data-field="email"]').value = '';
@@ -526,6 +612,7 @@
     if (!modal) return;
     modal.classList.remove('is-visible');
     modal.hidden = true;
+    modalState.step = 'profile';
   }
 
   async function handleRowAction(action, employee, row) {
@@ -654,9 +741,34 @@
     });
   }
 
+  if (nextButton) {
+    nextButton.addEventListener('click', () => {
+      if (!validateStep('profile')) {
+        return;
+      }
+      setModalStep('credentials');
+      passwordField?.focus();
+    });
+  }
+
+  if (backButton) {
+    backButton.addEventListener('click', () => {
+      setModalStep('profile');
+      modalForm?.querySelector('[data-field="name"]')?.focus();
+    });
+  }
+
   if (modalForm) {
     modalForm.addEventListener('submit', async (event) => {
       event.preventDefault();
+      if (modalState.mode === 'create' && modalState.step !== 'credentials') {
+        if (!validateStep('profile')) {
+          return;
+        }
+        setModalStep('credentials');
+        passwordField?.focus();
+        return;
+      }
       const formData = new FormData(modalForm);
       const payload = Object.fromEntries(formData.entries());
       const id = payload.id;
@@ -664,15 +776,36 @@
         showToast('Name and email are required.', 'error');
         return;
       }
+      if (payload.password) {
+        payload.password = String(payload.password).trim();
+      }
+      if (payload.passwordConfirm) {
+        payload.passwordConfirm = String(payload.passwordConfirm).trim();
+      }
       if (!payload.startDate) {
         delete payload.startDate;
       }
       try {
         if (id) {
+          delete payload.password;
+          delete payload.passwordConfirm;
           delete payload.id;
           await http(`/api/admin/employees/${id}`, createRequestOptions('PATCH', payload));
           showToast('Employee updated.', 'success');
         } else {
+          if (!payload.password) {
+            showToast('A password is required to create the account.', 'error');
+            return;
+          }
+          if (payload.password.length < 8) {
+            showToast('Password must be at least 8 characters long.', 'error');
+            return;
+          }
+          if (payload.password !== payload.passwordConfirm) {
+            showToast('Passwords do not match.', 'error');
+            return;
+          }
+          delete payload.passwordConfirm;
           delete payload.id;
           await http('/api/admin/employees', createRequestOptions('POST', payload));
           showToast('Employee created.', 'success');

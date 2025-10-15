@@ -714,7 +714,8 @@
       </header>
       <form data-employee-form>
         <input type="hidden" name="id" data-field="id" />
-        <div class="employee-form-grid">
+        <div class="employee-form-step" data-step="profile">
+          <div class="employee-form-grid">
           <label>
             <span>Full name</span>
             <input type="text" name="name" data-field="name" required />
@@ -767,10 +768,41 @@
             <span>Notes</span>
             <textarea name="notes" rows="3" data-field="notes"></textarea>
           </label>
+          </div>
         </div>
-        <footer class="employee-modal__footer">
-          <button type="button" class="pill-link" data-close-modal>Cancel</button>
-          <button type="submit" class="pill-link primary" data-submit-label>Save employee</button>
+        <div class="employee-form-step" data-step="credentials" hidden>
+          <div class="employee-credentials">
+            <h4>Set employee credentials</h4>
+            <p class="muted">
+              Provide an initial password to activate console access. Share it securely with the employee—they’ll be able to
+              change it after signing in.
+            </p>
+            <label>
+              <span>Password</span>
+              <input type="password" name="password" data-field="password" minlength="8" autocomplete="new-password" required />
+            </label>
+            <label>
+              <span>Confirm password</span>
+              <input
+                type="password"
+                name="passwordConfirm"
+                data-field="passwordConfirm"
+                minlength="8"
+                autocomplete="new-password"
+                required
+              />
+            </label>
+          </div>
+        </div>
+        <footer class="employee-modal__footer" data-modal-footer>
+          <div class="employee-modal__footer-actions">
+            <button type="button" class="pill-link" data-close-modal>Cancel</button>
+          </div>
+          <div class="employee-modal__footer-actions">
+            <button type="button" class="pill-link secondary" data-prev-step hidden>Back</button>
+            <button type="button" class="pill-link primary" data-next-step>Continue</button>
+            <button type="submit" class="pill-link primary" data-submit-label hidden>Save employee</button>
+          </div>
         </footer>
       </form>
     </div>
