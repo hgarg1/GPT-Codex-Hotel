@@ -11,7 +11,17 @@
   data-encryption-key="<%= encryptionKey %>"
   data-reaction-set='<%= JSON.stringify(reactions || []) %>'
 >
-  <aside class="chat-sidebar">
+  <button
+    class="chat-sidebar-toggle"
+    type="button"
+    data-chat-sidebar-toggle
+    aria-expanded="false"
+    aria-controls="chat-sidebar"
+  >
+    Browse rooms &amp; DMs
+  </button>
+  <div class="chat-sidebar-backdrop" data-chat-sidebar-backdrop hidden></div>
+  <aside class="chat-sidebar" id="chat-sidebar" aria-hidden="false">
     <div class="chat-section">
       <h2>Rooms</h2>
       <ul class="chat-room-list" data-room-list>

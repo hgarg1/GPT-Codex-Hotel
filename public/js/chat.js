@@ -32,6 +32,77 @@
   const emptyDmMessage = document.querySelector('[data-empty-dm]');
   const fileInput = form?.querySelector('[data-file-input]');
   const fileIndicator = form?.querySelector('[data-file-indicator]');
+  const sidebarToggle = container.querySelector('[data-chat-sidebar-toggle]');
+  const sidebarBackdrop = container.querySelector('[data-chat-sidebar-backdrop]');
+  const sidebar = container.querySelector('#chat-sidebar');
+  const mobileSidebarMq = window.matchMedia('(max-width: 960px)');
+
+  const setSidebarOpen = (open) => {
+    if (!sidebar || !mobileSidebarMq.matches) return;
+    container.classList.toggle('is-sidebar-open', open);
+    document.body.classList.toggle('chat-sidebar-open', open);
+    if (sidebarToggle) {
+      sidebarToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    if (sidebarBackdrop) {
+      sidebarBackdrop.hidden = !open;
+    }
+    sidebar.setAttribute('aria-hidden', open ? 'false' : 'true');
+    if (!open && sidebarToggle) {
+      sidebarToggle.focus({ preventScroll: true });
+    }
+  };
+
+  const syncSidebarForViewport = () => {
+    if (!sidebar) return;
+    if (!mobileSidebarMq.matches) {
+      container.classList.remove('is-sidebar-open');
+      document.body.classList.remove('chat-sidebar-open');
+      sidebar.setAttribute('aria-hidden', 'false');
+      if (sidebarToggle) {
+        sidebarToggle.setAttribute('aria-expanded', 'false');
+      }
+      if (sidebarBackdrop) {
+        sidebarBackdrop.hidden = true;
+      }
+      return;
+    }
+    const isOpen = container.classList.contains('is-sidebar-open');
+    sidebar.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    if (sidebarBackdrop) {
+      sidebarBackdrop.hidden = !isOpen;
+    }
+  };
+
+  sidebarToggle?.addEventListener('click', () => {
+    const shouldOpen = !container.classList.contains('is-sidebar-open');
+    setSidebarOpen(shouldOpen);
+  });
+
+  sidebarBackdrop?.addEventListener('click', () => {
+    setSidebarOpen(false);
+  });
+
+  const collapseSidebarOnSelection = (event) => {
+    if (!mobileSidebarMq.matches) return;
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.closest('button[data-room]') || target.closest('button[data-dm]')) {
+      setSidebarOpen(false);
+    }
+  };
+
+  roomList?.addEventListener('click', collapseSidebarOnSelection);
+  dmList?.addEventListener('click', collapseSidebarOnSelection);
+
+  window.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      setSidebarOpen(false);
+    }
+  });
+
+  mobileSidebarMq.addEventListener('change', syncSidebarForViewport);
+  syncSidebarForViewport();
 
   let socket = window.skyhavenSocket;
   if (!socket) {
