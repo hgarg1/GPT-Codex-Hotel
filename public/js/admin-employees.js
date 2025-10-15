@@ -15,6 +15,14 @@
   const bulkApply = bulkForm?.querySelector('[data-bulk-apply]');
   const detailPanel = document.querySelector('[data-employee-detail]');
   const toastEl = document.querySelector('[data-employee-toast]');
+  const resetBanner = document.querySelector('[data-employee-reset-banner]');
+  const resetBannerName = resetBanner?.querySelector('[data-reset-name]');
+  const resetBannerEmail = resetBanner?.querySelector('[data-reset-email]');
+  const resetBannerStatus = resetBanner?.querySelector('[data-reset-account]');
+  const resetBannerPassword = resetBanner?.querySelector('[data-reset-password]');
+  const resetBannerCopy = resetBanner?.querySelector('[data-reset-copy]');
+  const resetBannerDismiss = resetBanner?.querySelector('[data-reset-dismiss]');
+  const resetBannerFeedback = resetBanner?.querySelector('[data-reset-feedback]');
   const importButton = document.querySelector('[data-import-leadership]');
   const newButton = document.querySelector('[data-open-create]');
   const modal = document.querySelector('[data-employee-modal]');
@@ -45,6 +53,8 @@
   };
 
   const statusFallback = ['active', 'on-leave', 'suspended', 'terminated'];
+
+  let resetCopyTimeout;
 
   function uniqueOptions(values = []) {
     const seen = new Map();
@@ -178,6 +188,149 @@
       return response.json();
     }
     return response.text();
+  }
+
+  function showResetBanner(employee, payload = {}) {
+    if (!resetBanner) return;
+    const name = employee?.name || payload?.employee?.name || 'the employee';
+    const email = employee?.email || payload?.employee?.email || '—';
+    const temporaryPassword = payload?.temporaryPassword || '';
+    const createdAccount = Boolean(payload?.createdAccount);
+
+    setResetFeedback('');
+    if (resetBannerName) {
+      resetBannerName.textContent = name;
+    }
+    if (resetBannerEmail) {
+      resetBannerEmail.textContent = email;
+    }
+    if (resetBannerStatus) {
+      resetBannerStatus.textContent = createdAccount
+        ? 'A new employee account was provisioned. Share the temporary password below so they can sign in.'
+        : 'The account now requires the temporary password below to access the console.';
+    }
+    if (resetBannerPassword) {
+      resetBannerPassword.textContent = temporaryPassword || 'Unavailable';
+      resetBannerPassword.dataset.passwordValue = temporaryPassword || '';
+    }
+    if (resetBannerCopy) {
+      window.clearTimeout(resetCopyTimeout);
+      resetBannerCopy.disabled = !temporaryPassword;
+      resetBannerCopy.textContent = temporaryPassword ? 'Copy password' : 'Copy unavailable';
+    }
+
+    resetBanner.hidden = false;
+    window.requestAnimationFrame(() => {
+      resetBanner.classList.add('is-visible');
+    });
+
+    if (!temporaryPassword) {
+      setResetFeedback('Temporary password unavailable. Try again or contact support.', 'error');
+      return;
+    }
+
+    copyTemporaryPassword({
+      showSuccessToast: false,
+      showErrorToast: false,
+      updateButtonState: false,
+      onSuccess: () => {
+        setResetFeedback('Temporary password copied to your clipboard.', 'success');
+      },
+      onError: () => {
+        setResetFeedback('We could not copy automatically. Use the copy button below.', 'error');
+      }
+    });
+  }
+
+  function hideResetBanner() {
+    if (!resetBanner) return;
+    resetBanner.classList.remove('is-visible');
+    window.setTimeout(() => {
+      if (!resetBanner.classList.contains('is-visible')) {
+        resetBanner.hidden = true;
+      }
+    }, 200);
+    setResetFeedback('');
+  }
+
+  function setResetFeedback(message = '', tone = 'info') {
+    if (!resetBannerFeedback) return;
+    resetBannerFeedback.classList.remove('is-success', 'is-error');
+    if (!message) {
+      resetBannerFeedback.textContent = '';
+      resetBannerFeedback.hidden = true;
+      return;
+    }
+    resetBannerFeedback.textContent = message;
+    resetBannerFeedback.hidden = false;
+    if (tone === 'success') {
+      resetBannerFeedback.classList.add('is-success');
+    } else if (tone === 'error') {
+      resetBannerFeedback.classList.add('is-error');
+    }
+  }
+
+  async function copyTemporaryPassword(options = {}) {
+    const {
+      showSuccessToast = true,
+      showErrorToast = true,
+      updateButtonState = true,
+      onSuccess,
+      onError
+    } = options;
+    if (!resetBannerPassword) return false;
+    const password = (resetBannerPassword.dataset.passwordValue || resetBannerPassword.textContent || '').trim();
+    if (!password) {
+      if (showErrorToast) {
+        showToast('No temporary password available to copy.', 'error');
+      }
+      if (typeof onError === 'function') {
+        onError(new Error('No temporary password available'));
+      }
+      return false;
+    }
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(password);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = password;
+        textArea.setAttribute('readonly', '');
+        textArea.style.position = 'absolute';
+        textArea.style.left = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.select();
+        const succeeded = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        if (!succeeded) {
+          throw new Error('Copy command was not successful');
+        }
+      }
+      if (updateButtonState && resetBannerCopy) {
+        resetBannerCopy.disabled = true;
+        resetBannerCopy.textContent = 'Copied!';
+        window.clearTimeout(resetCopyTimeout);
+        resetCopyTimeout = window.setTimeout(() => {
+          resetBannerCopy.disabled = false;
+          resetBannerCopy.textContent = 'Copy password';
+        }, 2000);
+      }
+      if (showSuccessToast) {
+        showToast('Temporary password copied to clipboard.', 'success');
+      }
+      if (typeof onSuccess === 'function') {
+        onSuccess();
+      }
+      return true;
+    } catch (error) {
+      if (showErrorToast) {
+        showToast('Copy failed. Highlight the password and copy it manually.', 'error');
+      }
+      if (typeof onError === 'function') {
+        onError(error);
+      }
+      return false;
+    }
   }
 
   function setLoading(isLoading) {
@@ -634,7 +787,8 @@
         openModal(employee);
       } else if (action === 'reset') {
         const data = await http(`/api/admin/employees/${employee.id}/reset-password`, createRequestOptions('POST'));
-        showToast(`Temporary password for ${employee.name}: ${data.temporaryPassword}`, 'success');
+        showResetBanner(employee, data);
+        showToast(`Temporary password generated for ${employee.name}.`, 'success');
       } else if (action === 'disable') {
         await http(`/api/admin/employees/${employee.id}`, createRequestOptions('PATCH', { status: 'suspended' }));
         showToast(`${employee.name} has been disabled.`, 'success');
@@ -684,6 +838,25 @@
       state.query.employmentType = event.target.value;
       state.pagination.page = 1;
       loadEmployees(1);
+    });
+  }
+
+  if (resetBannerDismiss) {
+    resetBannerDismiss.addEventListener('click', () => {
+      hideResetBanner();
+    });
+  }
+
+  if (resetBannerCopy) {
+    resetBannerCopy.addEventListener('click', () => {
+      copyTemporaryPassword({
+        onSuccess: () => {
+          setResetFeedback('Temporary password copied to your clipboard.', 'success');
+        },
+        onError: () => {
+          setResetFeedback('Copy failed. Highlight the password to copy it manually.', 'error');
+        }
+      });
     });
   }
 

@@ -62,6 +62,27 @@
       <button type="submit" class="pill-link secondary" data-bulk-apply disabled>Apply to selected</button>
     </form>
 
+    <div class="employee-reset-banner" data-employee-reset-banner hidden>
+      <div class="employee-reset-banner__header">
+        <div>
+          <h3>Temporary credentials generated</h3>
+          <p class="muted">
+            Share the password below with <span data-reset-name>the employee</span>
+            (<span data-reset-email>email pending</span>). They'll be asked to update it on first sign in.
+          </p>
+        </div>
+        <button type="button" class="pill-link" data-reset-dismiss>Dismiss</button>
+      </div>
+      <p class="employee-reset-banner__status" data-reset-account>
+        The account now requires the temporary password below to access the console.
+      </p>
+      <div class="employee-reset-banner__password">
+        <code data-reset-password>••••••••</code>
+        <button type="button" class="pill-link secondary" data-reset-copy>Copy password</button>
+      </div>
+      <p class="employee-reset-banner__feedback" data-reset-feedback hidden></p>
+    </div>
+
     <div class="employee-table-wrapper">
       <table class="admin-table employee-table">
         <thead>
