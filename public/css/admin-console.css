@@ -5,9 +5,13 @@
   color: #e2e8f0;
 }
 
+
 .admin-console__header {
-  display: grid;
-  gap: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
   margin-bottom: 2.5rem;
 }
 
@@ -16,7 +20,7 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: clamp(1.6rem, 3vw, 2.2rem);
-  margin: 0;
+  margin: 0 0 0.25rem;
 }
 
 .admin-console__header .muted {
@@ -53,48 +57,146 @@
   align-self: flex-start;
 }
 
+.btn.btn-ghost {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: #e0f2fe;
+}
+
+.btn.btn-ghost:hover {
+  border-color: rgba(125, 211, 252, 0.6);
+  color: #38bdf8;
+}
+
+.btn.btn-compact {
+  padding: 0.35rem 0.8rem;
+  font-size: 0.75rem;
+}
+
+.admin-time__insights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.2rem;
+  margin-bottom: 2.4rem;
+}
+
+.time-metric-card {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 64, 175, 0.65));
+  border-radius: 1.4rem;
+  padding: 1.4rem;
+  box-shadow: 0 25px 80px rgba(15, 23, 42, 0.45);
+  display: grid;
+  gap: 0.6rem;
+}
+
+.time-metric-card__label {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9fb9ff;
+}
+
+.time-metric-card__value {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.time-metric-card__meta {
+  font-size: 0.85rem;
+  color: #b3c5f0;
+}
+
 .admin-time__layout {
   display: grid;
   gap: 2rem;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  align-items: start;
 }
 
 .admin-time__table {
   background: rgba(15, 23, 42, 0.72);
   border-radius: 1.5rem;
-  padding: 1.5rem;
+  padding: 1.8rem;
   box-shadow: 0 30px 80px rgba(15, 23, 42, 0.45);
 }
 
-.admin-time__table header h2 {
-  margin: 0;
+.admin-time__table-header {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.admin-time__table-header h2 {
+  margin: 0 0 0.35rem;
   font-size: 1.25rem;
+}
+
+.admin-time__table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 1.4rem 0 0.6rem;
+}
+
+.chip {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.4);
+  color: #dbeafe;
+  border-radius: 999px;
+  padding: 0.45rem 1rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chip:hover,
+.chip:focus-visible {
+  border-color: rgba(125, 211, 252, 0.75);
+  color: #38bdf8;
+}
+
+.chip--active {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: rgba(56, 189, 248, 0.6);
+  color: #f8fafc;
 }
 
 .admin-time__filters {
   display: grid;
-  gap: 0.75rem;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  margin: 1.5rem 0;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin: 1.6rem 0 1.2rem;
 }
 
 .admin-time__filters label {
   display: grid;
-  gap: 0.4rem;
+  gap: 0.45rem;
   font-size: 0.85rem;
   color: #a3b3d5;
 }
 
-.admin-time__filters input {
-  border-radius: 0.8rem;
+.admin-time__filters input,
+.admin-time__filters select {
+  border-radius: 0.9rem;
   padding: 0.65rem 0.9rem;
   border: 1px solid rgba(148, 163, 184, 0.25);
   background: rgba(15, 23, 42, 0.6);
   color: #f8fafc;
 }
 
-.admin-time__filters .btn {
-  margin-top: auto;
+.admin-time__filter-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.6rem;
+  align-content: end;
 }
 
 .admin-table {
@@ -105,7 +207,7 @@
 
 .admin-table th,
 .admin-table td {
-  padding: 0.75rem 0.9rem;
+  padding: 0.85rem 0.9rem;
   border-bottom: 1px solid rgba(148, 163, 184, 0.15);
   text-align: left;
   vertical-align: top;
@@ -113,6 +215,142 @@
 
 .admin-table tbody tr:hover {
   background: rgba(56, 189, 248, 0.12);
+}
+
+.admin-table tbody tr.is-active {
+  background: rgba(56, 189, 248, 0.18);
+}
+
+.admin-table tbody tr.is-open {
+  border-left: 3px solid rgba(56, 189, 248, 0.6);
+}
+
+.admin-table tbody tr.is-flagged {
+  border-left: 3px solid rgba(248, 250, 252, 0.4);
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.status-chip--open {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+
+.status-chip--ok {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.45);
+  color: #4ade80;
+}
+
+.status-chip--alert {
+  background: rgba(248, 113, 113, 0.18);
+  border-color: rgba(248, 113, 113, 0.5);
+  color: #fca5a5;
+}
+
+.status-chip--review {
+  background: rgba(250, 204, 21, 0.22);
+  border-color: rgba(250, 204, 21, 0.45);
+  color: #facc15;
+}
+
+.status-note {
+  font-size: 0.78rem;
+  margin-top: 0.35rem;
+  color: #cbd5f5;
+}
+
+.admin-time__detail {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.time-detail-card {
+  background: rgba(8, 47, 73, 0.55);
+  border-radius: 1.4rem;
+  padding: 1.5rem;
+  box-shadow: 0 25px 60px rgba(15, 23, 42, 0.4);
+}
+
+.time-detail-card form {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.time-detail-card input,
+.time-detail-card textarea {
+  width: 100%;
+  border-radius: 0.9rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.6);
+  color: #f8fafc;
+}
+
+.time-detail-card textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.time-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.time-side-panels {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.time-panel {
+  background: rgba(8, 47, 73, 0.45);
+  border-radius: 1.4rem;
+  padding: 1.3rem;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.35);
+}
+
+.time-panel header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.8rem;
+}
+
+.time-panel h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.time-panel__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.time-panel__list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.time-panel__list .muted {
+  color: #9db3ce;
 }
 
 .admin-requests {
@@ -417,8 +655,12 @@
     grid-template-columns: 1fr;
   }
 
-  .admin-time__detail {
-    order: -1;
+  .admin-time__insights {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+
+  .time-detail-actions {
+    justify-content: flex-start;
   }
 
   .admin-requests__summary {

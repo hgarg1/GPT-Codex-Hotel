@@ -261,24 +261,118 @@ router.get('/admin', ensureAdmin, (req, res) => {
 
 router.get('/admin/time', ensureAdmin, (req, res) => {
   const start = new Date(Date.now() - 7 * DAY_MS).toISOString();
-  const entries = listEntries({ start }).slice(0, 60).map((entry) => {
+  const rawEntries = listEntries({ start }).slice(0, 160);
+  const now = Date.now();
+  const entries = rawEntries.map((entry) => {
     const clockIn = entry.clockInAt ? new Date(entry.clockInAt) : null;
     const clockOut = entry.clockOutAt ? new Date(entry.clockOutAt) : null;
-    const durationLabel = entry.durationMinutes
-      ? `${Math.floor(entry.durationMinutes / 60)}h ${entry.durationMinutes % 60}m`
+    const employee = getUserById(entry.employeeId);
+    const baseMinutes = entry.durationMinutes ?? null;
+    const openDurationMinutes = !entry.clockOutAt && clockIn
+      ? Math.max(0, Math.round((now - clockIn.getTime()) / 60000))
+      : null;
+    const displayMinutes = baseMinutes ?? openDurationMinutes;
+    const durationLabel = displayMinutes
+      ? `${Math.floor(displayMinutes / 60)}h ${displayMinutes % 60}m`
       : entry.clockOutAt
         ? 'Needs review'
         : 'Open';
     return {
       ...entry,
+      employee: employee
+        ? {
+            id: employee.id,
+            name: employee.name,
+            email: employee.email,
+            department: employee.department || null
+          }
+        : null,
       clockInLabel: clockIn ? clockIn.toLocaleString() : '—',
       clockOutLabel: clockOut ? clockOut.toLocaleString() : '—',
+      displayMinutes,
       durationLabel
     };
   });
+
+  const totals = entries.reduce(
+    (acc, entry) => {
+      if (entry.durationMinutes) {
+        acc.completedMinutes += entry.durationMinutes;
+        acc.completedCount += 1;
+      }
+      if (!entry.clockOutAt) {
+        acc.open.push(entry);
+      }
+      const effectiveMinutes = entry.durationMinutes
+        ?? (entry.displayMinutes ?? 0);
+      if (effectiveMinutes > acc.maxMinutes) {
+        acc.maxMinutes = effectiveMinutes;
+        acc.longest = entry;
+      }
+      const departmentKey = (entry.department || entry.employee?.department || 'Unassigned').toLowerCase();
+      const currentDepartment = acc.departments.get(departmentKey) || {
+        label: entry.department || entry.employee?.department || 'Unassigned',
+        minutes: 0,
+        count: 0
+      };
+      currentDepartment.minutes += effectiveMinutes;
+      currentDepartment.count += 1;
+      acc.departments.set(departmentKey, currentDepartment);
+
+      if (entry.clockInAt) {
+        const dayKey = entry.clockInAt.slice(0, 10);
+        const existingDay = acc.daily.get(dayKey) || {
+          date: dayKey,
+          minutes: 0,
+          count: 0
+        };
+        existingDay.minutes += effectiveMinutes;
+        existingDay.count += 1;
+        acc.daily.set(dayKey, existingDay);
+      }
+
+      const longShift = entry.durationMinutes && entry.durationMinutes >= 10 * 60;
+      const extendedOpen = !entry.clockOutAt && entry.displayMinutes && entry.displayMinutes >= 8 * 60;
+      if (longShift || extendedOpen) {
+        acc.flagged.push(entry);
+      }
+
+      return acc;
+    },
+    {
+      completedMinutes: 0,
+      completedCount: 0,
+      open: [],
+      maxMinutes: 0,
+      longest: null,
+      departments: new Map(),
+      daily: new Map(),
+      flagged: []
+    }
+  );
+
+  const coverage = Array.from(totals.departments.values()).sort((a, b) => b.minutes - a.minutes).slice(0, 6);
+  const dailySummaries = Array.from(totals.daily.values())
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 7);
+
+  const stats = {
+    totalHours: totals.completedMinutes / 60,
+    averageHours: totals.completedCount ? totals.completedMinutes / 60 / totals.completedCount : 0,
+    openCount: totals.open.length,
+    flaggedCount: totals.flagged.length,
+    completedCount: totals.completedCount,
+    coverage,
+    dailySummaries,
+    longest: totals.longest,
+    flagged: totals.flagged.slice(0, 8),
+    openEntries: totals.open
+  };
+
   res.render('admin/time', {
     pageTitle: 'Timekeeping Console',
-    entries
+    entries,
+    stats
   });
 });
 
