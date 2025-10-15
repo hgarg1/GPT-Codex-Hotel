@@ -109,7 +109,9 @@
               <td class="request-payload">
                 <details class="request-payload__details">
                   <summary>Inspect payload</summary>
-                  <pre><%- JSON.stringify(request.payload, null, 2) %></pre>
+                  <div class="request-payload__content" data-payload-content>
+                    <p class="request-payload__empty muted">Expand to view request details.</p>
+                  </div>
                 </details>
               </td>
               <td>
