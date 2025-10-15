@@ -6,9 +6,59 @@
   <header class="admin-console__header">
     <h1>Crew Requests</h1>
     <p class="muted">Review PTO, worker safety, and profile update submissions routed from the employee portal.</p>
+    <div class="admin-console__header-meta">
+      <span class="header-chip">Last submission <strong><%= lastSubmissionRelative %></strong></span>
+      <span class="header-chip">Approval rate <strong><%= approvalRate %>%</strong></span>
+    </div>
   </header>
 
   <section class="admin-requests">
+    <div class="admin-requests__insights" data-animate="fade-up">
+      <div class="admin-requests__summary">
+        <article class="summary-card summary-card--total">
+          <span class="summary-card__label">Queue volume</span>
+          <strong class="summary-card__value"><%= totalRequests %></strong>
+          <span class="summary-card__meta">Latest submission <%= lastSubmissionRelative %></span>
+        </article>
+        <% statusSummary.forEach(function(entry) { %>
+          <article class="summary-card summary-card--<%= entry.status %>">
+            <span class="summary-card__label"><%= entry.status.charAt(0).toUpperCase() + entry.status.slice(1) %></span>
+            <strong class="summary-card__value"><%= entry.count %></strong>
+            <span class="summary-card__meta">
+              <%= totalRequests ? Math.round((entry.count / totalRequests) * 100) : 0 %>% of queue
+            </span>
+          </article>
+        <% }) %>
+        <article class="summary-card summary-card--signal">
+          <span class="summary-card__label">Approval pulse</span>
+          <strong class="summary-card__value"><%= approvalRate %>%</strong>
+          <span class="summary-card__meta">Across <%= totalRequests %> submissions</span>
+        </article>
+      </div>
+
+      <% if (typeSummary && typeSummary.length) { %>
+        <div class="admin-requests__distribution">
+          <header>
+            <h2>Request mix</h2>
+            <span class="muted">Last intake: <%= lastSubmissionLabel %></span>
+          </header>
+          <ul class="distribution-list">
+            <% typeSummary.forEach(function(entry, index) { %>
+              <li>
+                <div class="distribution-list__label">
+                  <span><%= entry.type %></span>
+                  <span><%= entry.count %> · <%= entry.percentage %>%</span>
+                </div>
+                <div class="distribution-list__bar">
+                  <span style="width: <%= entry.percentage ? Math.max(entry.percentage, 4) : 0 %>%;" data-index="<%= index %>"></span>
+                </div>
+              </li>
+            <% }) %>
+          </ul>
+        </div>
+      <% } %>
+    </div>
+
     <div class="admin-requests__filters">
       <label>
         <span>Status</span>
@@ -46,11 +96,22 @@
         <% if (requests && requests.length) { %>
           <% requests.forEach(function(request) { %>
             <tr data-request-id="<%= request.id %>" data-request='<%- JSON.stringify(request) %>'>
-              <td><%= request.submittedLabel %></td>
-              <td><strong><%= request.employeeName || request.employeeId %></strong><br /><span class="muted"><%= request.employeeEmail || request.employeeId %></span></td>
-              <td><%= request.type.replace('_', ' ') %></td>
+              <td>
+                <span class="submitted-label"><%= request.submittedLabel %></span>
+                <span class="submitted-relative"><%= request.submittedRelative %></span>
+              </td>
+              <td>
+                <strong><%= request.employeeName || request.employeeId %></strong>
+                <span class="muted"><%= request.employeeEmail || request.employeeId %></span>
+              </td>
+              <td><span class="type-chip"><%= request.typeLabel %></span></td>
               <td><span class="status-chip status-<%= request.status %>"><%= request.status %></span></td>
-              <td class="request-payload"><pre><%- JSON.stringify(request.payload, null, 2) %></pre></td>
+              <td class="request-payload">
+                <details class="request-payload__details">
+                  <summary>Inspect payload</summary>
+                  <pre><%- JSON.stringify(request.payload, null, 2) %></pre>
+                </details>
+              </td>
               <td>
                 <div class="request-actions">
                   <select class="request-status">

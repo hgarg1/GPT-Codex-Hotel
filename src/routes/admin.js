@@ -55,6 +55,30 @@ function formatDuration(start, end) {
   return `${minutes}m`;
 }
 
+const relativeTimeFormatter = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+
+function formatRelativeTime(date, now = new Date()) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return '—';
+  }
+  const diffMs = date.getTime() - now.getTime();
+  const units = [
+    { unit: 'year', ms: 1000 * 60 * 60 * 24 * 365 },
+    { unit: 'month', ms: 1000 * 60 * 60 * 24 * 30 },
+    { unit: 'week', ms: 1000 * 60 * 60 * 24 * 7 },
+    { unit: 'day', ms: 1000 * 60 * 60 * 24 },
+    { unit: 'hour', ms: 1000 * 60 * 60 },
+    { unit: 'minute', ms: 1000 * 60 },
+    { unit: 'second', ms: 1000 }
+  ];
+  for (const { unit, ms } of units) {
+    if (Math.abs(diffMs) >= ms || unit === 'second') {
+      return relativeTimeFormatter.format(Math.round(diffMs / ms), unit);
+    }
+  }
+  return '—';
+}
+
 router.get('/admin', ensureAdmin, (req, res) => {
   const actorRole = normalizeRole(req.user?.role);
   const allowedSubAdminRoles =
@@ -259,20 +283,79 @@ router.get('/admin/time', ensureAdmin, (req, res) => {
 });
 
 router.get('/admin/requests', ensureAdmin, (req, res) => {
+  const now = new Date();
   const requests = listAllRequests()
     .slice(0, 80)
     .map((request) => {
       const employee = request.employeeId ? getUserById(request.employeeId) : null;
+      const submittedAt = request.createdAt ? new Date(request.createdAt) : null;
+      const typeLabel = request.type
+        ? request.type
+            .split('_')
+            .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+            .join(' ')
+        : '—';
       return {
         ...request,
         employeeName: employee?.name || '',
         employeeEmail: employee?.email || '',
-        submittedLabel: request.createdAt ? new Date(request.createdAt).toLocaleString() : '—'
+        submittedLabel: submittedAt ? submittedAt.toLocaleString() : '—',
+        submittedRelative: submittedAt ? formatRelativeTime(submittedAt, now) : '—',
+        typeLabel,
+        submittedAt
       };
+    })
+    .sort((a, b) => {
+      if (a.submittedAt && b.submittedAt) {
+        return b.submittedAt.getTime() - a.submittedAt.getTime();
+      }
+      if (a.submittedAt) {
+        return -1;
+      }
+      if (b.submittedAt) {
+        return 1;
+      }
+      return 0;
     });
+
+  const totalRequests = requests.length;
+  const statusSummary = ['pending', 'approved', 'denied', 'cancelled'].map((status) => ({
+    status,
+    count: requests.filter((request) => request.status === status).length
+  }));
+  const typeSummaryMap = requests.reduce((acc, request) => {
+    if (!request.typeLabel || request.typeLabel === '—') {
+      return acc;
+    }
+    const key = request.typeLabel;
+    acc[key] = acc[key] || { type: key, count: 0 };
+    acc[key].count += 1;
+    return acc;
+  }, {});
+  const typeSummary = Object.values(typeSummaryMap)
+    .map((entry) => ({
+      ...entry,
+      percentage: totalRequests ? Math.round((entry.count / totalRequests) * 100) : 0
+    }))
+    .sort((a, b) => b.count - a.count);
+  const latestSubmission = requests.find((request) => request.submittedAt) || null;
+  const lastSubmissionLabel = latestSubmission?.submittedLabel || '—';
+  const lastSubmissionRelative = latestSubmission?.submittedRelative || '—';
+  const approvalRate = totalRequests
+    ? Math.round(
+        ((statusSummary.find((entry) => entry.status === 'approved')?.count || 0) / totalRequests) * 100
+      )
+    : 0;
+
   res.render('admin/requests', {
     pageTitle: 'Crew Requests',
-    requests
+    requests,
+    totalRequests,
+    statusSummary,
+    typeSummary,
+    lastSubmissionLabel,
+    lastSubmissionRelative,
+    approvalRate
   });
 });
 
