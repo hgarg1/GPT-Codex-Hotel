@@ -15,6 +15,47 @@
   </header>
 
   <main class="employee-portal__content" data-animate="fade-up">
+    <section class="intel-grid" aria-label="Crew digest">
+      <article class="intel-card intel-card--primary">
+        <div class="intel-card__header">
+          <span class="intel-card__eyebrow">Shift status</span>
+          <span id="insight-shift-state" class="intel-card__value"><%= insights.shift.label %></span>
+        </div>
+        <p id="insight-shift-meta" class="intel-card__meta"><%= insights.shift.meta %></p>
+        <p id="insight-shift-cta" class="intel-card__cta" <%= insights.shift.cta ? '' : 'hidden' %>><%= insights.shift.cta || '' %></p>
+        <% if (insights.lastCompletedShift) { %>
+          <footer class="intel-card__footer">
+            <span>Last completion</span>
+            <strong><%= insights.lastCompletedShift.durationLabel || '—' %></strong>
+            <% if (insights.lastCompletedShift.endedAt) { %>
+              <span class="intel-card__meta">Ended <%= insights.lastCompletedShift.endedAt %></span>
+            <% } %>
+          </footer>
+        <% } %>
+      </article>
+      <article class="intel-card">
+        <span class="intel-card__eyebrow">Hours logged</span>
+        <span id="insight-hours-value" class="intel-card__value"><%= insights.hours.formatted %></span>
+        <div class="intel-card__progress">
+          <span id="insight-hours-progress" class="intel-card__progress-bar" style="--progress: <%= insights.hours.progress %>"></span>
+        </div>
+        <p id="insight-hours-meta" class="intel-card__meta"><%= insights.hours.meta %></p>
+      </article>
+      <article class="intel-card">
+        <span class="intel-card__eyebrow">Requests</span>
+        <span id="insight-requests-value" class="intel-card__value"><%= insights.requests.pending %></span>
+        <p id="insight-requests-meta" class="intel-card__meta"><%= insights.requests.meta %></p>
+      </article>
+      <article class="intel-card">
+        <span class="intel-card__eyebrow">Profile completeness</span>
+        <span id="insight-profile-value" class="intel-card__value"><%= insights.profile.percent %>%</span>
+        <div class="intel-card__progress">
+          <span id="insight-profile-bar" class="intel-card__progress-bar" style="--progress: <%= insights.profile.percent %>"></span>
+        </div>
+        <p id="insight-profile-meta" class="intel-card__meta"><%= insights.profile.meta %></p>
+      </article>
+    </section>
+
     <div class="tab-controls" role="tablist">
       <button class="tab-control active" data-target="clock" role="tab" aria-selected="true">Clock In/Out</button>
       <button class="tab-control" data-target="timesheet" role="tab" aria-selected="false">Timesheet</button>
@@ -176,11 +217,11 @@
         <article class="panel-card">
           <h3>Current Profile</h3>
           <dl class="profile-summary">
-            <div><dt>Name</dt><dd><%= currentUser.name %></dd></div>
-            <div><dt>Email</dt><dd><%= currentUser.email %></dd></div>
-            <div><dt>Department</dt><dd><%= currentUser.department || '—' %></dd></div>
-            <div><dt>Emergency Contact</dt><dd><%= profile.emergencyContactName ? profile.emergencyContactName + ' (' + (profile.emergencyContactPhone || 'no phone') + ')' : 'Not provided' %></dd></div>
-            <div><dt>Address</dt><dd><%= profile.addressLine1 || '—' %></dd></div>
+            <div class="profile-summary__row"><dt>Name</dt><dd><%= currentUser.name %></dd></div>
+            <div class="profile-summary__row"><dt>Email</dt><dd><%= currentUser.email %></dd></div>
+            <div class="profile-summary__row"><dt>Department</dt><dd><%= currentUser.department || '—' %></dd></div>
+            <div class="profile-summary__row"><dt>Emergency Contact</dt><dd><%= profile.emergencyContactName ? profile.emergencyContactName + ' (' + (profile.emergencyContactPhone || 'no phone') + ')' : 'Not provided' %></dd></div>
+            <div class="profile-summary__row"><dt>Address</dt><dd><%= profile.addressLine1 || '—' %></dd></div>
           </dl>
         </article>
         <article class="panel-card">
@@ -231,7 +272,8 @@
       openShift: <%- JSON.stringify(openShift || null) %>,
       timesheet: <%- JSON.stringify(recentEntries || []) %>,
       requests: <%- JSON.stringify(requests || []) %>,
-      profile: <%- JSON.stringify(profile || {}) %>
+      profile: <%- JSON.stringify(profile || {}) %>,
+      insights: <%- JSON.stringify(insights || {}) %>
     };
   </script>
   <script defer src="/js/employee-portal.js"></script>

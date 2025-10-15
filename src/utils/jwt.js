@@ -58,7 +58,7 @@ function formatUserLike(userLike) {
     id,
     email: email || null,
     name: name || null,
-    role: normalizeRole(role || Roles.EMPLOYEE)
+    role: normalizeRole(role || Roles.GUEST)
   };
 }
 
@@ -104,7 +104,7 @@ function issueSessionToken(res, user) {
     sub: user.id,
     email: user.email,
     name: user.name || null,
-    role: normalizeRole(user.role || Roles.EMPLOYEE),
+    role: normalizeRole(user.role || Roles.GUEST),
   };
   const token = jwt.sign(payload, signing.key, {
     algorithm: signing.algorithm,

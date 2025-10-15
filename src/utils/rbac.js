@@ -1,4 +1,5 @@
 const Roles = Object.freeze({
+  GUEST: 'GUEST',
   GLOBAL_ADMIN: 'GLOBAL_ADMIN',
   SUPER_ADMIN: 'SUPER_ADMIN',
   ADMIN: 'ADMIN',
@@ -6,6 +7,7 @@ const Roles = Object.freeze({
 });
 
 const RolePriority = Object.freeze({
+  [Roles.GUEST]: 0,
   [Roles.EMPLOYEE]: 10,
   [Roles.ADMIN]: 30,
   [Roles.SUPER_ADMIN]: 40,
@@ -23,14 +25,14 @@ const ALL_PERMISSIONS = Object.freeze(Object.values(Permissions));
 
 function normalizeRole(role) {
   if (!role || typeof role !== 'string') {
-    return Roles.EMPLOYEE;
+    return Roles.GUEST;
   }
   const upper = role.trim().toUpperCase();
   if (Roles[upper]) {
     return Roles[upper];
   }
   const match = Object.values(Roles).find((value) => value === upper);
-  return match || Roles.EMPLOYEE;
+  return match || Roles.GUEST;
 }
 
 function getRolePriority(role) {

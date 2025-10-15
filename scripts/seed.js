@@ -57,7 +57,8 @@ const DEFAULT_ROLE_PERMISSIONS = {
     Permissions.MANAGE_EMPLOYEES,
     Permissions.RESET_PASSWORDS
   ]),
-  [Roles.EMPLOYEE]: new Set()
+  [Roles.EMPLOYEE]: new Set(),
+  [Roles.GUEST]: new Set()
 };
 
 function resetSchema() {
@@ -421,7 +422,8 @@ function insertRoles() {
     { id: Roles.GLOBAL_ADMIN, label: 'Global Administrator', priority: 50 },
     { id: Roles.SUPER_ADMIN, label: 'Super Administrator', priority: 40 },
     { id: Roles.ADMIN, label: 'Administrator', priority: 30 },
-    { id: Roles.EMPLOYEE, label: 'Employee', priority: 10 }
+    { id: Roles.EMPLOYEE, label: 'Employee', priority: 10 },
+    { id: Roles.GUEST, label: 'Guest', priority: 0 }
   ];
   roles.forEach((role) => stmt.run(role));
 }
@@ -509,7 +511,7 @@ function insertUsers() {
     {
       name: 'Nova Lin',
       email: 'nova@guest.test',
-      role: Roles.EMPLOYEE,
+      role: Roles.GUEST,
       department: 'Guest Experience',
       phone: null,
       bio: null,
@@ -527,7 +529,7 @@ function insertUsers() {
     {
       name: 'Mira Sol',
       email: 'mira@guest.test',
-      role: Roles.EMPLOYEE,
+      role: Roles.GUEST,
       department: 'Wellness Collective',
       phone: null,
       bio: null,
