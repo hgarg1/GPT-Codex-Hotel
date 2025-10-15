@@ -7,11 +7,17 @@
     <style>
       body { background: #fff; color: #111633; font-family: 'Outfit', sans-serif; padding: 2rem; }
       .invoice { max-width: 720px; margin: 0 auto; border: 1px solid rgba(17,22,51,0.12); padding: 2rem; }
-      .invoice header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+      .invoice header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
       .invoice h1 { font-size: 1.6rem; margin: 0; }
-      .invoice table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
-      .invoice table th, .invoice table td { padding: 0.6rem; border-bottom: 1px solid rgba(17,22,51,0.1); text-align: left; }
-      .invoice-footer { margin-top: 2rem; font-size: 0.9rem; }
+      .invoice-table-wrapper { margin-top: 1.5rem; border: 1px solid rgba(17,22,51,0.08); border-radius: 12px; overflow-x: auto; }
+      .invoice table { width: 100%; border-collapse: collapse; min-width: 420px; }
+      .invoice table th, .invoice table td { padding: 0.6rem 0.9rem; border-bottom: 1px solid rgba(17,22,51,0.1); text-align: left; }
+      .invoice table tr:last-child th, .invoice table tr:last-child td { border-bottom: none; }
+      .invoice-footer { margin-top: 2rem; font-size: 0.9rem; line-height: 1.6; }
+      @media (max-width: 600px) {
+        body { padding: 1.4rem; }
+        .invoice { padding: 1.6rem; border-radius: 18px; }
+      }
     </style>
   </head>
   <body>
@@ -37,32 +43,34 @@
         <strong>Dates:</strong> <%= new Date(booking.checkIn).toLocaleDateString() %> → <%= new Date(booking.checkOut).toLocaleDateString() %><br />
         <strong>Guests:</strong> <%= booking.guests %></p>
       </section>
-      <table>
-        <thead>
-          <tr>
-            <th>Description</th>
-            <th>Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Suite subtotal</td>
-            <td>$<%= (booking.total - booking.taxes - booking.fees).toFixed(2) %></td>
-          </tr>
-          <tr>
-            <td>Taxes</td>
-            <td>$<%= booking.taxes.toFixed(2) %></td>
-          </tr>
-          <tr>
-            <td>Resort &amp; sustainability fees</td>
-            <td>$<%= booking.fees.toFixed(2) %></td>
-          </tr>
-          <tr>
-            <th>Total</th>
-            <th>$<%= booking.total.toFixed(2) %></th>
-          </tr>
-        </tbody>
-      </table>
+      <div class="invoice-table-wrapper">
+        <table role="table">
+          <thead>
+            <tr>
+              <th scope="col">Description</th>
+              <th scope="col">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Suite subtotal</td>
+              <td>$<%= (booking.total - booking.taxes - booking.fees).toFixed(2) %></td>
+            </tr>
+            <tr>
+              <td>Taxes</td>
+              <td>$<%= booking.taxes.toFixed(2) %></td>
+            </tr>
+            <tr>
+              <td>Resort &amp; sustainability fees</td>
+              <td>$<%= booking.fees.toFixed(2) %></td>
+            </tr>
+            <tr>
+              <th scope="row">Total</th>
+              <th scope="row">$<%= booking.total.toFixed(2) %></th>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <div class="invoice-footer">
         <p>Status: <strong><%= booking.status %></strong></p>
         <% if (payment) { %>
