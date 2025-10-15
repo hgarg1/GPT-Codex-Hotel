@@ -16,8 +16,24 @@
   const profileForm = document.getElementById('profile-form');
   const profileUpdates = document.getElementById('profile-updates');
   const toastRoot = document.getElementById('portal-toasts');
+  const insightShiftState = document.getElementById('insight-shift-state');
+  const insightShiftMeta = document.getElementById('insight-shift-meta');
+  const insightShiftCta = document.getElementById('insight-shift-cta');
+  const insightHoursValue = document.getElementById('insight-hours-value');
+  const insightHoursMeta = document.getElementById('insight-hours-meta');
+  const insightHoursProgress = document.getElementById('insight-hours-progress');
+  const insightRequestsValue = document.getElementById('insight-requests-value');
+  const insightRequestsMeta = document.getElementById('insight-requests-meta');
+  const insightProfileValue = document.getElementById('insight-profile-value');
+  const insightProfileBar = document.getElementById('insight-profile-bar');
+  const insightProfileMeta = document.getElementById('insight-profile-meta');
   let currentRange = 'current';
   let openShift = portal.openShift || null;
+  portal.insights = portal.insights && typeof portal.insights === 'object' ? portal.insights : {};
+  portal.requests = Array.isArray(portal.requests) ? portal.requests : [];
+  const SHIFT_TARGET_MINUTES = portal.insights?.hours?.targetMinutes || 14 * 8 * 60;
+  const defaultShiftFallback = portal.insights?.shift?.fallbackMeta || 'Clock in to start tracking your hours.';
+  const defaultShiftCta = portal.insights?.shift?.cta || 'Clock in to start your next shift.';
 
   function formatDuration(minutes) {
     if (!minutes && minutes !== 0) {
@@ -41,6 +57,118 @@
       toast.style.transform = 'translateY(12px)';
       setTimeout(() => toast.remove(), 300);
     }, 4000);
+  }
+
+  function updateShiftInsight(entry, options = {}) {
+    if (!insightShiftState || !insightShiftMeta) {
+      return;
+    }
+    const fallbackMeta = options.fallbackMeta || portal.insights?.shift?.fallbackMeta || defaultShiftFallback;
+    const ctaMessage = options.cta || defaultShiftCta;
+    if (entry) {
+      const timeLabel = entry.clockInAt ? new Date(entry.clockInAt).toLocaleTimeString() : 'just now';
+      insightShiftState.textContent = 'On duty';
+      insightShiftMeta.textContent = `Clocked in ${timeLabel}`;
+      if (insightShiftCta) {
+        insightShiftCta.textContent = 'Clock out when you wrap up to sync payroll.';
+        insightShiftCta.hidden = false;
+      }
+    } else {
+      insightShiftState.textContent = 'Off duty';
+      insightShiftMeta.textContent = fallbackMeta;
+      if (insightShiftCta) {
+        insightShiftCta.textContent = ctaMessage;
+        insightShiftCta.hidden = !ctaMessage;
+      }
+    }
+  }
+
+  function updateHoursInsight(summary, entries = []) {
+    if (!summary) {
+      return;
+    }
+    const totalMinutes = summary.totalMinutes ?? entries.reduce((acc, entry) => acc + (entry.durationMinutes || 0), 0);
+    const formatted = summary.formatted || formatDuration(totalMinutes);
+    if (insightHoursValue) {
+      insightHoursValue.textContent = formatted;
+    }
+    const completed = entries.filter((entry) => entry.durationMinutes).length;
+    const metaText = summary.meta
+      || (completed ? `${completed} completed shift${completed === 1 ? '' : 's'} this period` : 'No completed shifts yet this period.');
+    if (insightHoursMeta) {
+      insightHoursMeta.textContent = metaText;
+    }
+    if (insightHoursProgress) {
+      const progress = SHIFT_TARGET_MINUTES
+        ? Math.min(100, Math.round((totalMinutes / SHIFT_TARGET_MINUTES) * 100))
+        : 0;
+      insightHoursProgress.style.setProperty('--progress', progress);
+    }
+    portal.insights = portal.insights || {};
+    portal.insights.hours = {
+      ...(portal.insights.hours || {}),
+      totalMinutes,
+      formatted,
+      meta: metaText
+    };
+  }
+
+  function updateRequestsInsight(requests = portal.requests) {
+    if (!insightRequestsValue || !insightRequestsMeta) {
+      return;
+    }
+    const list = Array.isArray(requests) ? requests : [];
+    const pending = list.filter((item) => (item.status || '').toLowerCase() === 'pending').length;
+    insightRequestsValue.textContent = pending;
+    const metaText = pending
+      ? `${pending} awaiting review`
+      : list.length
+      ? 'All requests resolved'
+      : 'No requests submitted';
+    insightRequestsMeta.textContent = metaText;
+    portal.requests = list;
+    portal.insights = portal.insights || {};
+    portal.insights.requests = {
+      pending,
+      total: list.length,
+      meta: metaText
+    };
+  }
+
+  function updateProfileInsight(profile = portal.profile || {}) {
+    if (!insightProfileValue || !insightProfileBar || !insightProfileMeta) {
+      return;
+    }
+    const requiredFields = [
+      'addressLine1',
+      'city',
+      'state',
+      'postalCode',
+      'emergencyContactName',
+      'emergencyContactPhone',
+      'emergencyContactRelationship'
+    ];
+    const filled = requiredFields.reduce((count, key) => {
+      const value = profile[key];
+      return value && String(value).trim().length ? count + 1 : count;
+    }, 0);
+    const percent = requiredFields.length
+      ? Math.min(100, Math.round((filled / requiredFields.length) * 100))
+      : 0;
+    const missing = Math.max(0, requiredFields.length - filled);
+    const metaText = missing
+      ? `${missing} detail${missing === 1 ? '' : 's'} left for full coverage`
+      : 'Profile complete';
+    insightProfileValue.textContent = `${percent}%`;
+    insightProfileBar.style.setProperty('--progress', percent);
+    insightProfileMeta.textContent = metaText;
+    portal.profile = profile;
+    portal.insights = portal.insights || {};
+    portal.insights.profile = {
+      percent,
+      missing,
+      meta: metaText
+    };
   }
 
   function switchTab(target) {
@@ -99,8 +227,36 @@
         timesheetBody.appendChild(row);
       });
     }
+    const totalMinutes = entries.reduce((total, entry) => total + (entry.durationMinutes || 0), 0);
+    const completed = entries.filter((entry) => entry.durationMinutes).length;
+    const metaText = completed
+      ? `${completed} completed shift${completed === 1 ? '' : 's'} this period`
+      : 'No completed shifts yet this period.';
     if (timesheetSummary && summary) {
       timesheetSummary.textContent = `Total this period: ${summary.formatted} (${summary.totalHours}h)`;
+    }
+    if (summary) {
+      updateHoursInsight(
+        {
+          totalMinutes: summary.totalMinutes ?? totalMinutes,
+          formatted: summary.formatted || formatDuration(totalMinutes),
+          meta: summary.meta || metaText
+        },
+        entries
+      );
+    } else {
+      updateHoursInsight({ totalMinutes, formatted: formatDuration(totalMinutes), meta: metaText }, entries);
+    }
+    const fallbackMeta = entries.length
+      ? `Last shift started ${new Date(entries[0].clockInAt).toLocaleString()}`
+      : defaultShiftFallback;
+    portal.insights = portal.insights || {};
+    portal.insights.shift = {
+      ...(portal.insights.shift || {}),
+      fallbackMeta
+    };
+    if (!openShift) {
+      updateShiftInsight(null, { fallbackMeta });
     }
   }
 
@@ -120,6 +276,7 @@
         statusChip.classList.remove('status-active');
       }
     }
+    updateShiftInsight(entry, { fallbackMeta: portal.insights?.shift?.fallbackMeta, cta: defaultShiftCta });
   }
 
   async function fetchTimesheet(range = currentRange) {
@@ -166,6 +323,8 @@
       li.appendChild(button);
     }
     requestList.prepend(li);
+    portal.requests = [request, ...(portal.requests || []).filter((entry) => entry.id !== request.id)];
+    updateRequestsInsight(portal.requests);
   }
 
   function renderProfileUpdates(updates) {
@@ -202,6 +361,7 @@
       const payload = await response.json();
       portal.profile = payload.profile || portal.profile;
       renderProfileUpdates(payload.updates || []);
+      updateProfileInsight(portal.profile);
     } catch (error) {
       showToast(error.message || 'Failed to refresh profile', 'error');
     }
@@ -364,10 +524,17 @@
 
   const initialEntries = portal.timesheet || [];
   const initialMinutes = initialEntries.reduce((total, entry) => total + (entry.durationMinutes || 0), 0);
+  const initialCompleted = initialEntries.filter((entry) => entry.durationMinutes).length;
   renderTimesheet(initialEntries, {
+    totalMinutes: initialMinutes,
     formatted: formatDuration(initialMinutes),
-    totalHours: Math.round((initialMinutes / 60) * 100) / 100
+    totalHours: Math.round((initialMinutes / 60) * 100) / 100,
+    meta: initialCompleted
+      ? `${initialCompleted} completed shift${initialCompleted === 1 ? '' : 's'} this period`
+      : 'No completed shifts yet this period.'
   });
+  updateRequestsInsight(portal.requests);
+  updateProfileInsight(portal.profile || {});
   renderProfileUpdates([]);
   setOpenShift(openShift);
   refreshProfile();

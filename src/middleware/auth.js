@@ -1,4 +1,5 @@
 const { getUserById } = require('../models/users');
+const { getEmployeeByEmail } = require('../models/employees');
 const { countUnreadMessages } = require('../models/chat');
 const { getSessionToken, verifyHotelToken, issueSessionToken } = require('../utils/jwt');
 const { requireRole, Roles, normalizeRole } = require('../utils/rbac');
@@ -87,6 +88,12 @@ function ensureEmployeePortal(req, res, next) {
   if (normalizeRole(req.user.role) !== Roles.EMPLOYEE) {
     return res.redirect('/dashboard');
   }
+  const employeeRecord = getEmployeeByEmail(req.user.email);
+  if (!employeeRecord) {
+    req.pushAlert('warning', 'Your profile is not registered with the crew manifest yet.');
+    return res.redirect('/dashboard');
+  }
+  res.locals.employeeRecord = employeeRecord;
   return next();
 }
 
@@ -97,6 +104,11 @@ function ensureEmployeeApi(req, res, next) {
   if (normalizeRole(req.user.role) !== Roles.EMPLOYEE) {
     return res.status(403).json({ error: 'Employee access required' });
   }
+  const employeeRecord = getEmployeeByEmail(req.user.email);
+  if (!employeeRecord) {
+    return res.status(403).json({ error: 'Employee access required' });
+  }
+  res.locals.employeeRecord = employeeRecord;
   return next();
 }
 

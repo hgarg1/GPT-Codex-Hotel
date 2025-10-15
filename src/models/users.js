@@ -71,7 +71,7 @@ function getUserAuthByEmail(email) {
   return db.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').get(email);
 }
 
-function createUser({ name, email, password, role = Roles.EMPLOYEE, department = null, createdByUserId = null }) {
+function createUser({ name, email, password, role = Roles.GUEST, department = null, createdByUserId = null }) {
   const existing = getUserAuthByEmail(email);
   if (existing) {
     const error = new Error('An account already exists for this email.');
