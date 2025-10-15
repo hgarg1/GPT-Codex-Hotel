@@ -4,21 +4,66 @@
 
 <section class="admin-console" data-animate="fade-up">
   <header class="admin-console__header">
-    <h1>Timekeeping Console</h1>
-    <p class="muted">Monitor crew punches, identify anomalies, and adjust entries for compliance.</p>
+    <div>
+      <h1>Timekeeping Console</h1>
+      <p class="muted">Monitor crew punches, identify anomalies, and adjust entries for compliance.</p>
+    </div>
     <a href="/admin" class="btn btn-outline">Back to control deck</a>
   </header>
 
+  <% const metrics = stats || {}; %>
+
+  <div class="admin-time__insights">
+    <article class="time-metric-card">
+      <span class="time-metric-card__label">Total hours logged</span>
+      <span class="time-metric-card__value" id="time-total-hours"><%= typeof metrics.totalHours === 'number' ? metrics.totalHours.toFixed(1) : '0.0' %>h</span>
+      <span class="time-metric-card__meta" id="time-total-hours-meta">Across <strong><%= metrics.completedCount || 0 %></strong> completed shifts</span>
+    </article>
+    <article class="time-metric-card">
+      <span class="time-metric-card__label">Average shift length</span>
+      <span class="time-metric-card__value" id="time-average-duration"><%= typeof metrics.averageHours === 'number' ? metrics.averageHours.toFixed(2) : '0.00' %>h</span>
+      <span class="time-metric-card__meta">Longest shift: <strong id="time-longest"><% if (metrics.longest) { %><%= metrics.longest.employee?.name || metrics.longest.employeeId %> • <%= metrics.longest.durationLabel %><% } else { %>—<% } %></strong></span>
+    </article>
+    <article class="time-metric-card">
+      <span class="time-metric-card__label">Active right now</span>
+      <span class="time-metric-card__value" id="time-active-count"><%= metrics.openCount || 0 %></span>
+      <span class="time-metric-card__meta">Keep tabs on in-progress shifts and breaks</span>
+    </article>
+    <article class="time-metric-card">
+      <span class="time-metric-card__label">Attention required</span>
+      <span class="time-metric-card__value" id="time-review-count"><%= metrics.flaggedCount || 0 %></span>
+      <span class="time-metric-card__meta">Flagged for overtime, long opens, or missing punches</span>
+    </article>
+  </div>
+
   <div class="admin-time__layout">
     <section class="admin-time__table">
-      <header>
-        <h2>Recent entries</h2>
-        <p class="muted">Showing the past 7 days. Use the filters below to narrow by crew member or date range.</p>
+      <header class="admin-time__table-header">
+        <div>
+          <h2>Recent entries</h2>
+          <p class="muted">Showing the past 7 days. Use filters or quick ranges to focus on specific teams and timeframes.</p>
+        </div>
+        <div class="admin-time__table-actions">
+          <button class="btn btn-ghost" id="time-refresh" type="button">Refresh</button>
+          <button class="btn btn-outline" id="time-export" type="button">Export CSV</button>
+        </div>
       </header>
+
+      <div class="chip-group" id="time-range-chips" role="group" aria-label="Quick ranges">
+        <button class="chip" data-range="1" type="button">Today</button>
+        <button class="chip chip--active" data-range="7" type="button">Last 7 days</button>
+        <button class="chip" data-range="14" type="button">Last 14 days</button>
+        <button class="chip" data-range="30" type="button">Last 30 days</button>
+      </div>
+
       <div class="admin-time__filters">
         <label>
           <span>Employee ID</span>
-          <input type="text" id="time-filter-employee" placeholder="Search by id" />
+          <input type="text" id="time-filter-employee" placeholder="Exact match (server filter)" />
+        </label>
+        <label>
+          <span>Search roster</span>
+          <input type="text" id="time-filter-search" placeholder="Name, email, or id" />
         </label>
         <label>
           <span>Start</span>
@@ -28,58 +73,214 @@
           <span>End</span>
           <input type="date" id="time-filter-end" />
         </label>
-        <button class="btn" id="time-filter-apply" type="button">Apply</button>
+        <label>
+          <span>Status</span>
+          <select id="time-filter-status">
+            <option value="">All statuses</option>
+            <option value="open">Open</option>
+            <option value="completed">Completed</option>
+            <option value="overtime">Overtime</option>
+            <option value="needs-review">Needs review</option>
+          </select>
+        </label>
+        <label>
+          <span>Location</span>
+          <select id="time-filter-location">
+            <option value="">All locations</option>
+            <% if (entries && entries.length) { %>
+              <% const seenLocations = new Set(); %>
+              <% entries.forEach(function(entry) { %>
+                <% if (entry.location && !seenLocations.has(entry.location.toLowerCase())) { %>
+                  <% seenLocations.add(entry.location.toLowerCase()); %>
+                  <option value="<%= entry.location.toLowerCase() %>"><%= entry.location %></option>
+                <% } %>
+              <% }) %>
+            <% } %>
+          </select>
+        </label>
+        <div class="admin-time__filter-buttons">
+          <button class="btn" id="time-filter-apply" type="button">Apply</button>
+          <button class="btn btn-ghost" id="time-filter-clear" type="button">Clear</button>
+        </div>
       </div>
+
       <table class="admin-table" id="time-entries-table">
         <thead>
           <tr>
             <th>Employee</th>
+            <th>Role / Dept</th>
             <th>Clock In</th>
             <th>Clock Out</th>
             <th>Duration</th>
             <th>Location</th>
-            <th>Notes</th>
+            <th>Status</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
           <% if (entries && entries.length) { %>
             <% entries.forEach(function(entry) { %>
-              <tr data-entry-id="<%= entry.id %>" data-entry='<%- JSON.stringify(entry) %>'>
-                <td><strong><%= entry.employeeId %></strong></td>
+              <% const openShift = !entry.clockOutAt; %>
+              <% const overtimeShift = entry.durationMinutes && entry.durationMinutes >= (10 * 60); %>
+              <% const extendedOpen = !entry.clockOutAt && entry.displayMinutes && entry.displayMinutes >= (8 * 60); %>
+              <% const needsReview = overtimeShift || extendedOpen || (entry.clockOutAt && !entry.durationMinutes); %>
+              <% const status = openShift ? 'open' : (overtimeShift ? 'overtime' : (needsReview ? 'needs-review' : 'completed')); %>
+              <% const statusLabel = openShift ? 'Open' : (overtimeShift ? 'Overtime' : (needsReview ? 'Needs review' : 'Complete')); %>
+              <% const statusClass = openShift ? 'status-chip--open' : (overtimeShift ? 'status-chip--alert' : (needsReview ? 'status-chip--review' : 'status-chip--ok')); %>
+              <tr
+                data-entry-id="<%= entry.id %>"
+                data-entry='<%- JSON.stringify(entry) %>'
+                data-status="<%= status %>"
+                data-location="<%= (entry.location || '').toLowerCase() %>"
+                data-employee-name="<%= (entry.employee?.name || '').toLowerCase() %>"
+                data-employee-email="<%= (entry.employee?.email || '').toLowerCase() %>"
+                data-employee-id="<%= entry.employeeId.toLowerCase() %>"
+              >
+                <td>
+                  <strong><%= entry.employee?.name || entry.employeeId %></strong>
+                  <div class="muted">ID: <%= entry.employeeId %></div>
+                  <% if (entry.employee?.email) { %>
+                    <div class="muted"><%= entry.employee.email %></div>
+                  <% } %>
+                </td>
+                <td>
+                  <span><%= entry.role || entry.department || entry.employee?.department || '—' %></span>
+                  <% if (entry.department || entry.employee?.department) { %>
+                    <div class="muted">Dept: <%= entry.department || entry.employee?.department %></div>
+                  <% } %>
+                </td>
                 <td><%= entry.clockInLabel %></td>
                 <td><%= entry.clockOutLabel %></td>
                 <td><%= entry.durationLabel %></td>
                 <td><%= entry.location || '—' %></td>
-                <td><%= entry.notes || '—' %></td>
+                <td>
+                  <span class="status-chip <%= statusClass %>"><%= statusLabel %></span>
+                  <% if (entry.notes) { %>
+                    <div class="muted status-note"><%= entry.notes %></div>
+                  <% } %>
+                </td>
                 <td><button type="button" class="btn btn-outline time-adjust">Adjust</button></td>
               </tr>
             <% }) %>
           <% } else { %>
-            <tr><td colspan="7" class="muted">No entries recorded in the last week.</td></tr>
+            <tr><td colspan="8" class="muted">No entries recorded in the selected window.</td></tr>
           <% } %>
         </tbody>
       </table>
     </section>
 
     <aside class="admin-time__detail" id="time-detail" hidden>
-      <h2>Edit entry</h2>
-      <p class="muted">Adjust timestamps or metadata. Changes are logged in the audit trail.</p>
-      <form id="time-adjust-form">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-        <input type="hidden" id="time-entry-id" />
-        <label for="time-clock-in">Clock in</label>
-        <input type="datetime-local" id="time-clock-in" name="clockInAt" required />
-        <label for="time-clock-out">Clock out</label>
-        <input type="datetime-local" id="time-clock-out" name="clockOutAt" />
-        <label for="time-department">Department</label>
-        <input type="text" id="time-department" name="department" maxlength="120" />
-        <label for="time-location">Location</label>
-        <input type="text" id="time-location" name="location" maxlength="180" />
-        <label for="time-notes">Notes</label>
-        <textarea id="time-notes" name="notes" maxlength="500"></textarea>
-        <button type="submit" class="btn">Save adjustment</button>
-      </form>
+      <div class="time-detail-card">
+        <h2>Edit entry</h2>
+        <p class="muted">Adjust timestamps or metadata. Changes are logged in the audit trail.</p>
+        <form id="time-adjust-form">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+          <input type="hidden" id="time-entry-id" />
+          <label for="time-clock-in">Clock in</label>
+          <input type="datetime-local" id="time-clock-in" name="clockInAt" required />
+          <label for="time-clock-out">Clock out</label>
+          <input type="datetime-local" id="time-clock-out" name="clockOutAt" />
+          <label for="time-role">Role</label>
+          <input type="text" id="time-role" name="role" maxlength="120" />
+          <label for="time-department">Department</label>
+          <input type="text" id="time-department" name="department" maxlength="120" />
+          <label for="time-location">Location</label>
+          <input type="text" id="time-location" name="location" maxlength="180" />
+          <label for="time-notes">Notes</label>
+          <textarea id="time-notes" name="notes" maxlength="500"></textarea>
+          <div class="time-detail-actions">
+            <button type="button" class="btn btn-ghost" id="time-clockout-now">Clock out now</button>
+            <button type="submit" class="btn">Save adjustment</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="time-side-panels">
+        <section class="time-panel">
+          <header>
+            <h3>Active shifts</h3>
+            <span class="muted" id="time-active-sub">Live coverage overview</span>
+          </header>
+          <ul class="time-panel__list" id="time-active-list">
+            <% if (metrics.openEntries && metrics.openEntries.length) { %>
+              <% metrics.openEntries.slice(0, 6).forEach(function(entry) { %>
+                <li data-entry-id="<%= entry.id %>">
+                  <div>
+                    <strong><%= entry.employee?.name || entry.employeeId %></strong>
+                    <div class="muted">Clocked in <%= entry.clockInLabel %></div>
+                  </div>
+                  <button type="button" class="btn btn-ghost btn-compact" data-action="clockout" data-entry-id="<%= entry.id %>">Clock out</button>
+                </li>
+              <% }) %>
+            <% } else { %>
+              <li class="muted">No active shifts right now.</li>
+            <% } %>
+          </ul>
+        </section>
+
+        <section class="time-panel">
+          <header>
+            <h3>Alerts</h3>
+            <span class="muted">Long or unclosed shifts</span>
+          </header>
+          <ul class="time-panel__list" id="time-flagged-list">
+            <% if (metrics.flagged && metrics.flagged.length) { %>
+              <% metrics.flagged.forEach(function(entry) { %>
+                <li data-entry-id="<%= entry.id %>">
+                  <div>
+                    <strong><%= entry.employee?.name || entry.employeeId %></strong>
+                    <div class="muted"><%= entry.durationLabel %> • <%= entry.clockInLabel %></div>
+                  </div>
+                </li>
+              <% }) %>
+            <% } else { %>
+              <li class="muted">All clear. No anomalies detected.</li>
+            <% } %>
+          </ul>
+        </section>
+
+        <section class="time-panel">
+          <header>
+            <h3>Coverage</h3>
+            <span class="muted">Hours per department</span>
+          </header>
+          <ul class="time-panel__list" id="time-coverage-list">
+            <% if (metrics.coverage && metrics.coverage.length) { %>
+              <% metrics.coverage.forEach(function(row) { %>
+                <li>
+                  <div>
+                    <strong><%= row.label %></strong>
+                    <div class="muted"><%= Math.round(row.minutes / 60) %>h • <%= row.count %> shifts</div>
+                  </div>
+                </li>
+              <% }) %>
+            <% } else { %>
+              <li class="muted">No recent coverage data.</li>
+            <% } %>
+          </ul>
+        </section>
+
+        <section class="time-panel">
+          <header>
+            <h3>Daily pulse</h3>
+            <span class="muted">Recent totals</span>
+          </header>
+          <ul class="time-panel__list" id="time-trend-list">
+            <% if (metrics.dailySummaries && metrics.dailySummaries.length) { %>
+              <% metrics.dailySummaries.forEach(function(row) { %>
+                <li>
+                  <div>
+                    <strong><%= new Date(row.date).toLocaleDateString() %></strong>
+                    <div class="muted"><%= Math.round(row.minutes / 60) %>h • <%= row.count %> shifts</div>
+                  </div>
+                </li>
+              <% }) %>
+            <% } else { %>
+              <li class="muted">No recent daily totals.</li>
+            <% } %>
+          </ul>
+        </section>
+      </div>
     </aside>
   </div>
 </section>
