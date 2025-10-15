@@ -314,9 +314,31 @@ function updateRequestStatus(id, status, comment, decisionByUserId) {
     error.status = 404;
     throw error;
   }
+
+  let nextStatus = status;
+  let nextComment = comment;
+  let nextDecisionByUserId = decisionByUserId;
+
+  if (status && typeof status === 'object') {
+    const payload = status;
+    nextStatus = payload.status !== undefined ? payload.status : existing.status;
+    nextComment =
+      payload.comment !== undefined
+        ? payload.comment
+        : payload.note !== undefined
+        ? payload.note
+        : comment;
+    nextDecisionByUserId =
+      payload.decisionByUserId !== undefined
+        ? payload.decisionByUserId
+        : payload.resolvedBy !== undefined
+        ? payload.resolvedBy
+        : decisionByUserId;
+  }
+
   const now = new Date().toISOString();
-  const nextStatus = status || existing.status;
-  const normalizedStatus = String(nextStatus || '').toLowerCase();
+  const resolvedStatus = nextStatus !== undefined ? nextStatus : existing.status;
+  const normalizedStatus = String(resolvedStatus || '').toLowerCase();
   let decisionAt = existing.decisionAt;
   if (['approved', 'denied', 'cancelled', 'canceled', 'completed'].includes(normalizedStatus)) {
     decisionAt = now;
@@ -334,9 +356,19 @@ function updateRequestStatus(id, status, comment, decisionByUserId) {
      WHERE id = @id`
   ).run({
     id,
-    status: nextStatus,
-    comment: comment !== undefined ? comment : existing.comment,
-    decisionByUserId: decisionByUserId || null,
+    status: resolvedStatus,
+    comment:
+      nextComment !== undefined
+        ? nextComment
+        : existing.comment !== undefined
+        ? existing.comment
+        : null,
+    decisionByUserId:
+      nextDecisionByUserId !== undefined
+        ? nextDecisionByUserId
+        : existing.decisionByUserId !== undefined
+        ? existing.decisionByUserId
+        : null,
     decisionAt,
     updatedAt: now
   });
