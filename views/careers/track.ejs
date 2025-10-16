@@ -1,0 +1,21 @@
+<%- include('../partials/head', { pageTitle, hotelName, csrfToken, darkMode, extraStyles }) %>
+<%- include('../partials/nav') %>
+<section class="careers careers-track" aria-labelledby="track-heading">
+  <header class="careers-track-header" data-animate="fade-up">
+    <h1 id="track-heading">Track your application</h1>
+    <p>Your unique tracking ID keeps you connected to status updates.</p>
+  </header>
+  <article class="careers-track-card" data-animate="fade-up">
+    <h2><%= application.job_title %></h2>
+    <dl>
+      <div><dt>Tracking ID</dt><dd><code><%= application.tracking_id %></code></dd></div>
+      <div><dt>Status</dt><dd class="status status--<%= application.status.toLowerCase() %>"><%= application.status %></dd></div>
+      <div><dt>Submitted</dt><dd><%= new Date(application.created_at).toLocaleString() %></dd></div>
+      <div><dt>Applicant</dt><dd><%= application.full_name %> · <%= application.email %></dd></div>
+    </dl>
+    <p class="careers-track-note">
+      We’ll email updates to <strong><%= application.email %></strong>. You can return to this page anytime with your tracking ID.
+    </p>
+  </article>
+</section>
+<%- include('../partials/footer') %>
