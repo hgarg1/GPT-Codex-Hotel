@@ -1,0 +1,48 @@
+<%- include('../partials/head', { pageTitle, hotelName, csrfToken, darkMode, extraStyles }) %>
+<%- include('../partials/nav') %>
+<section class="careers careers-track" aria-labelledby="track-heading">
+  <header class="careers-track-header" data-animate="fade-up">
+    <h1 id="track-heading">Track your application</h1>
+    <p>Your unique tracking ID keeps you connected to status updates.</p>
+  </header>
+  <article class="careers-track-card" data-animate="fade-up">
+    <h2><%= application.job_title %></h2>
+    <dl>
+      <div><dt>Tracking ID</dt><dd><code><%= application.tracking_id %></code></dd></div>
+      <div><dt>Status</dt><dd class="status status--<%= application.status.toLowerCase() %>"><%= application.status %></dd></div>
+      <div><dt>Submitted</dt><dd><%= new Date(application.created_at).toLocaleString() %></dd></div>
+      <div><dt>Applicant</dt><dd><%= application.full_name %> · <%= application.email %></dd></div>
+    </dl>
+    <p class="careers-track-note">
+      We’ll email updates to <strong><%= application.email %></strong>. You can return to this page anytime with your tracking ID.
+    </p>
+    <% const decisionStep = application.status === 'REJECTED' ? 'REJECTED' : 'APPROVED'; %>
+    <% const timeline = [
+      { key: 'SUBMITTED', label: 'Submitted', copy: 'We received your application and shared a confirmation.' },
+      { key: 'IN_REVIEW', label: 'In review', copy: 'Hiring leads are reviewing your experience and responses.' },
+      decisionStep === 'REJECTED'
+        ? { key: 'REJECTED', label: 'Decision shared', copy: 'We\'ll reach out with feedback and keep you in our orbit.' }
+        : { key: 'APPROVED', label: 'Offer in motion', copy: 'We\'re preparing next steps and onboarding details.' },
+    ]; %>
+    <% const currentIndex = timeline.findIndex(function(step) { return step.key === application.status; }); %>
+    <ol class="careers-track-timeline" role="list" aria-label="Application timeline">
+      <% timeline.forEach(function(step, index) { %>
+        <% const complete = index <= (currentIndex === -1 ? 0 : currentIndex); %>
+        <li class="<%= complete ? 'is-complete' : '' %>">
+          <span class="careers-track-step" aria-hidden="true"><%= index + 1 %></span>
+          <div>
+            <p class="careers-track-step-label"><%= step.label %></p>
+            <p class="careers-track-step-copy"><%= step.copy %></p>
+          </div>
+        </li>
+      <% }); %>
+    </ol>
+    <div class="careers-track-callout">
+      <p>
+        Need to update details or share availability changes? Reach us at
+        <a href="mailto:talent@auroranexus.com">talent@auroranexus.com</a> with your tracking ID.
+      </p>
+    </div>
+  </article>
+</section>
+<%- include('../partials/footer') %>

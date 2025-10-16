@@ -1,0 +1,106 @@
+<%- include('../../partials/head', { pageTitle, hotelName, csrfToken, darkMode, extraStyles }) %>
+<%- include('../../partials/nav') %>
+<%- include('../../partials/alerts') %>
+<section class="admin-careers" data-animate="fade-up">
+  <header class="admin-careers__header admin-careers__header--hero">
+    <div>
+      <h1>Job openings</h1>
+      <p class="muted">Create, edit, or retire roles that appear on the public careers site.</p>
+    </div>
+    <a class="pill-link" href="/admin/careers">Back to overview</a>
+  </header>
+
+  <form class="admin-careers__form" action="/api/admin/careers/jobs" method="post" data-careers-job-form>
+    <fieldset>
+      <legend>New job</legend>
+      <p class="admin-careers__form-note">
+        Draft compelling openings with inclusive language. You can update or pause listings anytime—changes sync instantly to the
+        public page.
+      </p>
+      <div class="form-grid">
+        <div class="form-field">
+          <label for="job-title">Title <span aria-hidden="true">*</span></label>
+          <input id="job-title" name="title" required />
+        </div>
+        <div class="form-field">
+          <label for="job-department">Department</label>
+          <input id="job-department" name="department" />
+        </div>
+        <div class="form-field">
+          <label for="job-location">Location</label>
+          <input id="job-location" name="location" />
+        </div>
+        <div class="form-field">
+          <label for="job-type">Employment type</label>
+          <input id="job-type" name="employment_type" />
+        </div>
+        <div class="form-field form-field--full">
+          <label for="job-description">Description (HTML supported)</label>
+          <textarea id="job-description" name="description" rows="4"></textarea>
+        </div>
+        <div class="form-field form-field--full">
+          <label for="job-requirements">Requirements (one per line)</label>
+          <textarea id="job-requirements" name="requirements" rows="4"></textarea>
+        </div>
+      </div>
+      <label class="checkbox">
+        <input type="checkbox" name="is_active" value="1" checked />
+        <span>Publish immediately</span>
+      </label>
+    </fieldset>
+    <footer class="careers-form-actions">
+      <button class="pill-link primary" type="submit">Create job</button>
+    </footer>
+  </form>
+
+  <section class="admin-careers__table" aria-live="polite">
+    <% if (!jobs.length) { %>
+      <p class="admin-careers__empty">No jobs recorded yet. Start by publishing a flagship role above.</p>
+    <% } else { %>
+      <table>
+        <caption class="sr-only">All job openings and their visibility state</caption>
+        <thead>
+          <tr>
+            <th scope="col">Title</th>
+            <th scope="col">Department</th>
+            <th scope="col">Location</th>
+            <th scope="col">Type</th>
+            <th scope="col">Active</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% jobs.forEach(function(job) { %>
+            <tr data-job-id="<%= job.id %>">
+              <td data-label="Title"><%= job.title %></td>
+              <td data-label="Department"><%= job.department || '—' %></td>
+              <td data-label="Location"><%= job.location || '—' %></td>
+              <td data-label="Type"><%= job.employment_type || '—' %></td>
+              <td data-label="Active">
+                <form action="/api/admin/careers/jobs/<%= job.id %>" method="post" data-job-toggle>
+                  <input type="hidden" name="_method" value="patch" />
+                  <input type="hidden" name="is_active" value="<%= job.is_active ? 0 : 1 %>" />
+                  <button type="submit" class="status-toggle <%= job.is_active ? 'is-active' : '' %>" aria-pressed="<%= job.is_active ? 'true' : 'false' %>">
+                    <span class="sr-only"><%= job.is_active ? 'Deactivate' : 'Activate' %> job</span>
+                    <span aria-hidden="true"><%= job.is_active ? 'Active' : 'Inactive' %></span>
+                  </button>
+                </form>
+              </td>
+              <td data-label="Actions">
+                <div class="table-actions">
+                  <a class="pill-link" href="/careers/<%= job.id %>" target="_blank" rel="noopener">View</a>
+                  <form action="/api/admin/careers/jobs/<%= job.id %>" method="post" data-job-delete>
+                    <input type="hidden" name="_method" value="delete" />
+                    <button type="submit" class="pill-link danger" data-confirm="Remove this job?">Remove</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    <% } %>
+  </section>
+</section>
+<script type="module" src="/js/admin-careers.js"></script>
+<%- include('../../partials/footer') %>

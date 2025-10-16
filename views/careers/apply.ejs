@@ -1,0 +1,240 @@
+<%- include('../partials/head', { pageTitle, hotelName, csrfToken, darkMode, extraStyles }) %>
+<%- include('../partials/nav') %>
+<section class="careers careers-apply-wrapper" aria-labelledby="careers-apply-heading">
+  <article
+    class="careers-apply"
+    data-step="<%= step %>"
+    data-total-steps="5"
+    data-job-id="<%= job.id %>"
+    data-step-endpoint="/api/careers/apply/step"
+    data-submit-endpoint="/api/careers/apply/submit"
+    data-csrf="<%= csrfToken %>"
+  >
+    <header class="careers-apply-header" data-animate="fade-up">
+      <p class="careers-card-eyebrow">Apply to</p>
+      <h1 id="careers-apply-heading"><%= job.title %></h1>
+      <p class="careers-card-meta">
+        <span><%= job.location || 'Flexible location' %></span>
+        <% if (job.employment_type) { %>
+          <span aria-hidden="true">•</span>
+          <span><%= job.employment_type %></span>
+        <% } %>
+      </p>
+      <p class="careers-apply-lede">
+        Five guided steps, built for focus. Your progress saves automatically so you can pause and resume anytime.
+      </p>
+    </header>
+
+    <div class="careers-progress-shell" data-animate="fade-up">
+      <div class="careers-progress-meta">
+        <span class="careers-progress-position" data-progress-label>Step <%= step %> of 5</span>
+        <span class="careers-progress-job">Applying for <strong><%= job.title %></strong></span>
+      </div>
+      <div
+        class="careers-progress-bar"
+        role="progressbar"
+        aria-valuemin="0"
+        aria-valuemax="5"
+        aria-valuenow="<%= step %>"
+        data-progress-bar
+      >
+        <span class="careers-progress-bar-fill"></span>
+      </div>
+    </div>
+
+    <ol class="careers-progress" role="list" aria-label="Application progress">
+      <% const steps = ['Basics', 'Experience', 'Role questions', 'Uploads', 'Review']; %>
+      <% steps.forEach(function(label, index) { const current = index + 1; %>
+        <li class="<%= current === step ? 'is-current' : current < step ? 'is-complete' : '' %>">
+          <span class="careers-progress-step" aria-hidden="true"><%= current %></span>
+          <span class="careers-progress-label"><%= label %></span>
+        </li>
+      <% }); %>
+    </ol>
+
+    <section class="careers-apply-body" data-animate="fade-up">
+      <% if (step === 1) { %>
+        <form class="careers-form" data-careers-step="1">
+          <fieldset>
+            <legend>Tell us about you</legend>
+            <div class="form-grid">
+              <div class="form-field">
+                <label for="fullName">Full name <span aria-hidden="true">*</span></label>
+                <input id="fullName" name="fullName" value="<%= state.basics?.fullName || '' %>" autocomplete="name" required />
+              </div>
+              <div class="form-field">
+                <label for="email">Email <span aria-hidden="true">*</span></label>
+                <input id="email" name="email" type="email" value="<%= state.basics?.email || '' %>" autocomplete="email" required />
+              </div>
+              <div class="form-field">
+                <label for="phone">Phone</label>
+                <input id="phone" name="phone" type="tel" value="<%= state.basics?.phone || '' %>" autocomplete="tel" />
+              </div>
+              <div class="form-field form-field--full">
+                <label for="locationEligibility">Where are you eligible to work? <span aria-hidden="true">*</span></label>
+                <textarea id="locationEligibility" name="locationEligibility" rows="3" required><%= state.basics?.locationEligibility || '' %></textarea>
+              </div>
+            </div>
+          </fieldset>
+          <footer class="careers-form-actions">
+            <button class="pill-link primary" type="submit">Next</button>
+          </footer>
+        </form>
+      <% } else if (step === 2) { %>
+        <form class="careers-form" data-careers-step="2">
+          <fieldset>
+            <legend>Experience snapshot</legend>
+            <div class="form-grid">
+              <div class="form-field">
+                <label for="years">Years of relevant experience <span aria-hidden="true">*</span></label>
+                <input id="years" name="years" value="<%= state.experience?.years || '' %>" required />
+              </div>
+              <div class="form-field form-field--full">
+                <label for="skills">Top skills (comma separated) <span aria-hidden="true">*</span></label>
+                <input id="skills" name="skills" value="<%= state.experience ? state.experience.skills.join(', ') : '' %>" placeholder="Design systems, Hospitality operations" required />
+              </div>
+              <div class="form-field">
+                <label for="github">GitHub</label>
+                <input id="github" name="github" type="url" value="<%= state.experience?.links?.github || '' %>" placeholder="https://github.com/" />
+              </div>
+              <div class="form-field">
+                <label for="linkedin">LinkedIn</label>
+                <input id="linkedin" name="linkedin" type="url" value="<%= state.experience?.links?.linkedin || '' %>" placeholder="https://linkedin.com/in/" />
+              </div>
+              <div class="form-field">
+                <label for="portfolio">Portfolio</label>
+                <input id="portfolio" name="portfolio" type="url" value="<%= state.experience?.links?.portfolio || '' %>" placeholder="https://" />
+              </div>
+            </div>
+          </fieldset>
+          <footer class="careers-form-actions">
+            <a class="pill-link secondary" href="<%= stepUrl.replace('step=' + step, 'step=' + (step - 1)) %>">Back</a>
+            <button class="pill-link primary" type="submit">Next</button>
+          </footer>
+        </form>
+      <% } else if (step === 3) { %>
+        <form class="careers-form" data-careers-step="3">
+          <fieldset>
+            <legend>Role questions</legend>
+            <div class="form-grid">
+              <div class="form-field form-field--full">
+                <label for="motivation">Why are you excited to join this team? <span aria-hidden="true">*</span></label>
+                <textarea id="motivation" name="motivation" rows="4" required><%= state.role?.motivation || '' %></textarea>
+              </div>
+              <div class="form-field form-field--full">
+                <label for="proudest">Share a recent project you're proud of. <span aria-hidden="true">*</span></label>
+                <textarea id="proudest" name="proudest" rows="4" required><%= state.role?.proudest || '' %></textarea>
+              </div>
+              <div class="form-field form-field--full">
+                <label for="availability">Availability or timing notes</label>
+                <textarea id="availability" name="availability" rows="3"><%= state.role?.availability || '' %></textarea>
+              </div>
+            </div>
+          </fieldset>
+          <footer class="careers-form-actions">
+            <a class="pill-link secondary" href="<%= stepUrl.replace('step=' + step, 'step=' + (step - 1)) %>">Back</a>
+            <button class="pill-link primary" type="submit">Next</button>
+          </footer>
+        </form>
+      <% } else if (step === 4) { %>
+        <form class="careers-form" data-careers-step="4" enctype="multipart/form-data">
+          <fieldset>
+            <legend>Uploads</legend>
+            <div class="form-grid">
+              <div class="form-field form-field--full">
+                <label for="resume">Resume (PDF, max 5MB) <span aria-hidden="true">*</span></label>
+                <% if (state.resume) { %>
+                  <p class="careers-file-existing">Current: <%= state.resume.originalName %></p>
+                <% } %>
+                <input id="resume" name="resume" type="file" accept="application/pdf" <%= state.resume ? '' : 'required' %> />
+              </div>
+              <div class="form-field form-field--full">
+                <label for="coverLetter">Cover letter (PDF, optional)</label>
+                <% if (state.coverLetter) { %>
+                  <p class="careers-file-existing">Current: <%= state.coverLetter.originalName %></p>
+                <% } %>
+                <input id="coverLetter" name="coverLetter" type="file" accept="application/pdf" />
+              </div>
+            </div>
+            <p class="careers-upload-hint">We encrypt uploads in transit and rest. Accepted format: PDF only.</p>
+          </fieldset>
+          <footer class="careers-form-actions">
+            <a class="pill-link secondary" href="<%= stepUrl.replace('step=' + step, 'step=' + (step - 1)) %>">Back</a>
+            <button class="pill-link primary" type="submit">Next</button>
+          </footer>
+        </form>
+      <% } else { %>
+        <form class="careers-form" data-careers-step="5">
+          <fieldset>
+            <legend>Review & submit</legend>
+            <div class="careers-review">
+              <section>
+                <h2>Basics</h2>
+                <dl>
+                  <div><dt>Name</dt><dd><%= summary.basics?.fullName %></dd></div>
+                  <div><dt>Email</dt><dd><%= summary.basics?.email %></dd></div>
+                  <% if (summary.basics?.phone) { %>
+                    <div><dt>Phone</dt><dd><%= summary.basics.phone %></dd></div>
+                  <% } %>
+                  <div><dt>Location</dt><dd><%= summary.basics?.locationEligibility %></dd></div>
+                </dl>
+              </section>
+              <section>
+                <h2>Experience</h2>
+                <dl>
+                  <div><dt>Years</dt><dd><%= summary.experience?.years %></dd></div>
+                  <div><dt>Skills</dt><dd><%= (summary.experience?.skills || []).join(', ') %></dd></div>
+                  <% if (summary.experience?.links) { %>
+                    <% Object.entries(summary.experience.links).forEach(function(entry) { %>
+                      <div><dt><%= entry[0].charAt(0).toUpperCase() + entry[0].slice(1) %></dt><dd><a href="<%= entry[1] %>" target="_blank" rel="noopener">View</a></dd></div>
+                    <% }); %>
+                  <% } %>
+                </dl>
+              </section>
+              <section>
+                <h2>Role responses</h2>
+                <dl>
+                  <div><dt>Motivation</dt><dd><%= summary.role?.motivation %></dd></div>
+                  <div><dt>Proudest work</dt><dd><%= summary.role?.proudest %></dd></div>
+                  <% if (summary.role?.availability) { %>
+                    <div><dt>Availability</dt><dd><%= summary.role.availability %></dd></div>
+                  <% } %>
+                </dl>
+              </section>
+              <section>
+                <h2>Uploads</h2>
+                <p>Resume: <%= summary.resume || 'Pending upload' %></p>
+                <p>Cover letter: <%= summary.coverLetter || 'Not provided' %></p>
+              </section>
+            </div>
+            <div class="careers-review-confirm">
+              <label class="checkbox">
+                <input type="checkbox" name="consent" value="true" required />
+                <span>I consent to Aurora Nexus processing this application and contacting me about relevant opportunities.</span>
+              </label>
+            </div>
+          </fieldset>
+          <footer class="careers-form-actions">
+            <a class="pill-link secondary" href="<%= stepUrl.replace('step=' + step, 'step=' + (step - 1)) %>">Back</a>
+            <button class="pill-link primary" type="submit">Submit application</button>
+          </footer>
+        </form>
+      <% } %>
+      <div class="careers-form-feedback" role="status" aria-live="polite"></div>
+      <div class="careers-success" data-success-card hidden>
+        <span class="careers-success-icon" aria-hidden="true">✦</span>
+        <h2>Application submitted</h2>
+        <p>
+          Thanks for sharing your story. Your tracking ID is
+          <strong class="careers-success-id" data-success-id></strong>.
+        </p>
+        <div class="careers-success-actions">
+          <a class="pill-link primary" data-success-track href="#">Track my application</a>
+          <a class="pill-link" href="/careers">Back to open roles</a>
+        </div>
+      </div>
+    </section>
+  </article>
+</section>
+<script type="module" src="/js/careers-wizard.js"></script>
+<%- include('../partials/footer') %>

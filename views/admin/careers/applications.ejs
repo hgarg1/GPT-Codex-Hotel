@@ -1,0 +1,79 @@
+<%- include('../../partials/head', { pageTitle, hotelName, csrfToken, darkMode, extraStyles }) %>
+<%- include('../../partials/nav') %>
+<%- include('../../partials/alerts') %>
+<section class="admin-careers" data-animate="fade-up">
+  <header class="admin-careers__header admin-careers__header--hero">
+    <div>
+      <h1>Applications</h1>
+      <p class="muted">Filter, export, and drill into application packets.</p>
+    </div>
+    <div class="admin-careers__actions">
+      <a class="pill-link" href="/admin/careers">Back to overview</a>
+      <a class="pill-link" href="/api/admin/careers/export.csv" target="_blank" rel="noopener">Export CSV</a>
+    </div>
+  </header>
+
+  <form class="admin-careers__filters" method="get" action="/admin/careers/applications" aria-label="Filter applications">
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="filter-job">Job</label>
+        <select id="filter-job" name="jobId">
+          <option value="">All jobs</option>
+          <% jobs.forEach(function(job) { %>
+            <option value="<%= job.id %>" <%= filters.jobId === job.id ? 'selected' : '' %>><%= job.title %></option>
+          <% }); %>
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="filter-status">Status</label>
+        <% const statusOptions = ['SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED']; %>
+        <select id="filter-status" name="status">
+          <option value="">All statuses</option>
+          <% statusOptions.forEach(function(status) { %>
+            <option value="<%= status %>" <%= filters.status === status ? 'selected' : '' %>><%= status.replace('_', ' ') %></option>
+          <% }); %>
+        </select>
+      </div>
+    </div>
+    <footer class="careers-form-actions">
+      <button class="pill-link primary" type="submit">Apply filters</button>
+      <a class="pill-link secondary" href="/admin/careers/applications">Clear</a>
+    </footer>
+  </form>
+
+  <section class="admin-careers__table" aria-live="polite">
+    <% if (!applications.length) { %>
+      <p class="admin-careers__empty">No applications match the current filters. Try broadening your search above.</p>
+    <% } else { %>
+      <table>
+        <caption class="sr-only">Applications with candidate, role, status, and submitted date</caption>
+        <thead>
+          <tr>
+            <th scope="col">Candidate</th>
+            <th scope="col">Job</th>
+            <th scope="col">Status</th>
+            <th scope="col">Submitted</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% applications.forEach(function(app) { %>
+            <tr>
+              <td data-label="Candidate">
+                <strong><%= app.full_name %></strong>
+                <span class="muted"><%= app.email %></span>
+              </td>
+              <td data-label="Job"><%= app.job_title %></td>
+              <td data-label="Status"><span class="status-badge status-badge--<%= app.status.toLowerCase() %>"><%= app.status %></span></td>
+              <td data-label="Submitted"><%= new Date(app.created_at).toLocaleString() %></td>
+              <td data-label="Actions">
+                <a class="pill-link" href="/admin/careers/applications/<%= app.id %>">Review</a>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    <% } %>
+  </section>
+</section>
+<%- include('../../partials/footer') %>

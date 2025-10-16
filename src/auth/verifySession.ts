@@ -1,10 +1,9 @@
 import type { NextFunction, Request, Response } from 'express';
 import jwt, { type JwtPayload } from 'jsonwebtoken';
 import { parse as parseCookie } from 'cookie';
-import { createRequire } from 'node:module';
+import jwtDefaults from '../utils/jwtDefaults.js';
 
-const require = createRequire(import.meta.url);
-const { DEFAULT_JWT_SECRET } = require('../utils/jwtDefaults.js') as { DEFAULT_JWT_SECRET: string };
+const { DEFAULT_JWT_SECRET } = jwtDefaults as { DEFAULT_JWT_SECRET: string };
 
 type JwtUserPayload = JwtPayload & {
   sub?: string;

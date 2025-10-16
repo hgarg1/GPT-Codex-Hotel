@@ -1,0 +1,46 @@
+<%- include('../../partials/head', { pageTitle, hotelName, csrfToken, darkMode, extraStyles }) %>
+<%- include('../../partials/nav') %>
+<%- include('../../partials/alerts') %>
+<section class="admin-careers" data-animate="fade-up">
+  <header class="admin-careers__header admin-careers__header--hero">
+    <div>
+      <h1>Careers overview</h1>
+      <p class="muted">Monitor open roles, track candidate momentum, and keep the Aurora Nexus talent pipeline glowing.</p>
+    </div>
+    <div class="admin-careers__actions">
+      <a class="pill-link" href="/admin/careers/jobs">Manage jobs</a>
+      <a class="pill-link primary" href="/admin/careers/applications">Review applications</a>
+    </div>
+  </header>
+
+  <div class="admin-careers__grid">
+    <article class="admin-metric">
+      <h2>Active openings</h2>
+      <p class="admin-metric__value"><%= activeJobs %></p>
+      <p class="admin-metric__meta">Visible on the public careers page</p>
+    </article>
+    <% const totalApplications = Object.values(statusCounts).reduce(function(total, value) { return total + value; }, 0); %>
+    <article class="admin-metric">
+      <h2>Total applications</h2>
+      <p class="admin-metric__value"><%= totalApplications %></p>
+      <p class="admin-metric__meta">All submissions in the last cycle</p>
+    </article>
+    <% Object.entries(statusCounts).forEach(function(entry) { %>
+      <article class="admin-metric">
+        <h2><%= entry[0].replace('_', ' ') %></h2>
+        <p class="admin-metric__value"><%= entry[1] %></p>
+        <p class="admin-metric__meta">Applications currently <%= entry[0].toLowerCase().replace('_', ' ') %></p>
+      </article>
+    <% }); %>
+  </div>
+
+  <section class="admin-careers__insights" aria-label="Pipeline insights">
+    <h2>Pipeline snapshots</h2>
+    <ul>
+      <li>Highlight upcoming headcount needs so we can plan onboarding capacity.</li>
+      <li>Use status transitions to trigger automated updates sent from the careers inbox.</li>
+      <li>Export CSV for board reporting or to collaborate with People Ops.</li>
+    </ul>
+  </section>
+</section>
+<%- include('../../partials/footer') %>

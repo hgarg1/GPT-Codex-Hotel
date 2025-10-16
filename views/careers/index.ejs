@@ -1,0 +1,153 @@
+<%- include('../partials/head', { pageTitle, hotelName, csrfToken, darkMode, extraStyles }) %>
+<%- include('../partials/nav') %>
+<section class="careers" aria-labelledby="careers-heading">
+  <header class="careers-hero" data-animate="fade-up">
+    <div class="careers-hero-text">
+      <p class="careers-eyebrow">Join the constellation</p>
+      <h1 id="careers-heading" class="careers-title">Careers at <%= hotelName %></h1>
+      <p class="careers-subtitle">
+        Shape hospitality across galaxies. We design joyful, inclusive experiences for explorers, gourmands, and dreamers alike.
+      </p>
+      <div class="careers-hero-actions">
+        <a class="pill-link primary" href="#careers-openings">View open roles</a>
+        <a class="pill-link" href="/contact?intent=talent">Join the talent collective</a>
+      </div>
+    </div>
+    <dl class="careers-hero-metrics" aria-label="Talent highlights">
+      <div>
+        <dt>Open roles</dt>
+        <dd><%= (stats && typeof stats.totalActive === 'number') ? stats.totalActive : jobs.length %></dd>
+        <span>Active opportunities across the Nexus</span>
+      </div>
+      <div>
+        <dt>Teams</dt>
+        <dd><%= stats ? stats.departmentCount : filterOptions?.departments?.length || 0 %></dd>
+        <span>Disciplines hiring right now</span>
+      </div>
+      <div>
+        <dt>Hubs</dt>
+        <dd><%= stats ? stats.locationCount : filterOptions?.locations?.length || 0 %></dd>
+        <span>Locations welcoming crew</span>
+      </div>
+    </dl>
+  </header>
+
+  <section class="careers-search" data-animate="fade-up">
+    <form class="careers-filter" method="get" action="/careers" aria-label="Filter openings">
+      <div class="careers-filter-header">
+        <h2>Find your next orbit</h2>
+        <p>Search by focus, department, or habitat. Filters update instantly.</p>
+      </div>
+      <div class="careers-filter-field">
+        <label for="careers-search">Search roles</label>
+        <input id="careers-search" name="q" type="search" placeholder="Search title, department, or location" value="<%= filters.query || '' %>" />
+      </div>
+      <div class="careers-filter-grid">
+        <div class="careers-filter-field">
+          <label for="careers-department">Department</label>
+          <input id="careers-department" name="department" list="careers-departments" value="<%= filters.department || '' %>" placeholder="Design, Culinary, Operations" />
+          <datalist id="careers-departments">
+            <% (filterOptions?.departments || []).forEach(function(department) { %>
+              <option value="<%= department %>"></option>
+            <% }); %>
+          </datalist>
+        </div>
+        <div class="careers-filter-field">
+          <label for="careers-location">Location</label>
+          <input id="careers-location" name="location" list="careers-locations" value="<%= filters.location || '' %>" placeholder="Lunar Port, Neo-Tokyo" />
+          <datalist id="careers-locations">
+            <% (filterOptions?.locations || []).forEach(function(location) { %>
+              <option value="<%= location %>"></option>
+            <% }); %>
+          </datalist>
+        </div>
+        <div class="careers-filter-field">
+          <label for="careers-type">Employment type</label>
+          <input id="careers-type" name="type" list="careers-types" value="<%= filters.employmentType || '' %>" placeholder="Full-time, Contract" />
+          <datalist id="careers-types">
+            <% (filterOptions?.employmentTypes || []).forEach(function(type) { %>
+              <option value="<%= type %>"></option>
+            <% }); %>
+          </datalist>
+        </div>
+      </div>
+      <% if (filterCount) { %>
+        <div class="careers-filter-active" aria-live="polite">
+          <span class="careers-filter-count"><%= filterCount %> active filter<%= filterCount === 1 ? '' : 's' %></span>
+          <ul class="careers-filter-chips" role="list">
+            <% filterChips.forEach(function(chip) { %>
+              <li><span><%= chip.label %>:</span> <strong><%= chip.value %></strong></li>
+            <% }); %>
+          </ul>
+        </div>
+      <% } %>
+      <div class="careers-filter-actions">
+        <button class="pill-link primary" type="submit">Update results</button>
+        <a class="pill-link secondary" href="/careers">Clear</a>
+      </div>
+    </form>
+  </section>
+
+  <section id="careers-openings" class="careers-results" data-animate="fade-up">
+    <div class="careers-results-header">
+      <div>
+        <h2><%= jobs.length %> open role<%= jobs.length === 1 ? '' : 's' %></h2>
+        <% if (filterCount) { %>
+          <p class="careers-results-meta">Showing your tailored matches.</p>
+        <% } else { %>
+          <p class="careers-results-meta">Browse all opportunities currently recruiting.</p>
+        <% } %>
+      </div>
+      <% if (stats && stats.latestPostedAt) { %>
+        <p class="careers-results-updated">Latest update · <%= new Date(stats.latestPostedAt).toLocaleDateString() %></p>
+      <% } %>
+      <% if (stats && stats.employmentTypes && stats.employmentTypes.length) { %>
+        <ul class="careers-results-tags" role="list" aria-label="Employment types hiring">
+          <% stats.employmentTypes.forEach(function(type) { %>
+            <li><%= type %></li>
+          <% }); %>
+        </ul>
+      <% } %>
+    </div>
+    <% if (!jobs.length) { %>
+      <div class="careers-empty" role="status">
+        <h2>No open roles match your filters yet.</h2>
+        <p>We rotate missions often—check back soon or follow us on LinkedIn for updates.</p>
+      </div>
+    <% } else { %>
+      <ol class="careers-list" aria-live="polite">
+        <% jobs.forEach(function(job) { %>
+          <li class="careers-card">
+            <div class="careers-card-header">
+              <p class="careers-card-eyebrow"><%= job.department || 'Open role' %></p>
+              <h2><a href="/careers/<%= job.id %>"><%= job.title %></a></h2>
+              <p class="careers-card-meta">
+                <span><%= job.location || 'Flexible location' %></span>
+                <% if (job.employment_type) { %>
+                  <span aria-hidden="true">•</span>
+                  <span><%= job.employment_type %></span>
+                <% } %>
+              </p>
+            </div>
+            <div class="careers-card-body">
+              <% if (job.description) { %>
+                <div class="careers-card-description"><%- job.description %></div>
+              <% } %>
+              <% if (job.requirementsList.length) { %>
+                <ul class="careers-card-requirements" aria-label="Key requirements">
+                  <% job.requirementsList.slice(0, 3).forEach(function(item) { %>
+                    <li><%= item %></li>
+                  <% }); %>
+                </ul>
+              <% } %>
+            </div>
+            <div class="careers-card-actions">
+              <a class="pill-link primary" href="/careers/<%= job.id %>">View details</a>
+            </div>
+          </li>
+        <% }); %>
+      </ol>
+    <% } %>
+  </section>
+</section>
+<%- include('../partials/footer') %>

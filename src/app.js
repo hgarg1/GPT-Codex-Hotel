@@ -3,6 +3,8 @@ const express = require('express');
 const csrf = require('csurf');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const { register: registerTs } = require('tsx/cjs/api');
+registerTs();
 let createProxyMiddleware;
 try {
   ({ createProxyMiddleware } = require('http-proxy-middleware'));
@@ -14,6 +16,15 @@ const { sessionMiddleware } = require('./middleware/session');
 const { notFoundHandler, errorHandler } = require('./middleware/errors');
 const { HOTEL_NAME } = require('./utils/constants');
 const { normalizeRole, Roles } = require('./utils/rbac');
+const { verifySession } = require('./auth/verifySession.ts');
+const {
+  initCareers,
+  careersRouter,
+  careersApiRouter,
+  careersAdminRouter,
+  careersAdminApiRouter,
+  requireAdmin: careersRequireAdmin,
+} = require('./careers/index.ts');
 
 const publicRoutes = require('./routes/public');
 const authRoutes = require('./routes/auth');
@@ -33,6 +44,8 @@ const employeeRequestRoutes = require('./routes/employeeRequests');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
+
+initCareers();
 
 // Ensure Express respects proxy headers so rate limiting can accurately
 // identify clients when the app is behind a reverse proxy.
@@ -209,20 +222,32 @@ app.use((req, res, next) => {
 });
 
 const csrfProtection = csrf();
-app.use(csrfProtection);
 app.use((req, res, next) => {
-  res.locals.csrfToken = req.csrfToken();
+  if (req.path && req.path.startsWith('/api/admin/careers')) {
+    return next();
+  }
+  return csrfProtection(req, res, next);
+});
+app.use((req, res, next) => {
+  if (typeof req.csrfToken === 'function') {
+    try {
+      res.locals.csrfToken = req.csrfToken();
+    } catch (error) {
+      return next(error);
+    }
+  }
   res.locals.alerts = req.session.alerts || [];
   req.session.alerts = [];
   next();
 });
 
+app.use('/api/admin/careers', verifySession, careersRequireAdmin, careersAdminApiRouter);
 app.use('/api/admin', adminApiRoutes);
 app.use('/api/employee', employeeApiRoutes);
 app.use('/api/employee/badge', employeeBadgeRoutes);
 app.use('/api/employee/requests', employeeRequestRoutes);
 
-const buildLimiter = ({ windowMs, max, skipSuccessfulRequests = false, message }) => {
+const buildLimiter = ({ windowMs, max, skipSuccessfulRequests = false, message, skip }) => {
   const retryAfterSeconds = Math.ceil(windowMs / 1000);
   const friendlyMessage =
     message || 'Too many requests detected. Please slow down and try again soon.';
@@ -231,6 +256,7 @@ const buildLimiter = ({ windowMs, max, skipSuccessfulRequests = false, message }
     windowMs,
     max,
     skipSuccessfulRequests,
+    skip,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     handler: (req, res) => {
@@ -267,17 +293,30 @@ const authLimiter = buildLimiter({
   windowMs: 60 * 1000,
   max: 30,
   skipSuccessfulRequests: true,
-  message: 'Too many authentication attempts detected.'
+  message: 'Too many authentication attempts detected.',
+  skip: (req) => {
+    const path = req.originalUrl || '';
+    return !path.startsWith('/auth') && !path.startsWith('/login') && !path.startsWith('/api/auth');
+  }
 });
 const paymentLimiter = buildLimiter({
   windowMs: 60 * 1000,
   max: 15,
-  message: 'Too many payment attempts detected.'
+  message: 'Too many payment attempts detected.',
+  skip: (req) => {
+    const path = req.originalUrl || '';
+    return !path.startsWith('/payments') && !path.startsWith('/api/payments');
+  }
 });
 const chatLimiter = buildLimiter({
   windowMs: 10 * 1000,
   max: 60,
-  message: 'Chat is rate limited due to high activity.'
+  skipSuccessfulRequests: true,
+  message: 'Chat is rate limited due to high activity.',
+  skip: (req) => {
+    const path = req.originalUrl || '';
+    return !path.startsWith('/chat') && !path.startsWith('/api/chat');
+  }
 });
 
 app.use('/', publicRoutes);
@@ -291,6 +330,9 @@ app.use('/employee', employeeRoutes);
 app.use('/', adminRoutes);
 app.use('/', diningRoutes);
 app.use('/', adminDiningRoutes);
+app.use('/', careersRouter);
+app.use('/api/careers', careersApiRouter);
+app.use('/admin/careers', verifySession, careersRequireAdmin, careersAdminRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
