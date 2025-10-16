@@ -1,0 +1,96 @@
+<%- include('../partials/head', { pageTitle, hotelName, csrfToken, darkMode, extraStyles }) %>
+<%- include('../partials/nav') %>
+<section class="careers" aria-labelledby="careers-heading">
+  <div class="careers-hero" data-animate="fade-up">
+    <p class="careers-eyebrow">Join the constellation</p>
+    <h1 id="careers-heading" class="careers-title">Careers at <%= hotelName %></h1>
+    <p class="careers-subtitle">
+      Shape hospitality across galaxies. We design joyful, inclusive experiences for explorers, gourmands, and dreamers alike.
+    </p>
+  </div>
+
+  <section class="careers-search" data-animate="fade-up">
+    <form class="careers-filter" method="get" action="/careers" aria-label="Filter openings">
+      <div class="careers-filter-field">
+        <label for="careers-search">Search roles</label>
+        <input id="careers-search" name="q" type="search" placeholder="Search title, department, or location" value="<%= filters.query || '' %>" />
+      </div>
+      <div class="careers-filter-grid">
+        <div class="careers-filter-field">
+          <label for="careers-department">Department</label>
+          <input id="careers-department" name="department" list="careers-departments" value="<%= filters.department || '' %>" />
+          <datalist id="careers-departments">
+            <% jobs.forEach(function(job) { if (job.department) { %>
+              <option value="<%= job.department %>"></option>
+            <% } }); %>
+          </datalist>
+        </div>
+        <div class="careers-filter-field">
+          <label for="careers-location">Location</label>
+          <input id="careers-location" name="location" list="careers-locations" value="<%= filters.location || '' %>" />
+          <datalist id="careers-locations">
+            <% jobs.forEach(function(job) { if (job.location) { %>
+              <option value="<%= job.location %>"></option>
+            <% } }); %>
+          </datalist>
+        </div>
+        <div class="careers-filter-field">
+          <label for="careers-type">Employment type</label>
+          <input id="careers-type" name="type" list="careers-types" value="<%= filters.employmentType || '' %>" />
+          <datalist id="careers-types">
+            <% jobs.forEach(function(job) { if (job.employment_type) { %>
+              <option value="<%= job.employment_type %>"></option>
+            <% } }); %>
+          </datalist>
+        </div>
+      </div>
+      <div class="careers-filter-actions">
+        <button class="pill-link primary" type="submit">Update results</button>
+        <a class="pill-link secondary" href="/careers">Clear</a>
+      </div>
+    </form>
+  </section>
+
+  <section class="careers-results" data-animate="fade-up">
+    <% if (!jobs.length) { %>
+      <div class="careers-empty" role="status">
+        <h2>No open roles match your filters yet.</h2>
+        <p>We rotate missions often—check back soon or follow us on LinkedIn for updates.</p>
+      </div>
+    <% } else { %>
+      <ol class="careers-list" aria-live="polite">
+        <% jobs.forEach(function(job) { %>
+          <li class="careers-card">
+            <div class="careers-card-header">
+              <p class="careers-card-eyebrow"><%= job.department || 'Open role' %></p>
+              <h2><a href="/careers/<%= job.id %>"><%= job.title %></a></h2>
+              <p class="careers-card-meta">
+                <span><%= job.location || 'Flexible location' %></span>
+                <% if (job.employment_type) { %>
+                  <span aria-hidden="true">•</span>
+                  <span><%= job.employment_type %></span>
+                <% } %>
+              </p>
+            </div>
+            <div class="careers-card-body">
+              <% if (job.description) { %>
+                <div class="careers-card-description"><%- job.description %></div>
+              <% } %>
+              <% if (job.requirementsList.length) { %>
+                <ul class="careers-card-requirements" aria-label="Key requirements">
+                  <% job.requirementsList.slice(0, 3).forEach(function(item) { %>
+                    <li><%= item %></li>
+                  <% }); %>
+                </ul>
+              <% } %>
+            </div>
+            <div class="careers-card-actions">
+              <a class="pill-link primary" href="/careers/<%= job.id %>">View details</a>
+            </div>
+          </li>
+        <% }); %>
+      </ol>
+    <% } %>
+  </section>
+</section>
+<%- include('../partials/footer') %>

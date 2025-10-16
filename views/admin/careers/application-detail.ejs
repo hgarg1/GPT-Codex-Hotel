@@ -1,0 +1,81 @@
+<%- include('../../partials/head', { pageTitle, hotelName, csrfToken, darkMode, extraStyles }) %>
+<%- include('../../partials/nav') %>
+<%- include('../../partials/alerts') %>
+<section class="admin-careers" data-animate="fade-up">
+  <header class="admin-careers__header">
+    <div>
+      <h1><%= application.full_name %></h1>
+      <p class="muted">Tracking ID <code><%= application.tracking_id %></code></p>
+    </div>
+    <a class="pill-link" href="/admin/careers/applications">Back to list</a>
+  </header>
+
+  <article class="admin-careers__detail">
+    <section>
+      <h2>Application summary</h2>
+      <dl>
+        <div><dt>Job</dt><dd><%= job ? job.title : 'Role unavailable' %></dd></div>
+        <div><dt>Email</dt><dd><a href="mailto:<%= application.email %>"><%= application.email %></a></dd></div>
+        <% if (application.phone) { %>
+          <div><dt>Phone</dt><dd><a href="tel:<%= application.phone %>"><%= application.phone %></a></dd></div>
+        <% } %>
+        <div><dt>Submitted</dt><dd><%= new Date(application.created_at).toLocaleString() %></dd></div>
+        <div><dt>Status</dt><dd><span class="status status--<%= application.status.toLowerCase() %>"><%= application.status %></span></dd></div>
+      </dl>
+      <div class="admin-careers__downloads">
+        <% if (application.resume_path) { %>
+          <a class="pill-link" href="/admin/careers/applications/<%= application.id %>/download/resume">Download resume</a>
+        <% } %>
+        <% if (application.cover_letter_path) { %>
+          <a class="pill-link" href="/admin/careers/applications/<%= application.id %>/download/cover">Download cover letter</a>
+        <% } %>
+      </div>
+    </section>
+
+    <section>
+      <h2>Responses</h2>
+      <div class="admin-careers__responses">
+        <article>
+          <h3>Basics</h3>
+          <p><strong>Location:</strong> <%= answers.basics?.locationEligibility %></p>
+        </article>
+        <article>
+          <h3>Experience</h3>
+          <p><strong>Years:</strong> <%= answers.experience?.years %></p>
+          <p><strong>Skills:</strong> <%= (answers.experience?.skills || []).join(', ') %></p>
+          <% if (answers.experience?.links) { %>
+            <ul>
+              <% Object.entries(answers.experience.links).forEach(function(entry) { %>
+                <li><%= entry[0] %>: <a href="<%= entry[1] %>" target="_blank" rel="noopener">View</a></li>
+              <% }); %>
+            </ul>
+          <% } %>
+        </article>
+        <article>
+          <h3>Role questions</h3>
+          <p><strong>Motivation:</strong> <%= answers.role?.motivation %></p>
+          <p><strong>Proudest work:</strong> <%= answers.role?.proudest %></p>
+          <% if (answers.role?.availability) { %>
+            <p><strong>Availability:</strong> <%= answers.role.availability %></p>
+          <% } %>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Update status</h2>
+      <form action="/api/admin/careers/applications/<%= application.id %>/status" method="post" data-careers-status>
+        <label for="status-select">Set status</label>
+        <select id="status-select" name="status" required>
+          <option value="">Choose</option>
+          <option value="IN_REVIEW">In review</option>
+          <option value="APPROVED">Approved</option>
+          <option value="REJECTED">Rejected</option>
+        </select>
+        <button class="pill-link primary" type="submit">Update</button>
+      </form>
+    </section>
+  </article>
+</section>
+<script type="module" src="/js/admin-careers.js"></script>
+<%- include('../../partials/footer') %>

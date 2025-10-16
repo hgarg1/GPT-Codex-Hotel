@@ -1,0 +1,55 @@
+<%- include('../partials/head', { pageTitle, hotelName, csrfToken, darkMode, extraStyles }) %>
+<%- include('../partials/nav') %>
+<section class="careers" aria-labelledby="career-detail-heading">
+  <nav class="careers-breadcrumb" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="/careers">Careers</a></li>
+      <li aria-current="page"><%= job.title %></li>
+    </ol>
+  </nav>
+
+  <article class="careers-detail" data-animate="fade-up">
+    <header class="careers-detail-header">
+      <p class="careers-card-eyebrow"><%= job.department || 'Open role' %></p>
+      <h1 id="career-detail-heading"><%= job.title %></h1>
+      <p class="careers-card-meta">
+        <span><%= job.location || 'Flexible location' %></span>
+        <% if (job.employment_type) { %>
+          <span aria-hidden="true">•</span>
+          <span><%= job.employment_type %></span>
+        <% } %>
+      </p>
+      <a class="pill-link primary" href="/careers/<%= job.id %>/apply">Apply now</a>
+    </header>
+
+    <% if (job.description) { %>
+      <section class="careers-detail-section">
+        <h2>About the role</h2>
+        <div class="careers-detail-body"><%- job.description %></div>
+      </section>
+    <% } %>
+
+    <% if (job.requirementsList.length) { %>
+      <section class="careers-detail-section">
+        <h2>Requirements</h2>
+        <ul class="careers-detail-list">
+          <% job.requirementsList.forEach(function(item) { %>
+            <li><%= item %></li>
+          <% }); %>
+        </ul>
+      </section>
+    <% } %>
+
+    <section class="careers-detail-section">
+      <h2>Why Aurora Nexus</h2>
+      <p>
+        Collaborate with multidisciplinary crews crafting multisensory experiences across suites, dining, and celestial lounges. We
+        celebrate curiosity, kindness, and rigorous craftsmanship.
+      </p>
+      <p>
+        Benefits include wellness stipends, flexible transit between orbital hubs, parental leave, and annual deep-work sabbaticals.
+      </p>
+    </section>
+  </article>
+</section>
+<%- include('../partials/footer') %>
