@@ -4,7 +4,6 @@
   <article
     class="careers-apply"
     data-step="<%= step %>"
-    data-total-steps="5"
     data-job-id="<%= job.id %>"
     data-step-endpoint="/api/careers/apply/step"
     data-submit-endpoint="/api/careers/apply/submit"
@@ -20,27 +19,7 @@
           <span><%= job.employment_type %></span>
         <% } %>
       </p>
-      <p class="careers-apply-lede">
-        Five guided steps, built for focus. Your progress saves automatically so you can pause and resume anytime.
-      </p>
     </header>
-
-    <div class="careers-progress-shell" data-animate="fade-up">
-      <div class="careers-progress-meta">
-        <span class="careers-progress-position" data-progress-label>Step <%= step %> of 5</span>
-        <span class="careers-progress-job">Applying for <strong><%= job.title %></strong></span>
-      </div>
-      <div
-        class="careers-progress-bar"
-        role="progressbar"
-        aria-valuemin="0"
-        aria-valuemax="5"
-        aria-valuenow="<%= step %>"
-        data-progress-bar
-      >
-        <span class="careers-progress-bar-fill"></span>
-      </div>
-    </div>
 
     <ol class="careers-progress" role="list" aria-label="Application progress">
       <% const steps = ['Basics', 'Experience', 'Role questions', 'Uploads', 'Review']; %>
@@ -221,18 +200,6 @@
         </form>
       <% } %>
       <div class="careers-form-feedback" role="status" aria-live="polite"></div>
-      <div class="careers-success" data-success-card hidden>
-        <span class="careers-success-icon" aria-hidden="true">✦</span>
-        <h2>Application submitted</h2>
-        <p>
-          Thanks for sharing your story. Your tracking ID is
-          <strong class="careers-success-id" data-success-id></strong>.
-        </p>
-        <div class="careers-success-actions">
-          <a class="pill-link primary" data-success-track href="#">Track my application</a>
-          <a class="pill-link" href="/careers">Back to open roles</a>
-        </div>
-      </div>
     </section>
   </article>
 </section>

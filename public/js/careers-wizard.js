@@ -1,30 +1,11 @@
 const container = document.querySelector('.careers-apply');
 if (container) {
   const step = Number(container.dataset.step || '1');
-  const totalSteps = Number(container.dataset.totalSteps || '5');
   const jobId = container.dataset.jobId;
   const stepEndpoint = container.dataset.stepEndpoint;
   const submitEndpoint = container.dataset.submitEndpoint;
   const csrfToken = container.dataset.csrf;
   const feedback = container.querySelector('.careers-form-feedback');
-  const progressBar = container.querySelector('[data-progress-bar]');
-  const progressLabel = container.querySelector('[data-progress-label]');
-  const successCard = container.querySelector('[data-success-card]');
-  const successId = successCard?.querySelector('[data-success-id]');
-  const successTrack = successCard?.querySelector('[data-success-track]');
-
-  function syncProgress() {
-    if (progressBar) {
-      const percent = Math.min(100, Math.max(0, (step / totalSteps) * 100));
-      progressBar.style.setProperty('--progress', `${percent}%`);
-      progressBar.setAttribute('aria-valuenow', String(step));
-    }
-    if (progressLabel) {
-      progressLabel.textContent = `Step ${step} of ${totalSteps}`;
-    }
-  }
-
-  syncProgress();
 
   function setFeedback(message, type = 'info') {
     if (!feedback) return;
@@ -136,19 +117,13 @@ if (container) {
         const json = await response.json();
         form.classList.add('is-hidden');
         setFeedback(`Thanks for applying! Your tracking ID is ${json.trackingId}.`, 'success');
-        if (successCard) {
-          successCard.hidden = false;
-          successCard.classList.add('is-visible');
-          if (successId) {
-            successId.textContent = json.trackingId;
-          }
-          if (successTrack) {
-            successTrack.setAttribute('href', json.confirmationUrl);
-          }
-          successCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
         if (feedback) {
-          feedback.setAttribute('role', 'status');
+          const link = document.createElement('a');
+          link.href = json.confirmationUrl;
+          link.textContent = 'Track my application';
+          link.className = 'pill-link';
+          feedback.appendChild(document.createElement('br'));
+          feedback.appendChild(link);
         }
       } catch (error) {
         setFeedback(error.message || 'We could not submit your application.', 'error');
@@ -166,9 +141,7 @@ if (container) {
     }
   }
 
-  const requiredFields = Array.from(
-    container.querySelectorAll('form[data-careers-step] input[required], form[data-careers-step] textarea[required]')
-  );
+  const requiredFields = Array.from(container.querySelectorAll('form[data-careers-step] input[required], form[data-careers-step] textarea[required]'));
   requiredFields.forEach((field) => {
     field.addEventListener('input', () => {
       const formEl = field.closest('form');

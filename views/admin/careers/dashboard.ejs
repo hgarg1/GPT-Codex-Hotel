@@ -2,10 +2,10 @@
 <%- include('../../partials/nav') %>
 <%- include('../../partials/alerts') %>
 <section class="admin-careers" data-animate="fade-up">
-  <header class="admin-careers__header admin-careers__header--hero">
+  <header class="admin-careers__header">
     <div>
       <h1>Careers overview</h1>
-      <p class="muted">Monitor open roles, track candidate momentum, and keep the Aurora Nexus talent pipeline glowing.</p>
+      <p class="muted">Monitor open roles and application health across the Aurora Nexus talent pipeline.</p>
     </div>
     <div class="admin-careers__actions">
       <a class="pill-link" href="/admin/careers/jobs">Manage jobs</a>
@@ -19,12 +19,6 @@
       <p class="admin-metric__value"><%= activeJobs %></p>
       <p class="admin-metric__meta">Visible on the public careers page</p>
     </article>
-    <% const totalApplications = Object.values(statusCounts).reduce(function(total, value) { return total + value; }, 0); %>
-    <article class="admin-metric">
-      <h2>Total applications</h2>
-      <p class="admin-metric__value"><%= totalApplications %></p>
-      <p class="admin-metric__meta">All submissions in the last cycle</p>
-    </article>
     <% Object.entries(statusCounts).forEach(function(entry) { %>
       <article class="admin-metric">
         <h2><%= entry[0].replace('_', ' ') %></h2>
@@ -33,14 +27,5 @@
       </article>
     <% }); %>
   </div>
-
-  <section class="admin-careers__insights" aria-label="Pipeline insights">
-    <h2>Pipeline snapshots</h2>
-    <ul>
-      <li>Highlight upcoming headcount needs so we can plan onboarding capacity.</li>
-      <li>Use status transitions to trigger automated updates sent from the careers inbox.</li>
-      <li>Export CSV for board reporting or to collaborate with People Ops.</li>
-    </ul>
-  </section>
 </section>
 <%- include('../../partials/footer') %>

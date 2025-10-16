@@ -205,21 +205,6 @@ function mapLinks(body: Record<string, unknown>): Record<string, string> {
   return links;
 }
 
-function uniqueList(values: Array<string | null | undefined>): string[] {
-  const items = new Set<string>();
-  for (const value of values) {
-    if (typeof value !== 'string') {
-      continue;
-    }
-    const trimmed = value.trim();
-    if (!trimmed) {
-      continue;
-    }
-    items.add(trimmed);
-  }
-  return Array.from(items).sort((a, b) => a.localeCompare(b));
-}
-
 function ensureJobActive(job: JobRecord | undefined, res: Response): job is JobRecord {
   if (!job || job.is_active !== 1) {
     res.status(404).render('404', { pageTitle: 'Role unavailable' });
@@ -309,37 +294,12 @@ careersRouter.get('/careers', (req, res) => {
     employmentType: typeof req.query.type === 'string' ? req.query.type : undefined,
   };
 
-  const allActiveJobs = listJobs();
   const jobs = listJobs(filters).map(sanitizeJob);
-  const departmentOptions = uniqueList(allActiveJobs.map((job) => job.department));
-  const locationOptions = uniqueList(allActiveJobs.map((job) => job.location));
-  const employmentOptions = uniqueList(allActiveJobs.map((job) => job.employment_type));
-  const filterChips = [
-    filters.query ? { label: 'Search', value: filters.query } : null,
-    filters.department ? { label: 'Department', value: filters.department } : null,
-    filters.location ? { label: 'Location', value: filters.location } : null,
-    filters.employmentType ? { label: 'Type', value: filters.employmentType } : null,
-  ].filter((chip): chip is { label: string; value: string } => Boolean(chip));
-  const latestPostedAt = allActiveJobs.length ? allActiveJobs[0].posted_at : null;
 
   res.render('careers/index', {
     pageTitle: 'Careers at Aurora Nexus',
     jobs,
     filters,
-    stats: {
-      totalActive: allActiveJobs.length,
-      departmentCount: departmentOptions.length,
-      locationCount: locationOptions.length,
-      employmentTypes: employmentOptions,
-      latestPostedAt,
-    },
-    filterChips,
-    filterCount: filterChips.length,
-    filterOptions: {
-      departments: departmentOptions,
-      locations: locationOptions,
-      employmentTypes: employmentOptions,
-    },
   });
 });
 

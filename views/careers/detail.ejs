@@ -10,91 +10,46 @@
 
   <article class="careers-detail" data-animate="fade-up">
     <header class="careers-detail-header">
-      <div class="careers-detail-intro">
-        <p class="careers-card-eyebrow"><%= job.department || 'Open role' %></p>
-        <h1 id="career-detail-heading"><%= job.title %></h1>
-        <p class="careers-card-meta">
-          <span><%= job.location || 'Flexible location' %></span>
-          <% if (job.employment_type) { %>
-            <span aria-hidden="true">•</span>
-            <span><%= job.employment_type %></span>
-          <% } %>
-        </p>
-        <p class="careers-detail-lede">
-          Join a hospitality collective reinventing the guest journey. Collaborate with cross-planetary teams crafting luminous
-          stays, curated dining, and unforgettable service moments.
-        </p>
-        <div class="careers-detail-actions">
-          <a class="pill-link primary" href="/careers/<%= job.id %>/apply">Apply now</a>
-          <a class="pill-link" href="#careers-role-overview">Jump to details</a>
-        </div>
-      </div>
-      <aside class="careers-detail-meta" aria-label="Role snapshot">
-        <h2>Role snapshot</h2>
-        <dl>
-          <div><dt>Team</dt><dd><%= job.department || 'Multi-disciplinary' %></dd></div>
-          <div><dt>Location</dt><dd><%= job.location || 'Flexible / Remote-friendly' %></dd></div>
-          <div><dt>Type</dt><dd><%= job.employment_type || 'Flexible' %></dd></div>
-          <div><dt>Posted</dt><dd><%= new Date(job.posted_at).toLocaleDateString() %></dd></div>
-        </dl>
-        <p class="careers-detail-meta-note">
-          Applications reviewed on a rolling cadence. Expect a personal response within 5–7 galactic days.
-        </p>
-      </aside>
+      <p class="careers-card-eyebrow"><%= job.department || 'Open role' %></p>
+      <h1 id="career-detail-heading"><%= job.title %></h1>
+      <p class="careers-card-meta">
+        <span><%= job.location || 'Flexible location' %></span>
+        <% if (job.employment_type) { %>
+          <span aria-hidden="true">•</span>
+          <span><%= job.employment_type %></span>
+        <% } %>
+      </p>
+      <a class="pill-link primary" href="/careers/<%= job.id %>/apply">Apply now</a>
     </header>
 
-    <div class="careers-detail-layout" id="careers-role-overview">
-      <div class="careers-detail-main">
-        <% if (job.description) { %>
-          <section class="careers-detail-section">
-            <h2>About the role</h2>
-            <div class="careers-detail-body"><%- job.description %></div>
-          </section>
-        <% } %>
+    <% if (job.description) { %>
+      <section class="careers-detail-section">
+        <h2>About the role</h2>
+        <div class="careers-detail-body"><%- job.description %></div>
+      </section>
+    <% } %>
 
-        <% if (job.requirementsList.length) { %>
-          <section class="careers-detail-section">
-            <h2>Success looks like</h2>
-            <ul class="careers-detail-list">
-              <% job.requirementsList.forEach(function(item) { %>
-                <li><%= item %></li>
-              <% }); %>
-            </ul>
-          </section>
-        <% } %>
+    <% if (job.requirementsList.length) { %>
+      <section class="careers-detail-section">
+        <h2>Requirements</h2>
+        <ul class="careers-detail-list">
+          <% job.requirementsList.forEach(function(item) { %>
+            <li><%= item %></li>
+          <% }); %>
+        </ul>
+      </section>
+    <% } %>
 
-        <section class="careers-detail-section">
-          <h2>Why Aurora Nexus</h2>
-          <p>
-            Collaborate with multidisciplinary crews crafting multisensory experiences across suites, dining, and celestial lounges.
-            We celebrate curiosity, kindness, and rigorous craftsmanship.
-          </p>
-          <p>
-            Benefits include wellness stipends, flexible transit between orbital hubs, parental leave, and annual deep-work
-            sabbaticals.
-          </p>
-        </section>
-      </div>
-
-      <aside class="careers-detail-sidebar" aria-label="Application guidance">
-        <section>
-          <h2>Application cadence</h2>
-          <ul>
-            <li>Human review of every submission</li>
-            <li>Initial conversation with team leadership</li>
-            <li>Collaborative working session + portfolio or scenario</li>
-            <li>Offer with tailored growth path</li>
-          </ul>
-        </section>
-        <section>
-          <h2>Need accommodations?</h2>
-          <p>
-            Email <a href="mailto:talent@auroranexus.com">talent@auroranexus.com</a> so we can support your interview experience.
-          </p>
-        </section>
-        <a class="pill-link primary" href="/careers/<%= job.id %>/apply">Start application</a>
-      </aside>
-    </div>
+    <section class="careers-detail-section">
+      <h2>Why Aurora Nexus</h2>
+      <p>
+        Collaborate with multidisciplinary crews crafting multisensory experiences across suites, dining, and celestial lounges. We
+        celebrate curiosity, kindness, and rigorous craftsmanship.
+      </p>
+      <p>
+        Benefits include wellness stipends, flexible transit between orbital hubs, parental leave, and annual deep-work sabbaticals.
+      </p>
+    </section>
   </article>
 </section>
 <%- include('../partials/footer') %>

@@ -2,15 +2,12 @@
 <%- include('../../partials/nav') %>
 <%- include('../../partials/alerts') %>
 <section class="admin-careers" data-animate="fade-up">
-  <header class="admin-careers__header admin-careers__header--hero">
+  <header class="admin-careers__header">
     <div>
       <h1><%= application.full_name %></h1>
       <p class="muted">Tracking ID <code><%= application.tracking_id %></code></p>
     </div>
-    <div class="admin-careers__actions">
-      <span class="status-badge status-badge--<%= application.status.toLowerCase() %>"><%= application.status %></span>
-      <a class="pill-link" href="/admin/careers/applications">Back to list</a>
-    </div>
+    <a class="pill-link" href="/admin/careers/applications">Back to list</a>
   </header>
 
   <article class="admin-careers__detail">
@@ -23,6 +20,7 @@
           <div><dt>Phone</dt><dd><a href="tel:<%= application.phone %>"><%= application.phone %></a></dd></div>
         <% } %>
         <div><dt>Submitted</dt><dd><%= new Date(application.created_at).toLocaleString() %></dd></div>
+        <div><dt>Status</dt><dd><span class="status status--<%= application.status.toLowerCase() %>"><%= application.status %></span></dd></div>
       </dl>
       <div class="admin-careers__downloads">
         <% if (application.resume_path) { %>
@@ -32,21 +30,6 @@
           <a class="pill-link" href="/admin/careers/applications/<%= application.id %>/download/cover">Download cover letter</a>
         <% } %>
       </div>
-      <% const timeline = [
-        { key: 'SUBMITTED', label: 'Submitted' },
-        { key: 'IN_REVIEW', label: 'In review' },
-        application.status === 'REJECTED' ? { key: 'REJECTED', label: 'Decision shared' } : { key: 'APPROVED', label: 'Decision shared' },
-      ]; %>
-      <% const currentIndex = timeline.findIndex(function(step) { return step.key === application.status; }); %>
-      <ol class="admin-careers__timeline" aria-label="Status timeline">
-        <% timeline.forEach(function(step, index) { %>
-          <% const complete = index <= (currentIndex === -1 ? 0 : currentIndex); %>
-          <li class="<%= complete ? 'is-complete' : '' %>">
-            <span class="admin-careers__timeline-step" aria-hidden="true"><%= index + 1 %></span>
-            <span><%= step.label %></span>
-          </li>
-        <% }); %>
-      </ol>
     </section>
 
     <section>

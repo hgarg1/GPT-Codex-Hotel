@@ -16,33 +16,6 @@
     <p class="careers-track-note">
       We’ll email updates to <strong><%= application.email %></strong>. You can return to this page anytime with your tracking ID.
     </p>
-    <% const decisionStep = application.status === 'REJECTED' ? 'REJECTED' : 'APPROVED'; %>
-    <% const timeline = [
-      { key: 'SUBMITTED', label: 'Submitted', copy: 'We received your application and shared a confirmation.' },
-      { key: 'IN_REVIEW', label: 'In review', copy: 'Hiring leads are reviewing your experience and responses.' },
-      decisionStep === 'REJECTED'
-        ? { key: 'REJECTED', label: 'Decision shared', copy: 'We\'ll reach out with feedback and keep you in our orbit.' }
-        : { key: 'APPROVED', label: 'Offer in motion', copy: 'We\'re preparing next steps and onboarding details.' },
-    ]; %>
-    <% const currentIndex = timeline.findIndex(function(step) { return step.key === application.status; }); %>
-    <ol class="careers-track-timeline" role="list" aria-label="Application timeline">
-      <% timeline.forEach(function(step, index) { %>
-        <% const complete = index <= (currentIndex === -1 ? 0 : currentIndex); %>
-        <li class="<%= complete ? 'is-complete' : '' %>">
-          <span class="careers-track-step" aria-hidden="true"><%= index + 1 %></span>
-          <div>
-            <p class="careers-track-step-label"><%= step.label %></p>
-            <p class="careers-track-step-copy"><%= step.copy %></p>
-          </div>
-        </li>
-      <% }); %>
-    </ol>
-    <div class="careers-track-callout">
-      <p>
-        Need to update details or share availability changes? Reach us at
-        <a href="mailto:talent@auroranexus.com">talent@auroranexus.com</a> with your tracking ID.
-      </p>
-    </div>
   </article>
 </section>
 <%- include('../partials/footer') %>

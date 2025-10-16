@@ -2,7 +2,7 @@
 <%- include('../../partials/nav') %>
 <%- include('../../partials/alerts') %>
 <section class="admin-careers" data-animate="fade-up">
-  <header class="admin-careers__header admin-careers__header--hero">
+  <header class="admin-careers__header">
     <div>
       <h1>Job openings</h1>
       <p class="muted">Create, edit, or retire roles that appear on the public careers site.</p>
@@ -13,10 +13,6 @@
   <form class="admin-careers__form" action="/api/admin/careers/jobs" method="post" data-careers-job-form>
     <fieldset>
       <legend>New job</legend>
-      <p class="admin-careers__form-note">
-        Draft compelling openings with inclusive language. You can update or pause listings anytime—changes sync instantly to the
-        public page.
-      </p>
       <div class="form-grid">
         <div class="form-field">
           <label for="job-title">Title <span aria-hidden="true">*</span></label>
@@ -55,10 +51,9 @@
 
   <section class="admin-careers__table" aria-live="polite">
     <% if (!jobs.length) { %>
-      <p class="admin-careers__empty">No jobs recorded yet. Start by publishing a flagship role above.</p>
+      <p>No jobs recorded yet.</p>
     <% } else { %>
       <table>
-        <caption class="sr-only">All job openings and their visibility state</caption>
         <thead>
           <tr>
             <th scope="col">Title</th>
