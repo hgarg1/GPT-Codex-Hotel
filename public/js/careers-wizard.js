@@ -6,6 +6,32 @@ if (container) {
   const submitEndpoint = container.dataset.submitEndpoint;
   const csrfToken = container.dataset.csrf;
   const feedback = container.querySelector('.careers-form-feedback');
+  const form = container.querySelector('form[data-careers-step]');
+
+  function resolveStorage() {
+    try {
+      const key = '__careers_wizard_test__';
+      window.localStorage.setItem(key, 'ok');
+      window.localStorage.removeItem(key);
+      return window.localStorage;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  const storage = resolveStorage();
+  const draftKey = storage && jobId ? `careers:wizard:${jobId}:step:${step}` : null;
+  const shouldPersistDraft = Boolean(form && draftKey && form.enctype !== 'multipart/form-data');
+  let hasPendingChanges = false;
+
+  const beforeUnloadHandler = (event) => {
+    if (!hasPendingChanges) {
+      return;
+    }
+    event.preventDefault();
+    event.returnValue = '';
+  };
+  window.addEventListener('beforeunload', beforeUnloadHandler);
 
   function setFeedback(message, type = 'info') {
     if (!feedback) return;
@@ -16,6 +42,91 @@ if (container) {
     }
     feedback.className = `careers-form-feedback is-${type}`;
     feedback.textContent = message;
+  }
+
+  function serialiseFormData(targetForm) {
+    const result = {};
+    if (!targetForm) {
+      return result;
+    }
+    const elements = Array.from(targetForm.elements);
+    elements.forEach((element) => {
+      if (
+        !(element instanceof HTMLInputElement ||
+        element instanceof HTMLTextAreaElement ||
+        element instanceof HTMLSelectElement)
+      ) {
+        return;
+      }
+      const name = element.name;
+      if (!name) return;
+      if (element instanceof HTMLInputElement) {
+        if (element.type === 'file') {
+          return;
+        }
+        if (element.type === 'checkbox') {
+          result[name] = element.checked;
+          return;
+        }
+        if (element.type === 'radio') {
+          if (element.checked) {
+            result[name] = element.value;
+          } else if (!(name in result)) {
+            result[name] = null;
+          }
+          return;
+        }
+      }
+      result[name] = element.value;
+    });
+    return result;
+  }
+
+  function restoreDraft(targetForm, draft) {
+    if (!targetForm || !draft) {
+      return;
+    }
+    Object.entries(draft).forEach(([name, value]) => {
+      const field = targetForm.elements.namedItem(name);
+      if (!field) return;
+      if (field instanceof RadioNodeList) {
+        Array.from(field).forEach((node) => {
+          if (node instanceof HTMLInputElement && node.type === 'radio') {
+            node.checked = node.value === value;
+          }
+        });
+        return;
+      }
+      const element = field;
+      if (element instanceof HTMLInputElement) {
+        if (element.type === 'checkbox') {
+          element.checked = Boolean(value);
+        } else if (element.type !== 'file') {
+          element.value = typeof value === 'string' ? value : value ?? '';
+        }
+      } else if (element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement) {
+        element.value = typeof value === 'string' ? value : value ?? '';
+      }
+    });
+  }
+
+  function persistDraft() {
+    if (!shouldPersistDraft || !storage || !draftKey) {
+      return;
+    }
+    const draft = serialiseFormData(form);
+    storage.setItem(draftKey, JSON.stringify(draft));
+  }
+
+  function clearDraft() {
+    if (!storage || !draftKey) {
+      return;
+    }
+    storage.removeItem(draftKey);
+  }
+
+  function markDirty() {
+    hasPendingChanges = true;
   }
 
   function disableButton(button, disabled) {
@@ -37,6 +148,7 @@ if (container) {
       if (!jobId) return;
       setFeedback('');
       disableButton(submitButton, true);
+      setFeedback('Saving progress…', 'info');
 
       try {
         let response;
@@ -82,11 +194,15 @@ if (container) {
         }
 
         const json = await response.json();
+        clearDraft();
+        hasPendingChanges = false;
         const nextStepUrl = json.next || buildStepUrl(step + 1);
+        window.removeEventListener('beforeunload', beforeUnloadHandler);
         window.location.href = nextStepUrl;
       } catch (error) {
         setFeedback(error.message || 'We hit a snag. Please try again.', 'error');
         disableButton(submitButton, false);
+        hasPendingChanges = true;
       }
     });
   }
@@ -98,6 +214,7 @@ if (container) {
       if (!jobId) return;
       setFeedback('');
       disableButton(submitButton, true);
+      setFeedback('Submitting application…', 'info');
       const payload = new FormData(form);
       payload.append('jobId', jobId);
       try {
@@ -125,14 +242,17 @@ if (container) {
           feedback.appendChild(document.createElement('br'));
           feedback.appendChild(link);
         }
+        clearDraft();
+        hasPendingChanges = false;
+        window.removeEventListener('beforeunload', beforeUnloadHandler);
       } catch (error) {
         setFeedback(error.message || 'We could not submit your application.', 'error');
         disableButton(submitButton, false);
+        hasPendingChanges = true;
       }
     });
   }
 
-  const form = container.querySelector('form[data-careers-step]');
   if (form) {
     if (step === 5) {
       handleSubmitStep(form);
@@ -141,20 +261,60 @@ if (container) {
     }
   }
 
-  const requiredFields = Array.from(container.querySelectorAll('form[data-careers-step] input[required], form[data-careers-step] textarea[required]'));
-  requiredFields.forEach((field) => {
-    field.addEventListener('input', () => {
-      const formEl = field.closest('form');
-      if (!formEl) return;
-      const button = formEl.querySelector('button[type="submit"]');
-      if (!button) return;
-      const invalid = !formEl.checkValidity();
-      button.disabled = invalid;
-    });
-    const formEl = field.closest('form');
-    const button = formEl?.querySelector('button[type="submit"]');
-    if (formEl && button) {
-      button.disabled = !formEl.checkValidity();
+  if (form && shouldPersistDraft && storage && draftKey) {
+    try {
+      const stored = storage.getItem(draftKey);
+      if (stored) {
+        restoreDraft(form, JSON.parse(stored));
+      }
+    } catch (error) {
+      console.warn('Failed to restore careers draft', error);
     }
-  });
+  }
+
+  if (form) {
+    const requiredFields = Array.from(
+      form.querySelectorAll('input[required], textarea[required]')
+    );
+    requiredFields.forEach((field) => {
+      field.addEventListener('input', () => {
+        const formEl = field.closest('form');
+        if (!formEl) return;
+        const button = formEl.querySelector('button[type="submit"]');
+        if (!button) return;
+        const invalid = !formEl.checkValidity();
+        button.disabled = invalid;
+      });
+      const formEl = field.closest('form');
+      const button = formEl?.querySelector('button[type="submit"]');
+      if (formEl && button) {
+        button.disabled = !formEl.checkValidity();
+      }
+    });
+
+    const persistableFields = Array.from(form.elements).filter((element) =>
+      element instanceof HTMLInputElement ||
+      element instanceof HTMLTextAreaElement ||
+      element instanceof HTMLSelectElement
+    );
+
+    persistableFields.forEach((element) => {
+      const eventName = element instanceof HTMLInputElement && element.type === 'checkbox' ? 'change' : 'input';
+      element.addEventListener(eventName, () => {
+        markDirty();
+        if (shouldPersistDraft) {
+          persistDraft();
+        }
+      });
+      if (element instanceof HTMLInputElement && element.type === 'file') {
+        element.addEventListener('change', () => {
+          markDirty();
+        });
+      }
+    });
+
+    if (shouldPersistDraft) {
+      persistDraft();
+    }
+  }
 }

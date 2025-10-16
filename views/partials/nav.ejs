@@ -28,6 +28,8 @@
         <a href="/book" class="nav-link">Book</a>
         <a href="/contact" class="nav-link">Contact</a>
         <% if (currentUser) { %>
+          <% const normalizedRole = String(currentUser.role || '').toUpperCase(); %>
+          <% const isAdminRole = ['ADMIN', 'SUPER_ADMIN', 'GLOBAL_ADMIN'].includes(normalizedRole); %>
           <a href="/chat" class="nav-link" data-chat-link>
             Chat
             <span
@@ -40,10 +42,13 @@
           </a>
           <a href="/dashboard" class="nav-link">Dashboard</a>
           <a href="/dining/account/reservations" class="nav-link">Dining account</a>
-          <% if (['ADMIN', 'SUPER_ADMIN', 'GLOBAL_ADMIN'].includes(String(currentUser.role || '').toUpperCase())) { %>
+          <% if (isAdminRole) { %>
             <a href="/admin" class="nav-link">Admin</a>
             <a href="/admin/time" class="nav-link">Timekeeping</a>
             <a href="/admin/requests" class="nav-link">Crew requests</a>
+          <% } %>
+          <% if (isAdminRole) { %>
+            <a href="/hr" class="nav-link">HR portal</a>
           <% } %>
         <% } %>
       </nav>

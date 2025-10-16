@@ -41,6 +41,7 @@ const employeeRoutes = require('./routes/employee');
 const employeeApiRoutes = require('./routes/employeeApi');
 const employeeBadgeRoutes = require('./routes/employeeBadge');
 const employeeRequestRoutes = require('./routes/employeeRequests');
+const hrRoutes = require('./routes/hr');
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
@@ -328,6 +329,7 @@ app.use('/', dashboardRoutes);
 app.use('/', chatLimiter, chatRoutes);
 app.use('/employee', employeeRoutes);
 app.use('/', adminRoutes);
+app.use('/', hrRoutes);
 app.use('/', diningRoutes);
 app.use('/', adminDiningRoutes);
 app.use('/', careersRouter);
