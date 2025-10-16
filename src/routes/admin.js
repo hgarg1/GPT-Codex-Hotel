@@ -17,6 +17,8 @@ const { getCurrentSeats } = require('../services/diningSeatLocks');
 const { listEntries } = require('../models/timeEntries');
 const { listAllRequests } = require('../models/employeeRequests');
 const { getUserById } = require('../models/users');
+const { countActiveJobs } = require('../careers/jobsRepo.ts');
+const { countApplicationsByStatus, listApplications } = require('../careers/applicationsRepo.ts');
 
 const router = express.Router();
 
@@ -231,6 +233,26 @@ router.get('/admin', ensureAdmin, (req, res) => {
   }, new Map());
   const diningCoverage = Array.from(diningCoverageMap.values()).sort((a, b) => a.role.localeCompare(b.role));
 
+  let careersSummary = null;
+  try {
+    const statusCounts = countApplicationsByStatus();
+    const activeJobs = countActiveJobs();
+    const latestApplications = listApplications()
+      .slice(0, 3)
+      .map((application) => ({
+        id: application.id,
+        fullName: application.full_name,
+        jobTitle: application.job_title,
+        status: application.status,
+        createdAt: application.created_at,
+      }));
+    careersSummary = { statusCounts, activeJobs, latestApplications };
+  } catch (error) {
+    console.warn('Failed to load careers summary for admin dashboard', error);
+  }
+
+  res.locals.extraStyles = [...(res.locals.extraStyles || []), '/css/admin-console.css', '/css/admin-careers.css'];
+
   res.render('admin/index', {
     pageTitle: 'Admin Control Deck',
     rooms,
@@ -255,7 +277,8 @@ router.get('/admin', ensureAdmin, (req, res) => {
     adminAccess: {
       actorRole,
       allowedSubAdminRoles
-    }
+    },
+    careersSummary
   });
 });
 

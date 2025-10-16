@@ -73,8 +73,10 @@ router.post('/signup', async (req, res, next) => {
     issueSessionToken(res, user);
     req.pushAlert('success', `Welcome aboard, ${user.name}. Your Skyhaven profile is ready.`);
     const role = normalizeRole(user.role);
+    const departmentLabel = typeof user.department === 'string' ? user.department.toLowerCase() : '';
+    const hrRedirect = role === Roles.ADMIN && departmentLabel.includes('people') ? '/hr' : null;
     const hasEmployeeRecord = role === Roles.EMPLOYEE && Boolean(getEmployeeByEmail(user.email));
-    const redirectPath = hasEmployeeRecord ? '/employee' : req.session.returnTo || '/dashboard';
+    const redirectPath = hrRedirect || (hasEmployeeRecord ? '/employee' : req.session.returnTo || '/dashboard');
     delete req.session.returnTo;
     return res.redirect(redirectPath);
   } catch (creationError) {
@@ -124,8 +126,10 @@ router.post('/login', async (req, res) => {
     return res.redirect('/auth/password-reset-required');
   }
   const role = normalizeRole(user.role);
+  const departmentLabel = typeof user.department === 'string' ? user.department.toLowerCase() : '';
+  const hrRedirect = role === Roles.ADMIN && departmentLabel.includes('people') ? '/hr' : null;
   const hasEmployeeRecord = role === Roles.EMPLOYEE && Boolean(getEmployeeByEmail(user.email));
-  const redirectPath = hasEmployeeRecord ? '/employee' : req.session.returnTo || '/dashboard';
+  const redirectPath = hrRedirect || (hasEmployeeRecord ? '/employee' : req.session.returnTo || '/dashboard');
   delete req.session.returnTo;
   return res.redirect(redirectPath);
 });

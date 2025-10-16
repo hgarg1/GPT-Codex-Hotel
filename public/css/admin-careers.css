@@ -73,6 +73,19 @@
   border-bottom: none;
 }
 
+.hr-portal__summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.hr-portal__summary .admin-metric {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 1.25rem;
+}
+
 .status-toggle {
   border: 1px solid rgba(148, 163, 184, 0.3);
   border-radius: 999px;

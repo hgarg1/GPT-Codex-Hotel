@@ -1,0 +1,107 @@
+<%- include('../partials/head', { pageTitle, hotelName, csrfToken, darkMode, extraStyles }) %>
+<%- include('../partials/nav') %>
+<%- include('../partials/alerts') %>
+<section class="admin-careers hr-portal" data-animate="fade-up">
+  <header class="admin-careers__header">
+    <div>
+      <h1>People operations portal</h1>
+      <p class="muted">Track applicants, monitor the talent funnel, and jump into detailed packets.</p>
+    </div>
+    <div class="admin-careers__actions">
+      <a class="pill-link" href="/admin/careers">Careers dashboard</a>
+      <a class="pill-link" href="/admin/careers/jobs">Manage jobs</a>
+      <a class="pill-link primary" href="/admin/careers/applications">Admin review</a>
+    </div>
+  </header>
+
+  <section class="hr-portal__summary" aria-label="Application overview">
+    <article class="admin-metric">
+      <h2>Active openings</h2>
+      <p class="admin-metric__value"><%= totalActiveJobs %></p>
+      <p class="admin-metric__meta">Roles currently visible on the public careers page</p>
+    </article>
+    <% Object.entries(statusCounts || {}).forEach(function(entry) { %>
+      <article class="admin-metric">
+        <h2><%= entry[0].replace('_', ' ') %></h2>
+        <p class="admin-metric__value"><%= entry[1] %></p>
+        <p class="admin-metric__meta">Applications in this stage</p>
+      </article>
+    <% }); %>
+  </section>
+
+  <form class="admin-careers__filters" method="get" action="/hr" aria-label="Filter applications">
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="hr-filter-job">Job</label>
+        <select id="hr-filter-job" name="jobId">
+          <option value="">All jobs</option>
+          <% jobs.forEach(function(job) { %>
+            <option value="<%= job.id %>" <%= filters.jobId === job.id ? 'selected' : '' %>><%= job.title %></option>
+          <% }); %>
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="hr-filter-status">Status</label>
+        <% const statusOptions = ['SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED']; %>
+        <select id="hr-filter-status" name="status">
+          <option value="">All statuses</option>
+          <% statusOptions.forEach(function(status) { %>
+            <option value="<%= status %>" <%= filters.status === status ? 'selected' : '' %>><%= status.replace('_', ' ') %></option>
+          <% }); %>
+        </select>
+      </div>
+    </div>
+    <footer class="careers-form-actions">
+      <button class="pill-link primary" type="submit">Apply filters</button>
+      <a class="pill-link secondary" href="/hr">Clear</a>
+    </footer>
+  </form>
+
+  <section class="admin-careers__table" aria-live="polite">
+    <% if (!applications.length) { %>
+      <p>No applications match the current filters.</p>
+    <% } else { %>
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Candidate</th>
+            <th scope="col">Job</th>
+            <th scope="col">Stage</th>
+            <th scope="col">Highlights</th>
+            <th scope="col">Submitted</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% applications.forEach(function(app) { %>
+            <tr>
+              <td data-label="Candidate">
+                <strong><%= app.full_name %></strong>
+                <span class="muted"><%= app.email %></span>
+              </td>
+              <td data-label="Job"><%= app.job_title %></td>
+              <td data-label="Stage"><span class="status status--<%= app.status.toLowerCase() %>"><%= app.status.replace('_', ' ') %></span></td>
+              <td data-label="Highlights">
+                <% const basics = app.answers?.basics || {}; %>
+                <% const experience = app.answers?.experience || {}; %>
+                <p><strong>Location:</strong> <%= basics.locationEligibility || '—' %></p>
+                <p><strong>Experience:</strong> <%= experience.years ? experience.years + ' yrs' : '—' %></p>
+                <% if ((experience.skills || []).length) { %>
+                  <p><strong>Skills:</strong> <%= experience.skills.slice(0, 3).join(', ') %><%= experience.skills.length > 3 ? '…' : '' %></p>
+                <% } %>
+              </td>
+              <td data-label="Submitted"><%= new Date(app.created_at).toLocaleString() %></td>
+              <td data-label="Actions">
+                <a class="pill-link" href="/hr/applications/<%= app.id %>">Open packet</a>
+                <% if (app.resume_path) { %>
+                  <a class="pill-link secondary" href="/hr/applications/<%= app.id %>/download/resume">Resume</a>
+                <% } %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    <% } %>
+  </section>
+</section>
+<%- include('../partials/footer') %>

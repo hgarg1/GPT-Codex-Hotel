@@ -2,12 +2,14 @@
 <%- include('../../partials/nav') %>
 <%- include('../../partials/alerts') %>
 <section class="admin-careers" data-animate="fade-up">
+  <% const backHref = typeof backUrl === 'string' && backUrl.length ? backUrl : '/admin/careers/applications'; %>
+  <% const downloadBase = typeof downloadUrlBase === 'string' && downloadUrlBase.length ? downloadUrlBase : '/admin/careers/applications'; %>
   <header class="admin-careers__header">
     <div>
       <h1><%= application.full_name %></h1>
       <p class="muted">Tracking ID <code><%= application.tracking_id %></code></p>
     </div>
-    <a class="pill-link" href="/admin/careers/applications">Back to list</a>
+    <a class="pill-link" href="<%= backHref %>">Back to list</a>
   </header>
 
   <article class="admin-careers__detail">
@@ -24,10 +26,10 @@
       </dl>
       <div class="admin-careers__downloads">
         <% if (application.resume_path) { %>
-          <a class="pill-link" href="/admin/careers/applications/<%= application.id %>/download/resume">Download resume</a>
+          <a class="pill-link" href="<%= downloadBase %>/<%= application.id %>/download/resume">Download resume</a>
         <% } %>
         <% if (application.cover_letter_path) { %>
-          <a class="pill-link" href="/admin/careers/applications/<%= application.id %>/download/cover">Download cover letter</a>
+          <a class="pill-link" href="<%= downloadBase %>/<%= application.id %>/download/cover">Download cover letter</a>
         <% } %>
       </div>
     </section>

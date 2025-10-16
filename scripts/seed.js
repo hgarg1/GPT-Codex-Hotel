@@ -47,7 +47,13 @@ const BOOTSTRAP_ACCOUNTS = {
       password: envOrDefault('SEED_SUPER_ADMIN_THREE_PASSWORD', 'SuperCosmos!23'),
       department: envOrDefault('SEED_SUPER_ADMIN_THREE_DEPARTMENT', 'Guest Experience Ops')
     }
-  ]
+  ],
+  hr: {
+    name: envOrDefault('SEED_HR_ADMIN_NAME', 'Rhea Solis'),
+    email: envOrDefault('SEED_HR_ADMIN_EMAIL', 'hr@skyhaven.test'),
+    password: envOrDefault('SEED_HR_ADMIN_PASSWORD', 'PeopleOps!23'),
+    department: envOrDefault('SEED_HR_ADMIN_DEPARTMENT', 'People Operations')
+  }
 };
 
 const DEFAULT_ROLE_PERMISSIONS = {
@@ -491,6 +497,16 @@ function insertUsers() {
 
   const additionalUsers = [
     {
+      name: BOOTSTRAP_ACCOUNTS.hr.name,
+      email: BOOTSTRAP_ACCOUNTS.hr.email,
+      role: Roles.ADMIN,
+      department: BOOTSTRAP_ACCOUNTS.hr.department,
+      phone: '+1-555-230-4400',
+      bio: 'People operations lead stewarding the talent pipeline.',
+      mustChangePassword: 0,
+      passwordOverride: BOOTSTRAP_ACCOUNTS.hr.password
+    },
+    {
       name: 'Astra Vega',
       email: 'astra@skyhaven.test',
       role: Roles.ADMIN,
@@ -542,7 +558,7 @@ function insertUsers() {
       id: uuidv4(),
       name: user.name,
       email: user.email,
-      passwordHash: bcrypt.hashSync('skyhaven123', 10),
+      passwordHash: bcrypt.hashSync(user.passwordOverride || 'skyhaven123', 10),
       role: user.role,
       phone: user.phone,
       bio: user.bio,
@@ -623,6 +639,18 @@ function insertEmployees() {
       status: 'active',
       emergencyContact: 'Rowan Quinn · +1-555-870-1188',
       notes: 'Owns guest delight initiatives across all decks.'
+    },
+    {
+      name: BOOTSTRAP_ACCOUNTS.hr.name,
+      email: BOOTSTRAP_ACCOUNTS.hr.email,
+      phone: '+1-555-230-4400',
+      department: BOOTSTRAP_ACCOUNTS.hr.department,
+      title: 'People Operations Lead',
+      employmentType: 'Full-Time',
+      startDate: '2020-09-15',
+      status: 'active',
+      emergencyContact: 'Ilan Solis · +1-555-230-1144',
+      notes: 'Oversees talent acquisition and crew lifecycle programs.'
     },
     {
       name: 'Astra Vega',

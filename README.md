@@ -41,6 +41,7 @@ Seeded administrator credentials (development only):
 - Super Admin — Orion Pax (`super.orion@skyhaven.dev` / `SuperNova!23`)
 - Super Admin — Lyric Hale (`super.lyric@skyhaven.dev` / `SuperAurora!23`)
 - Super Admin — Vela Quinn (`super.vela@skyhaven.dev` / `SuperCosmos!23`)
+- HR Admin — Rhea Solis (`hr@skyhaven.test` / `PeopleOps!23`)
 
 Legacy staff accounts (password `skyhaven123`):
 

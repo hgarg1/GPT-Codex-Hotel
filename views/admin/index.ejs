@@ -8,6 +8,58 @@
   <h1>Control deck</h1>
   <p>Monitor inventory, track bookings, and respond to guest signals across <%= hotelName %>.</p>
 
+  <% if (careersSummary) { %>
+    <section class="admin-panel admin-panel--talent" data-animate="fade-up">
+      <header class="employees-header">
+        <div>
+          <h2>Talent pipeline</h2>
+          <p>Recruiting overview for the Aurora Nexus careers funnel.</p>
+        </div>
+        <div class="employees-actions">
+          <a class="pill-link" href="/admin/careers">Careers dashboard</a>
+          <a class="pill-link" href="/admin/careers/applications">Admin review</a>
+          <a class="pill-link primary" href="/hr">HR portal</a>
+        </div>
+      </header>
+      <div class="admin-grid admin-grid--talent">
+        <article class="admin-metric">
+          <h3>Active openings</h3>
+          <p class="admin-metric__value"><%= careersSummary.activeJobs %></p>
+          <p class="admin-metric__meta">Published roles on the careers site</p>
+        </article>
+        <% Object.entries(careersSummary.statusCounts || {}).forEach(function(entry) { %>
+          <article class="admin-metric">
+            <h3><%= entry[0].replace('_', ' ') %></h3>
+            <p class="admin-metric__value"><%= entry[1] %></p>
+            <p class="admin-metric__meta">Applicants currently in this state</p>
+          </article>
+        <% }); %>
+      </div>
+      <div class="talent-recent">
+        <h3>Latest applications</h3>
+        <% if (!careersSummary.latestApplications.length) { %>
+          <p class="muted">No recent submissions in the last sync.</p>
+        <% } else { %>
+          <ul>
+            <% careersSummary.latestApplications.forEach(function(app) { %>
+              <li>
+                <div class="talent-recent__primary">
+                  <strong><%= app.fullName %></strong>
+                  <span class="muted"><%= app.jobTitle %></span>
+                </div>
+                <div class="talent-recent__meta">
+                  <span class="status status--<%= app.status.toLowerCase() %>"><%= app.status.replace('_', ' ') %></span>
+                  <time datetime="<%= app.createdAt %>"><%= new Date(app.createdAt).toLocaleString() %></time>
+                  <a class="pill-link secondary" href="/hr/applications/<%= app.id %>">Open</a>
+                </div>
+              </li>
+            <% }); %>
+          </ul>
+        <% } %>
+      </div>
+    </section>
+  <% } %>
+
   <section class="admin-panel admin-panel--employees" data-employee-console>
     <header class="employees-header">
       <div>
