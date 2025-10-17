@@ -1,7 +1,6 @@
 import express, { type Request, type Response, type Express, type NextFunction } from 'express';
 import multer from 'multer';
 import sanitizeHtml, { type IOptions } from 'sanitize-html';
-import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { parse as parseCookie } from 'cookie';
 import { seedCareersData } from './db';
@@ -25,7 +24,7 @@ import {
 } from './applicationsRepo';
 import type { ApplicationStatus } from './tracking';
 import { getWizardState, mergeWizardState, clearWizardState } from './wizardSession';
-import { persistApplicationFiles, resolveAbsolutePath, fileExists } from './uploads';
+import { persistApplicationFiles, resolveAbsolutePath, fileExists, getStoredExtension } from './uploads';
 import type { PendingUpload } from './uploads';
 
 const upload = multer({
@@ -76,7 +75,11 @@ function createInMemoryLimiter(limit: number, windowMs: number) {
 const applyStepLimiter = createInMemoryLimiter(30, 15 * 60 * 1000);
 const applySubmitLimiter = createInMemoryLimiter(10, 15 * 60 * 1000);
 
-const allowedMimeTypes = new Set(['application/pdf']);
+const allowedMimeTypes = new Set([
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+]);
 
 function pruneAdminCsrfStore(): void {
   const now = Date.now();
@@ -427,7 +430,7 @@ careersApiRouter.post('/apply/step', applyStepLimiter, requireMultipart, async (
         const coverFile = files?.coverLetter?.[0];
 
         if (!resumeFile && !wizardState.resume) {
-          res.status(400).json({ error: 'Resume is required and must be a PDF under 5MB.' });
+          res.status(400).json({ error: 'Resume is required and must be a PDF or Word document under 5MB.' });
           return;
         }
 
@@ -440,7 +443,7 @@ careersApiRouter.post('/apply/step', applyStepLimiter, requireMultipart, async (
           });
           res.json({ next: buildStepUrl(jobId, 5) });
         } catch (error) {
-          res.status(400).json({ error: 'Only PDF files up to 5MB are accepted.' });
+          res.status(400).json({ error: 'Only PDF or Word documents up to 5MB are accepted.' });
         }
         return;
       }
@@ -591,13 +594,10 @@ careersAdminRouter.get('/applications/:id/download/:type', (req, res) => {
   }
   const type = req.params.type;
   let storedPath: string | null = null;
-  let filename = 'document.pdf';
   if (type === 'resume') {
     storedPath = application.resume_path;
-    filename = `${application.full_name.replace(/[^a-z0-9]+/gi, '-')}-resume.pdf`;
   } else if (type === 'cover') {
     storedPath = application.cover_letter_path;
-    filename = `${application.full_name.replace(/[^a-z0-9]+/gi, '-')}-cover-letter.pdf`;
   }
 
   if (!storedPath || !fileExists(storedPath)) {
@@ -606,9 +606,15 @@ careersAdminRouter.get('/applications/:id/download/:type', (req, res) => {
   }
 
   const absolutePath = resolveAbsolutePath(storedPath);
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-  fs.createReadStream(absolutePath).pipe(res);
+  const safeName = (application.full_name || 'candidate')
+    .replace(/[^a-z0-9]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase() || 'candidate';
+  const ext = getStoredExtension(storedPath);
+  const suffix = type === 'cover' ? 'cover-letter' : 'resume';
+  const filename = `${safeName}-${suffix}${ext}`;
+
+  res.download(absolutePath, filename);
 });
 
 careersAdminApiRouter.post('/jobs', (req, res) => {

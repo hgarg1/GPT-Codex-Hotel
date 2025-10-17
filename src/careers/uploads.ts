@@ -15,6 +15,36 @@ export interface PersistedUploadPaths {
 
 export const uploadRoot = path.resolve(process.cwd(), process.env.UPLOAD_DIR || './uploads');
 
+const MIME_EXTENSION_MAP = new Map<string, string>([
+  ['application/pdf', '.pdf'],
+  ['application/msword', '.doc'],
+  ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.docx']
+]);
+
+const ALLOWED_EXTENSIONS = new Set(['.pdf', '.doc', '.docx']);
+
+function normaliseExtension(candidate?: string | null): string | null {
+  if (!candidate) {
+    return null;
+  }
+  const prefixed = candidate.startsWith('.') ? candidate.toLowerCase() : `.${candidate.toLowerCase()}`;
+  return ALLOWED_EXTENSIONS.has(prefixed) ? prefixed : null;
+}
+
+function extensionFromUpload(upload: PendingUpload): string {
+  const fromName = normaliseExtension(path.extname(upload.originalName));
+  if (fromName) {
+    return fromName;
+  }
+  const mapped = MIME_EXTENSION_MAP.get(upload.mimeType) || null;
+  const fromMime = normaliseExtension(mapped);
+  return fromMime || '.pdf';
+}
+
+export function getStoredExtension(storedPath: string): string {
+  return normaliseExtension(path.extname(storedPath)) || '.pdf';
+}
+
 export function persistApplicationFiles(
   applicationId: string,
   files: { resume?: PendingUpload | null; coverLetter?: PendingUpload | null }
@@ -29,14 +59,16 @@ export function persistApplicationFiles(
 
   if (files.resume) {
     const resumeBuffer = Buffer.from(files.resume.base64, 'base64');
-    const resumePath = path.join(applicationDir, 'resume.pdf');
+    const resumeExtension = extensionFromUpload(files.resume);
+    const resumePath = path.join(applicationDir, `resume${resumeExtension}`);
     fs.writeFileSync(resumePath, resumeBuffer);
     paths.resumePath = path.relative(process.cwd(), resumePath);
   }
 
   if (files.coverLetter) {
     const coverBuffer = Buffer.from(files.coverLetter.base64, 'base64');
-    const coverPath = path.join(applicationDir, 'cover-letter.pdf');
+    const coverExtension = extensionFromUpload(files.coverLetter);
+    const coverPath = path.join(applicationDir, `cover-letter${coverExtension}`);
     fs.writeFileSync(coverPath, coverBuffer);
     paths.coverLetterPath = path.relative(process.cwd(), coverPath);
   }

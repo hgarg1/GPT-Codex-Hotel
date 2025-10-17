@@ -1,12 +1,12 @@
 const express = require('express');
-const { ensureAdmin } = require('../middleware/auth');
+const { ensureHrStaff } = require('../middleware/auth');
 const {
   listApplications,
   countApplicationsByStatus,
   getApplicationById,
 } = require('../careers/applicationsRepo.ts');
 const { listJobs, getJobById, countActiveJobs } = require('../careers/jobsRepo.ts');
-const { resolveAbsolutePath, fileExists } = require('../careers/uploads');
+const { resolveAbsolutePath, fileExists, getStoredExtension } = require('../careers/uploads');
 
 const router = express.Router();
 
@@ -35,7 +35,7 @@ function parseAnswers(application) {
   }
 }
 
-router.get('/hr', ensureAdmin, (req, res) => {
+router.get('/hr', ensureHrStaff, (req, res) => {
   const filters = buildFilters(req.query || {});
   const jobs = listJobs({ includeInactive: true });
   const applications = listApplications(filters).map((application) => ({
@@ -57,7 +57,7 @@ router.get('/hr', ensureAdmin, (req, res) => {
   });
 });
 
-router.get('/hr/applications/:id', ensureAdmin, (req, res) => {
+router.get('/hr/applications/:id', ensureHrStaff, (req, res) => {
   const application = getApplicationById(req.params.id);
   if (!application) {
     res.status(404).render('404', { pageTitle: 'Application not found' });
@@ -79,7 +79,7 @@ router.get('/hr/applications/:id', ensureAdmin, (req, res) => {
   });
 });
 
-router.get('/hr/applications/:id/download/:type', ensureAdmin, (req, res) => {
+router.get('/hr/applications/:id/download/:type', ensureHrStaff, (req, res) => {
   const application = getApplicationById(req.params.id);
   if (!application) {
     res.status(404).send('Application not found');
@@ -100,7 +100,12 @@ router.get('/hr/applications/:id/download/:type', ensureAdmin, (req, res) => {
     return;
   }
 
-  res.download(absolute, isResume ? 'resume.pdf' : 'cover-letter.pdf');
+  const safeName = (application.full_name || 'candidate').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'candidate';
+  const ext = getStoredExtension(filePath);
+  const suffix = isResume ? 'resume' : 'cover-letter';
+  const downloadName = `${safeName}-${suffix}${ext}`;
+
+  res.download(absolute, downloadName);
 });
 
 module.exports = router;

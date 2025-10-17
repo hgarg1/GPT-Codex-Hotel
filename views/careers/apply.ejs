@@ -121,21 +121,32 @@
             <legend>Uploads</legend>
             <div class="form-grid">
               <div class="form-field form-field--full">
-                <label for="resume">Resume (PDF, max 5MB) <span aria-hidden="true">*</span></label>
+                <label for="resume">Resume (PDF or Word, max 5MB) <span aria-hidden="true">*</span></label>
                 <% if (state.resume) { %>
                   <p class="careers-file-existing">Current: <%= state.resume.originalName %></p>
                 <% } %>
-                <input id="resume" name="resume" type="file" accept="application/pdf" <%= state.resume ? '' : 'required' %> />
+                <input
+                  id="resume"
+                  name="resume"
+                  type="file"
+                  accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  <%= state.resume ? '' : 'required' %>
+                />
               </div>
               <div class="form-field form-field--full">
-                <label for="coverLetter">Cover letter (PDF, optional)</label>
+                <label for="coverLetter">Cover letter (PDF or Word, optional)</label>
                 <% if (state.coverLetter) { %>
                   <p class="careers-file-existing">Current: <%= state.coverLetter.originalName %></p>
                 <% } %>
-                <input id="coverLetter" name="coverLetter" type="file" accept="application/pdf" />
+                <input
+                  id="coverLetter"
+                  name="coverLetter"
+                  type="file"
+                  accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                />
               </div>
             </div>
-            <p class="careers-upload-hint">We encrypt uploads in transit and rest. Accepted format: PDF only.</p>
+            <p class="careers-upload-hint">We encrypt uploads in transit and rest. Accepted formats: PDF, DOC, or DOCX.</p>
           </fieldset>
           <footer class="careers-form-actions">
             <a class="pill-link secondary" href="<%= stepUrl.replace('step=' + step, 'step=' + (step - 1)) %>">Back</a>

@@ -116,11 +116,16 @@ const ensureAdmin = requireRole(Roles.ADMIN, {
   forbiddenMessage: 'You need Aurora Nexus Skyhaven curator privileges to view that console.'
 });
 
+const ensureHrStaff = requireRole(Roles.HR_ADMIN, {
+  forbiddenMessage: 'People operations clearance required to access that portal.'
+});
+
 module.exports = {
   hydrateUser,
   ensureAuthenticated,
   ensureApiAuth,
   ensureAdmin,
+  ensureHrStaff,
   ensureEmployeePortal,
   ensureEmployeeApi
 };
