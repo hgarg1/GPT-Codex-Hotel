@@ -30,6 +30,7 @@
         <% if (currentUser) { %>
           <% const normalizedRole = String(currentUser.role || '').toUpperCase(); %>
           <% const isAdminRole = ['ADMIN', 'SUPER_ADMIN', 'GLOBAL_ADMIN'].includes(normalizedRole); %>
+          <% const isHrRole = normalizedRole === 'HR_ADMIN'; %>
           <a href="/chat" class="nav-link" data-chat-link>
             Chat
             <span
@@ -47,7 +48,7 @@
             <a href="/admin/time" class="nav-link">Timekeeping</a>
             <a href="/admin/requests" class="nav-link">Crew requests</a>
           <% } %>
-          <% if (isAdminRole) { %>
+          <% if (isHrRole || isAdminRole) { %>
             <a href="/hr" class="nav-link">HR portal</a>
           <% } %>
         <% } %>

@@ -63,6 +63,7 @@ const DEFAULT_ROLE_PERMISSIONS = {
     Permissions.MANAGE_EMPLOYEES,
     Permissions.RESET_PASSWORDS
   ]),
+  [Roles.HR_ADMIN]: new Set([Permissions.MANAGE_EMPLOYEES]),
   [Roles.EMPLOYEE]: new Set(),
   [Roles.GUEST]: new Set()
 };
@@ -428,6 +429,7 @@ function insertRoles() {
     { id: Roles.GLOBAL_ADMIN, label: 'Global Administrator', priority: 50 },
     { id: Roles.SUPER_ADMIN, label: 'Super Administrator', priority: 40 },
     { id: Roles.ADMIN, label: 'Administrator', priority: 30 },
+    { id: Roles.HR_ADMIN, label: 'People Operations Administrator', priority: 20 },
     { id: Roles.EMPLOYEE, label: 'Employee', priority: 10 },
     { id: Roles.GUEST, label: 'Guest', priority: 0 }
   ];
@@ -499,7 +501,7 @@ function insertUsers() {
     {
       name: BOOTSTRAP_ACCOUNTS.hr.name,
       email: BOOTSTRAP_ACCOUNTS.hr.email,
-      role: Roles.ADMIN,
+      role: Roles.HR_ADMIN,
       department: BOOTSTRAP_ACCOUNTS.hr.department,
       phone: '+1-555-230-4400',
       bio: 'People operations lead stewarding the talent pipeline.',

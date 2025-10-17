@@ -52,7 +52,14 @@ const { getDb } = require('../db');
 const router = express.Router();
 const db = getDb();
 
-const roleSummaryOrder = [Roles.GLOBAL_ADMIN, Roles.SUPER_ADMIN, Roles.ADMIN, Roles.EMPLOYEE, Roles.GUEST];
+const roleSummaryOrder = [
+  Roles.GLOBAL_ADMIN,
+  Roles.SUPER_ADMIN,
+  Roles.ADMIN,
+  Roles.HR_ADMIN,
+  Roles.EMPLOYEE,
+  Roles.GUEST
+];
 
 function sanitizeOptional(value) {
   if (value === undefined || value === null) {

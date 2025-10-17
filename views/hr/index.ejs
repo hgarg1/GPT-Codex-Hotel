@@ -2,16 +2,20 @@
 <%- include('../partials/nav') %>
 <%- include('../partials/alerts') %>
 <section class="admin-careers hr-portal" data-animate="fade-up">
+  <% const normalizedRole = String(currentUser?.role || '').toUpperCase(); %>
+  <% const hasAdminAccess = ['ADMIN', 'SUPER_ADMIN', 'GLOBAL_ADMIN'].includes(normalizedRole); %>
   <header class="admin-careers__header">
     <div>
       <h1>People operations portal</h1>
       <p class="muted">Track applicants, monitor the talent funnel, and jump into detailed packets.</p>
     </div>
-    <div class="admin-careers__actions">
-      <a class="pill-link" href="/admin/careers">Careers dashboard</a>
-      <a class="pill-link" href="/admin/careers/jobs">Manage jobs</a>
-      <a class="pill-link primary" href="/admin/careers/applications">Admin review</a>
-    </div>
+    <% if (hasAdminAccess) { %>
+      <div class="admin-careers__actions">
+        <a class="pill-link" href="/admin/careers">Careers dashboard</a>
+        <a class="pill-link" href="/admin/careers/jobs">Manage jobs</a>
+        <a class="pill-link primary" href="/admin/careers/applications">Admin review</a>
+      </div>
+    <% } %>
   </header>
 
   <section class="hr-portal__summary" aria-label="Application overview">
@@ -95,6 +99,9 @@
                 <a class="pill-link" href="/hr/applications/<%= app.id %>">Open packet</a>
                 <% if (app.resume_path) { %>
                   <a class="pill-link secondary" href="/hr/applications/<%= app.id %>/download/resume">Resume</a>
+                <% } %>
+                <% if (app.cover_letter_path) { %>
+                  <a class="pill-link secondary" href="/hr/applications/<%= app.id %>/download/cover">Cover letter</a>
                 <% } %>
               </td>
             </tr>

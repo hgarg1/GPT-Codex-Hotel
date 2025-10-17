@@ -10,44 +10,163 @@
     <a class="pill-link" href="/admin/careers">Back to overview</a>
   </header>
 
-  <form class="admin-careers__form" action="/api/admin/careers/jobs" method="post" data-careers-job-form>
-    <fieldset>
-      <legend>New job</legend>
-      <div class="form-grid">
-        <div class="form-field">
-          <label for="job-title">Title <span aria-hidden="true">*</span></label>
-          <input id="job-title" name="title" required />
-        </div>
-        <div class="form-field">
-          <label for="job-department">Department</label>
-          <input id="job-department" name="department" />
-        </div>
-        <div class="form-field">
-          <label for="job-location">Location</label>
-          <input id="job-location" name="location" />
-        </div>
-        <div class="form-field">
-          <label for="job-type">Employment type</label>
-          <input id="job-type" name="employment_type" />
-        </div>
-        <div class="form-field form-field--full">
-          <label for="job-description">Description (HTML supported)</label>
-          <textarea id="job-description" name="description" rows="4"></textarea>
-        </div>
-        <div class="form-field form-field--full">
-          <label for="job-requirements">Requirements (one per line)</label>
-          <textarea id="job-requirements" name="requirements" rows="4"></textarea>
-        </div>
+  <section
+    class="admin-careers__form admin-job-wizard"
+    data-job-wizard
+    data-submit-endpoint="/api/admin/careers/jobs"
+  >
+    <header class="job-wizard__intro">
+      <div>
+        <h2>Launch a new opportunity</h2>
+        <p>Create a job experience that feels as polished as the Aurora Nexus brand.</p>
       </div>
-      <label class="checkbox">
-        <input type="checkbox" name="is_active" value="1" checked />
-        <span>Publish immediately</span>
-      </label>
-    </fieldset>
-    <footer class="careers-form-actions">
-      <button class="pill-link primary" type="submit">Create job</button>
-    </footer>
-  </form>
+      <div class="job-wizard__meta">
+        <span>✨ Guided 3-step flow</span>
+        <span>📣 Live preview updates</span>
+        <span>🚀 Instant launch controls</span>
+      </div>
+    </header>
+    <ol class="job-wizard__progress" role="list" aria-label="Job creation progress">
+      <li data-job-progress-step="1">
+        <span class="job-wizard__progress-index" aria-hidden="true">1</span>
+        <span class="job-wizard__progress-label">Role identity</span>
+      </li>
+      <li data-job-progress-step="2">
+        <span class="job-wizard__progress-index" aria-hidden="true">2</span>
+        <span class="job-wizard__progress-label">Story & requirements</span>
+      </li>
+      <li data-job-progress-step="3">
+        <span class="job-wizard__progress-index" aria-hidden="true">3</span>
+        <span class="job-wizard__progress-label">Review & launch</span>
+      </li>
+    </ol>
+    <div class="job-wizard__layout">
+      <form class="job-wizard__form" data-job-wizard-form novalidate>
+        <fieldset data-job-step="1">
+          <legend>Role identity</legend>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="job-title">Title <span aria-hidden="true">*</span></label>
+              <input id="job-title" name="title" required data-job-field="title" placeholder="Chief Experience Designer" />
+            </div>
+            <div class="form-field">
+              <label for="job-department">Department</label>
+              <input id="job-department" name="department" data-job-field="department" placeholder="Experience Studio" />
+            </div>
+            <div class="form-field">
+              <label for="job-location">Location</label>
+              <input id="job-location" name="location" data-job-field="location" placeholder="Skyhaven · Hybrid" />
+            </div>
+            <div class="form-field">
+              <label for="job-type">Employment type</label>
+              <input id="job-type" name="employment_type" data-job-field="employment_type" placeholder="Full-time" />
+            </div>
+          </div>
+          <footer class="job-wizard__actions">
+            <button class="pill-link primary" type="button" data-job-next>Continue</button>
+          </footer>
+        </fieldset>
+
+        <fieldset data-job-step="2" hidden aria-hidden="true">
+          <legend>Story & requirements</legend>
+          <div class="form-grid">
+            <div class="form-field form-field--full">
+              <label for="job-description">Role story <span aria-hidden="true">*</span></label>
+              <textarea
+                id="job-description"
+                name="description"
+                rows="6"
+                required
+                data-job-field="description"
+                placeholder="Craft the experience narrative for this role. HTML supported."
+              ></textarea>
+            </div>
+            <div class="form-field form-field--full">
+              <label for="job-requirements">Key requirements</label>
+              <textarea
+                id="job-requirements"
+                name="requirements"
+                rows="5"
+                data-job-field="requirements"
+                placeholder="Experience orchestrating immersive hospitality journeys\nAbility to lead cross-functional rituals"
+              ></textarea>
+              <p class="job-wizard__hint">One requirement per line for a clean list.</p>
+            </div>
+          </div>
+          <footer class="job-wizard__actions">
+            <button class="pill-link secondary" type="button" data-job-prev>Back</button>
+            <button class="pill-link primary" type="button" data-job-next>Continue</button>
+          </footer>
+        </fieldset>
+
+        <fieldset data-job-step="3" hidden aria-hidden="true">
+          <legend>Review & launch</legend>
+          <div class="job-wizard__review">
+            <section>
+              <h3>Snapshot</h3>
+              <dl>
+                <div><dt>Title</dt><dd data-job-summary="title">—</dd></div>
+                <div><dt>Department</dt><dd data-job-summary="department">—</dd></div>
+                <div><dt>Location</dt><dd data-job-summary="location">—</dd></div>
+                <div><dt>Type</dt><dd data-job-summary="employment_type">—</dd></div>
+              </dl>
+            </section>
+            <section>
+              <h3>Narrative</h3>
+              <div data-job-summary="description" class="job-wizard__summary-text">No description captured yet.</div>
+            </section>
+            <section>
+              <h3>Requirements</h3>
+              <ul data-job-summary="requirements" class="job-wizard__summary-list"></ul>
+            </section>
+          </div>
+          <div class="job-wizard__launch">
+            <label class="checkbox">
+              <input type="checkbox" name="is_active" value="1" data-job-field="is_active" checked />
+              <span>Publish immediately to the public careers page</span>
+            </label>
+            <p class="job-wizard__hint">You can deactivate a role at any time from the table below.</p>
+          </div>
+          <footer class="job-wizard__actions">
+            <button class="pill-link secondary" type="button" data-job-prev>Back</button>
+            <button class="pill-link primary" type="submit" data-job-submit>Launch role</button>
+          </footer>
+        </fieldset>
+
+        <div class="job-wizard__status" data-job-status hidden role="status"></div>
+        <div class="job-wizard__success" data-job-success hidden>
+          <h3>Role launched!</h3>
+          <p data-job-success-message>Ready to inspire candidates. Share the preview link below.</p>
+          <div class="job-wizard__success-actions">
+            <a class="pill-link" href="#" target="_blank" rel="noopener" data-job-success-view hidden>View posting</a>
+            <button type="button" class="pill-link secondary" data-job-create-another>Launch another role</button>
+          </div>
+        </div>
+      </form>
+      <aside class="job-wizard__preview" aria-live="polite">
+        <h3>Live preview</h3>
+        <article class="job-preview-card">
+          <header>
+            <p class="job-preview-eyebrow" data-job-preview="department">Department awaiting</p>
+            <h4 data-job-preview="title">Your stellar role title</h4>
+            <p class="job-preview-meta">
+              <span data-job-preview="location">Location TBD</span>
+              <span aria-hidden="true">•</span>
+              <span data-job-preview="employment_type">Employment type</span>
+            </p>
+          </header>
+          <section>
+            <p data-job-preview="description">Write a luminous description to help talent understand the mission.</p>
+            <ul data-job-preview="requirements" class="job-preview-requirements">
+              <li>Spellbinding guest experience instincts</li>
+              <li>Comfort guiding multi-planetary stakeholders</li>
+              <li>Ability to synthesize insights into action</li>
+            </ul>
+          </section>
+        </article>
+      </aside>
+    </div>
+  </section>
 
   <section class="admin-careers__table" aria-live="polite">
     <% if (!jobs.length) { %>

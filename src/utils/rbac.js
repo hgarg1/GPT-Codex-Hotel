@@ -2,6 +2,7 @@ const Roles = Object.freeze({
   GUEST: 'GUEST',
   GLOBAL_ADMIN: 'GLOBAL_ADMIN',
   SUPER_ADMIN: 'SUPER_ADMIN',
+  HR_ADMIN: 'HR_ADMIN',
   ADMIN: 'ADMIN',
   EMPLOYEE: 'EMPLOYEE'
 });
@@ -9,6 +10,7 @@ const Roles = Object.freeze({
 const RolePriority = Object.freeze({
   [Roles.GUEST]: 0,
   [Roles.EMPLOYEE]: 10,
+  [Roles.HR_ADMIN]: 20,
   [Roles.ADMIN]: 30,
   [Roles.SUPER_ADMIN]: 40,
   [Roles.GLOBAL_ADMIN]: 50
