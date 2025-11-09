@@ -15,6 +15,7 @@
     allowedReactions = null;
   }
   const REACTIONS = allowedReactions || ['😀', '😍', '😮', '😢', '😡', '👍'];
+  const MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024;
 
   const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
   const roomList = document.querySelector('[data-room-list]');
@@ -32,6 +33,8 @@
   const emptyDmMessage = document.querySelector('[data-empty-dm]');
   const fileInput = form?.querySelector('[data-file-input]');
   const fileIndicator = form?.querySelector('[data-file-indicator]');
+  const uploadingIndicator = form?.querySelector('[data-uploading-indicator]');
+  const submitButton = form?.querySelector('[data-submit-button]');
   const sidebarToggle = container.querySelector('[data-chat-sidebar-toggle]');
   const sidebarBackdrop = container.querySelector('[data-chat-sidebar-backdrop]');
   const sidebar = container.querySelector('#chat-sidebar');
@@ -108,7 +111,7 @@
   if (!socket) {
     socket = window.io(window.location.origin, {
       path: '/socket.io',
-      transports: ['websocket', 'polling'],
+      transports: ['websocket'],
       withCredentials: true,
       autoConnect: true,
       reconnectionAttempts: 6
@@ -284,7 +287,30 @@
     }
   };
 
+  const setPendingState = (pending, label = '') => {
+    if (!form) return;
+    form.dataset.pending = pending ? 'true' : 'false';
+    if (submitButton) {
+      submitButton.disabled = pending;
+      if (pending) {
+        submitButton.setAttribute('aria-busy', 'true');
+      } else {
+        submitButton.removeAttribute('aria-busy');
+      }
+    }
+    if (uploadingIndicator) {
+      if (pending && label) {
+        uploadingIndicator.hidden = false;
+        uploadingIndicator.textContent = label;
+      } else {
+        uploadingIndicator.hidden = true;
+        uploadingIndicator.textContent = '';
+      }
+    }
+  };
+
   fileState.clear();
+  setPendingState(false);
 
   const createAttachmentNode = (attachment) => {
     const wrapper = document.createElement('div');
@@ -613,6 +639,9 @@
   const debouncedSearch = debounce(performSearch, 220);
 
   const encodeFile = async (file) => {
+    if (file.size > MAX_ATTACHMENT_SIZE) {
+      throw new Error('Attachment too large.');
+    }
     const buffer = await file.arrayBuffer();
     const payload = await encryptForTransit(buffer);
     return {
@@ -648,7 +677,11 @@
     const text = form.message.value.trim();
     const file = fileInput?.files?.[0];
     if (!text && !file) return;
-    form.dataset.pending = 'true';
+    if (file && file.size > MAX_ATTACHMENT_SIZE) {
+      alert('Attachments must be 5 MB or smaller.');
+      return;
+    }
+    setPendingState(true, file ? 'Uploading attachment…' : 'Sending…');
     try {
       const payload = {
         room: activeRoom,
@@ -659,7 +692,7 @@
         payload.attachment = await encodeFile(file);
       }
       socket.emit('chat:message', payload, (response) => {
-        form.dataset.pending = 'false';
+        setPendingState(false);
         if (response?.error) {
           alert(response.error);
           return;
@@ -669,7 +702,7 @@
         clearSuggestions();
       });
     } catch (error) {
-      form.dataset.pending = 'false';
+      setPendingState(false);
       alert('Unable to send attachment.');
     }
   });
@@ -678,7 +711,20 @@
     socket.emit('typing', { room: activeRoom });
   });
 
-  fileInput?.addEventListener('change', () => fileState.update());
+  fileInput?.addEventListener('change', () => {
+    if (!fileInput?.files || fileInput.files.length === 0) {
+      fileState.update();
+      return;
+    }
+    const file = fileInput.files[0];
+    if (file.size > MAX_ATTACHMENT_SIZE) {
+      alert('Attachments must be 5 MB or smaller.');
+      fileInput.value = '';
+      fileState.clear();
+      return;
+    }
+    fileState.update();
+  });
 
   searchInput?.addEventListener('input', (event) => {
     const term = event.target.value.trim();

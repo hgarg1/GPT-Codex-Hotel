@@ -4005,6 +4005,34 @@ body.chat-sidebar-open {
   color: var(--color-muted);
 }
 
+.chat-uploading-indicator {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.chat-uploading-indicator::before {
+  content: '';
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  border: 2px solid rgba(94, 252, 255, 0.35);
+  border-top-color: rgba(94, 252, 255, 0.9);
+  animation: chat-spinner 0.9s linear infinite;
+}
+
+.chat-uploading-indicator[hidden] {
+  display: none !important;
+}
+
+@keyframes chat-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .chat-upload {
   position: relative;
   width: 44px;

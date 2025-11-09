@@ -54,6 +54,7 @@ function addOriginVariants(origin, set) {
 const allowedOrigins = new Set();
 addOriginVariants(`http://localhost:${PORT}`, allowedOrigins);
 addOriginVariants(`http://127.0.0.1:${PORT}`, allowedOrigins);
+addOriginVariants('https://gpt-codex-hotel.onrender.com', allowedOrigins);
 
 if (process.env.SOCKET_ORIGIN) {
   addOriginVariants(process.env.SOCKET_ORIGIN, allowedOrigins);
@@ -70,6 +71,7 @@ if (process.env.RENDER_EXTERNAL_URL) {
 }
 
 const io = new Server(server, {
+  maxHttpBufferSize: 6 * 1024 * 1024,
   cors: {
     origin: (origin, callback) => {
       if (!origin || allowedOrigins.has(origin)) {
@@ -90,7 +92,7 @@ io.use((socket, next) => {
 const onlineUsers = new Map();
 const recentMessageTimestamps = new Map();
 const bannedWords = ['damn', 'hell', 'shit'];
-const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024; // 5 MB
 
 function emitToUser(userId, event, payload) {
   const sockets = onlineUsers.get(userId);
@@ -291,7 +293,7 @@ io.on('connection', (socket) => {
           return callback?.({ error: 'Attachment could not be processed.' });
         }
         if (fileBuffer.length > MAX_ATTACHMENT_SIZE) {
-          return callback?.({ error: 'Attachment exceeds the 10 MB limit.' });
+          return callback?.({ error: 'Attachment exceeds the 5 MB limit.' });
         }
         const encryptedForTransit = Boolean(encrypted);
         fileName = typeof name === 'string' && name.trim().length > 0 ? name.trim().slice(0, 160) : 'attachment';
